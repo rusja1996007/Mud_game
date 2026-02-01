@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	ctx := context.Background()
 	conn, err := simple_connect.CreateConnect(ctx)
 	if err != nil {
@@ -38,4 +39,5 @@ func main() {
 	}
 
 	fmt.Println("все кул дай новый  автомат е")
-} //6 51 39
+
+}
