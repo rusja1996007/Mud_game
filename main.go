@@ -1,17 +1,23 @@
 package main
 
 import (
-	"fmt"
-	"study/http_server"
+	"go.uber.org/zap"
 )
 
-func main() {
-	fmt.Println("http server started")
-	err := http_server.StartHttpServer()
-	if err != nil {
-		fmt.Println("error http server:", err)
-	} else {
-		fmt.Println("http stopped.")
-	}
+func foo(log *zap.Logger) {
+	log.Error("some error")
+
 }
-9:36:49
+
+func main() {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+	logger.Debug("heelo its DEBUG")
+
+	foo(logger)
+
+}
+
+//11 10 56
