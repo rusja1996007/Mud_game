@@ -7,3 +7,5 @@ type Repository interface {
 	FindByName(name string) (*Player, error)
 	Delete(id string) error
 }
+
+// КОНТРАКТ: если ты умеешь все выше - ты репозиторий.

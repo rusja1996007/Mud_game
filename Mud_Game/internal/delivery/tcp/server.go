@@ -1,21 +1,26 @@
 package tcp
 
 import (
+	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/pkg/logger"
+	"fmt"
 	"net"
+	"time"
 )
 
 type Server struct {
-	port     string
-	logger   logger.Logger
-	listener net.Listener //"слушатель"- обьект который принимает пподключение
+	port       string
+	logger     logger.Logger
+	listener   net.Listener      //"слушатель"- обьект который принимает пподключение
+	playerRepo player.Repository //Чтобы сервер имел доступ к методам сохранения и поиска игроков
 }
 
 // конструктор
-func NewServer(port string, log logger.Logger) *Server {
+func NewServer(port string, log logger.Logger, repo player.Repository) *Server {
 	return &Server{
-		port:   port,
-		logger: log,
+		port:       port,
+		logger:     log,
+		playerRepo: repo,
 		//listenet - nill, создастся позже
 	}
 
@@ -45,10 +50,38 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 	defer conn.Close()
 	// Отправляем приветствие
 	// conn.Write принимает []byte, преобразуем строку в байты и для переноса строки -\n
-	conn.Write([]byte("Добро пожаловать в MUD игру!\n"))
+	conn.Write([]byte("Добро пожаловать в MUD игру! Как тебя зовут?\n> "))
 	// Создаем буфер для чтения команд
 	// 1024 байт достаточно для любой команды
 	buffer := make([]byte, 1024)
+	n, err := conn.Read(buffer) // ждем пока напечатает имя
+	if err != nil {
+		s.logger.Info("Игрок отключился во время ввода имени")
+		return
+	}
+	name := string(buffer[:n]) //преобразованое имя
+	name = name[:len(name)-2]  ////преобразованое имя без \r \n в конце
+
+	//Геренириуем ID
+	id := fmt.Sprintf("player_%d", time.Now().UnixNano())
+
+	//Создаем игрока
+	newPlayer := &player.Player{
+		ID:          id,
+		Name:        name,
+		CurrentRoom: "start", //стартовая комната
+	}
+
+	//Сохраняем в репозиторий
+	err = s.playerRepo.Save(newPlayer)
+	if err != nil {
+		s.logger.Error("Не удалось сохранить игрока " + err.Error())                //это вылезет мне в терминале как админу
+		conn.Write([]byte("Ошибка во время создания персонажа. Попробуй позже.\n")) //это отправится игроку
+		return
+	}
+
+	s.logger.Info("Новый игрок :" + name + "(ID:" + id + ")")
+	conn.Write([]byte("Привет " + name + "! Добро пожаловать в игру !\n> "))
 	// Цикл обработки команд одного игрока
 	for {
 		// Читаем команду от игрока
@@ -66,7 +99,9 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		comand = comand[:len(comand)-2]
 		// Проверяем, не хочет ли игрок выйти
 		if comand == "quit" {
+			s.logger.Info("Игрок выходит и удаляется из репозитория")
 			conn.Write([]byte("До свидания!\n"))
+			s.playerRepo.Delete(newPlayer.ID)
 			break
 		}
 		// Формируем ответ

@@ -12,7 +12,7 @@ type MemoryRepository struct {
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{ //возвращает указатель на структуру, чтобы везде работали с одним и тем же хранилищем, а не с копией.
+	return &MemoryRepository{ //создает и возвращает адрес созданой структуры
 		players: make(map[string]*player.Player),
 	}
 }
@@ -48,6 +48,7 @@ func (x *MemoryRepository) FindByID(id string) (*player.Player, error) {
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 	// player — переменная, кого искали (если нашли),ok — это флаг успеха (нашли/не нашли)
+	//чтобы искать - Прямой доступ по ключу (x.players[id])
 	player, ok := x.players[id]
 	if !ok {
 		return nil, errors.New("Игрок с таким ID не найден")
@@ -61,6 +62,7 @@ func (x *MemoryRepository) FindByName(name string) (*player.Player, error) {
 	}
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
+	//чтобы искать по name - Перебор всех (for ... range)
 	for _, p := range x.players {
 		if p.Name == name {
 			return p, nil
