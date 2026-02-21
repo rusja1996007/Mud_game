@@ -5,6 +5,7 @@ import (
 	"Mud_game/Mud_Game/internal/pkg/config"
 	"Mud_game/Mud_Game/internal/pkg/logger"
 	"Mud_game/Mud_Game/internal/repository/memoryrepo"
+	"Mud_game/Mud_Game/internal/repository/room"
 	"fmt"
 	"strconv"
 )
@@ -17,9 +18,10 @@ func main() {
 	log.Info("Сервер запускается...")
 	log.Info(fmt.Sprintf("Название: %s", cfg.NameServer))
 	log.Info(fmt.Sprintf("Порт: %d", cfg.Port))
-	//Создаем TCP сервер с репозиторием
+	//Создаем TCP сервер с репозиторием игроков (playerRepo) и репозиторие комнат (roomRepo)
 	playerRepo := memoryrepo.NewMemoryRepository()
-	server := tcp.NewServer(strconv.Itoa(cfg.Port), log, playerRepo)
+	roomRepo := room.NewMemoryRepository()
+	server := tcp.NewServer(strconv.Itoa(cfg.Port), log, playerRepo, roomRepo)
 	go func() {
 		//Запускаем сервер в отдельной горутине
 		err := server.Start()

@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"Mud_game/Mud_Game/internal/domain/player"
+	"Mud_game/Mud_Game/internal/domain/room"
 	"Mud_game/Mud_Game/internal/pkg/logger"
 	"fmt"
 	"net"
@@ -13,14 +14,16 @@ type Server struct {
 	logger     logger.Logger
 	listener   net.Listener      //"слушатель"- обьект который принимает пподключение
 	playerRepo player.Repository //Чтобы сервер имел доступ к методам сохранения и поиска игроков
+	roomRepo   room.Repository
 }
 
 // конструктор
-func NewServer(port string, log logger.Logger, repo player.Repository) *Server {
+func NewServer(port string, log logger.Logger, repo player.Repository, roomRepo room.Repository) *Server {
 	return &Server{
 		port:       port,
 		logger:     log,
 		playerRepo: repo,
+		roomRepo:   roomRepo,
 		//listenet - nill, создастся позже
 	}
 
