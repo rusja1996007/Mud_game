@@ -1,5 +1,7 @@
 package room
 
+import "Mud_game/Mud_Game/internal/domain/item"
+
 // Room = сама комната (что она делает)
 type RoomInterface interface { //интерфейс комнаты
 	//минимальный набор(обязательный)
@@ -8,10 +10,12 @@ type RoomInterface interface { //интерфейс комнаты
 	GetDescription() string      //Возвращает описание	Для команды look
 	GetExits() map[string]string //Возвращает карту выходов Чтобы знать, куда можно идти
 
-	//действия(пока что заглушки)
-	OnEnter(playerID string) string //Что происходит при входе игрока	Приветствие, события, ловушки
-	OnExit(playerID string) string  //Что происходит при выходе	Попрощаться, закрыть дверь
-	Look(playerID string) string    //Осмотр комнаты	Описание + предметы + игроки
+	//действия
+	TakeItem(itemName string) (string, error) //Забирает предмет из комнаты (удаляет или уменьшает)
+	GetItems() []item.ItemStack               //Просто показывает, что лежит в комнате
+	OnEnter(playerID string) string           //Что происходит при входе игрока	Приветствие, события, ловушки
+	OnExit(playerID string) string            //Что происходит при выходе	Попрощаться, закрыть дверь
+	Look(playerID string) string              //Осмотр комнаты	Описание + предметы + игроки
 }
 
 // Repository = где комнаты лежат (как их найти/сохранить)

@@ -14,8 +14,8 @@ func InitRooms(repo room.Repository) error { //функция будет заг�
 		Description: "Ты в своем скромном доме",
 		Exits:       map[string]string{"south": "road_01"}, //road_01 куда может привести эта комната(твой дом) тоесть в дорогу
 		Items: []item.ItemStack{
-			{Name: "Пустая бутылка", Count: 20},
-			{Name: "Пустой мешок", Count: 5},
+			{Name: "Empty bottle", Count: 20},
+			{Name: "Empty bag", Count: 5},
 		},
 	}
 

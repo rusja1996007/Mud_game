@@ -6,6 +6,7 @@ import (
 	"Mud_game/Mud_Game/internal/pkg/logger"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -101,12 +102,13 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		// Обрезаем символы \r\n (нажатие Enter)
 		// Например "help\r\n" станет "help"
 		comand = comand[:len(comand)-2]
-		// команды :
+		////////////////////////////////////// команды ://///////////////////////////////////
 		if comand == "" {
 			conn.Write([]byte("Введите команду\n> "))
 			continue
 		}
-		if comand == "quit" { //ПОКИНУТЬ ПРИЛОЖЕНИЕ
+		//ПОКИНУТЬ ПРИЛОЖЕНИЕ
+		if comand == "quit" {
 			s.logger.Info("Игрок выходит и удаляется из репозитория")
 			conn.Write([]byte("До свидания!\n"))
 			s.playerRepo.Delete(newPlayer.ID)
@@ -152,13 +154,57 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 				conn.Write([]byte("Инвентарь пуст\n> "))
 				continue
 			}
-			items := strings.Join(newPlayer.Inventory, ", ") //превратить слайс в строку через запятую
-			conn.Write([]byte(items + "\n> "))
+			//Считаем сколько каких предметов
+			itemCounts := make(map[string]int)
+			for _, item := range newPlayer.Inventory {
+				itemCounts[item]++
+			}
+			//Красивый вывод
+			var builder strings.Builder
+			builder.WriteString("Твой инвентарь:\n")
+
+			for item, count := range itemCounts {
+				builder.WriteString(" • ")
+				builder.WriteString(item)
+				if count > 1 {
+					builder.WriteString(" x")
+					builder.WriteString(strconv.Itoa(count))
+				}
+				builder.WriteString("\n")
+			}
+			builder.WriteString("> ")
+			conn.Write([]byte(builder.String()))
+			continue
+
+		}
+		//ВЗЯТЬ
+		if strings.HasPrefix(comand, "take ") {
+			itemName := strings.TrimPrefix(comand, "take ") //узнали название предмета
+
+			r, err := s.roomRepo.FindByID(newPlayer.CurrentRoom) // узнали в какой сейчас комнате
+			if err != nil {
+				conn.Write([]byte("Ошибка загрузки комнаты\n> "))
+				continue
+			}
+			// Вся логика поиска и удаления — ВНУТРИ комнаты!
+			takeItem, err := r.TakeItem(itemName)
+			if err != nil {
+				conn.Write([]byte("Здесь нет такого предмета\n> "))
+				continue
+			}
+			// Добавляем в инвентарь игрока и сохраняем изменения
+			newPlayer.Inventory = append(newPlayer.Inventory, takeItem)
+			s.playerRepo.Save(newPlayer)
+
+			//Сохраняем изменения в комнате
+			s.roomRepo.Save(r)
+
+			conn.Write([]byte("Ты взял:" + takeItem + "\n> "))
 			continue
 
 		}
 
-		// Формируем ответ
+		// Формируем неизвестный ответ
 		responce := "Вы ввели неизвестную команду\n> "
 		// Отправляем ответ
 		conn.Write([]byte(responce))
