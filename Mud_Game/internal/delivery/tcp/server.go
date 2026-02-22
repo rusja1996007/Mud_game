@@ -6,6 +6,7 @@ import (
 	"Mud_game/Mud_Game/internal/pkg/logger"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -14,7 +15,7 @@ type Server struct {
 	logger     logger.Logger
 	listener   net.Listener      //"слушатель"- обьект который принимает пподключение
 	playerRepo player.Repository //Чтобы сервер имел доступ к методам сохранения и поиска игроков
-	roomRepo   room.Repository
+	roomRepo   room.Repository   //все комнаты
 }
 
 // конструктор
@@ -72,7 +73,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 	newPlayer := &player.Player{
 		ID:          id,
 		Name:        name,
-		CurrentRoom: "start", //стартовая комната
+		CurrentRoom: "home_01", //стартовая комната
 	}
 
 	//Сохраняем в репозиторий
@@ -100,15 +101,65 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		// Обрезаем символы \r\n (нажатие Enter)
 		// Например "help\r\n" станет "help"
 		comand = comand[:len(comand)-2]
-		// Проверяем, не хочет ли игрок выйти
-		if comand == "quit" {
+		// команды :
+		if comand == "" {
+			conn.Write([]byte("Введите команду\n> "))
+			continue
+		}
+		if comand == "quit" { //ПОКИНУТЬ ПРИЛОЖЕНИЕ
 			s.logger.Info("Игрок выходит и удаляется из репозитория")
 			conn.Write([]byte("До свидания!\n"))
 			s.playerRepo.Delete(newPlayer.ID)
 			break
 		}
+		if comand == "look" { //ОСМОТРЕТЬСЯ
+			currentRoomID := newPlayer.CurrentRoom          // 1. Получить текущую комнату игрока(id комнаты)
+			room, err := s.roomRepo.FindByID(currentRoomID) //Обращаемся к репозиторию комнат (s.roomRepo) и просим найти комнату по этому ID.
+			if err != nil {
+				conn.Write([]byte("Комната  не найдена\n> "))
+				continue //переходим к следующей итерации цикла, ждём новую команду
+			}
+			responce := room.Look(newPlayer.ID)   //Получаем описание комнаты
+			conn.Write([]byte(responce + "\n> ")) //Добавляем приглашение \n> для следующей команды
+
+			continue
+		}
+		//ДВИЖЕНИЯ "MOVE"
+		if strings.HasPrefix(comand, "move") { //проверяет, начинается ли команда с "move "
+			direction := strings.TrimPrefix(comand, "move ")        //убирает "move " и возвращает направление
+			room, err := s.roomRepo.FindByID(newPlayer.CurrentRoom) //Обращаемся к репозиторию комнат (s.roomRepo) и просим найти комнату по этому ID.
+			if err != nil {
+				conn.Write([]byte("Комната  не найдена\n> "))
+				continue
+			}
+			exits := room.GetExits()           //получить карту выходов
+			nextRoomID, ok := exits[direction] //Проверить, есть ли такое направление(direction)
+			if !ok {
+				conn.Write([]byte("Туда нельзя идти\n> "))
+				continue
+			}
+			newPlayer.CurrentRoom = nextRoomID //Обновить позицию игрока и сохранить
+			s.playerRepo.Save(newPlayer)
+
+			nextRoom, _ := s.roomRepo.FindByID(nextRoomID) //Показываем новую комнату
+			conn.Write([]byte(nextRoom.Look(newPlayer.ID) + "\n> "))
+			continue
+		}
+		//ИНВЕНТАРЬ
+		if comand == "inventory" {
+			invent := newPlayer.Inventory //смотрим в инвентарь
+			if len(invent) == 0 {
+				conn.Write([]byte("Инвентарь пуст\n> "))
+				continue
+			}
+			items := strings.Join(newPlayer.Inventory, ", ") //превратить слайс в строку через запятую
+			conn.Write([]byte(items + "\n> "))
+			continue
+
+		}
+
 		// Формируем ответ
-		responce := "Вы написали " + comand + "\n> "
+		responce := "Вы ввели неизвестную команду\n> "
 		// Отправляем ответ
 		conn.Write([]byte(responce))
 

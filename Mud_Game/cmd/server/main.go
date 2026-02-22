@@ -6,6 +6,7 @@ import (
 	"Mud_game/Mud_Game/internal/pkg/logger"
 	"Mud_game/Mud_Game/internal/repository/memoryrepo"
 	"Mud_game/Mud_Game/internal/repository/room"
+	"Mud_game/Mud_Game/internal/world"
 	"fmt"
 	"strconv"
 )
@@ -21,6 +22,12 @@ func main() {
 	//Создаем TCP сервер с репозиторием игроков (playerRepo) и репозиторие комнат (roomRepo)
 	playerRepo := memoryrepo.NewMemoryRepository()
 	roomRepo := room.NewMemoryRepository()
+	//Загружаем комнаты
+	if err := world.InitRooms(roomRepo); err != nil {
+		log.Error("Ошибка загрузки комнат :" + err.Error())
+		return
+	}
+
 	server := tcp.NewServer(strconv.Itoa(cfg.Port), log, playerRepo, roomRepo)
 	go func() {
 		//Запускаем сервер в отдельной горутине
@@ -35,3 +42,5 @@ func main() {
 	select {}
 
 }
+
+//команда для подклюючения к серверу telnet localhost 4000

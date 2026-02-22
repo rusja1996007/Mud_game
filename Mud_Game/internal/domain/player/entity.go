@@ -3,5 +3,6 @@ package player
 type Player struct {
 	ID          string
 	Name        string
-	CurrentRoom string
+	CurrentRoom string //текущая комната
+	Inventory   []string
 }
