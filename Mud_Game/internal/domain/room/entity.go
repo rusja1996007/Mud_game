@@ -90,6 +90,11 @@ func (r *Room) TakeItem(itemName string) (string, error) {
 	if r.Items[foundIndex].Count > 1 {
 		r.Items[foundIndex].Count--
 	} else {
+		//Удаление элемента из слайса
+		//У тебя есть ряд печенек. Ты хочешь убрать одну (с индексом 1):
+		//Берёшь все, кто до неё
+		//Берёшь все, кто после неё
+		//Складываешь вместе — и вуаля, средняя исчезла!
 		r.Items = append(r.Items[:foundIndex], r.Items[foundIndex+1:]...)
 	}
 

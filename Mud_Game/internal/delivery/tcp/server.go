@@ -114,7 +114,8 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 			s.playerRepo.Delete(newPlayer.ID)
 			break
 		}
-		if comand == "look" { //ОСМОТРЕТЬСЯ
+		//ОСМОТРЕТЬСЯ
+		if comand == "look" {
 			currentRoomID := newPlayer.CurrentRoom          // 1. Получить текущую комнату игрока(id комнаты)
 			room, err := s.roomRepo.FindByID(currentRoomID) //Обращаемся к репозиторию комнат (s.roomRepo) и просим найти комнату по этому ID.
 			if err != nil {
@@ -178,30 +179,166 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 
 		}
 		//ВЗЯТЬ
-		if strings.HasPrefix(comand, "take ") {
-			itemName := strings.TrimPrefix(comand, "take ") //узнали название предмета
+		args, found := strings.CutPrefix(comand, "take ") //CutPrefix проверяет, начинается ли с "take "
+		if !found {
+			// это не take, просто идём дальше к другим командам
+		} else { //Если да → парсим команду
+			parts := strings.Fields(args) //разбивает по пробелам
+			//args	                  parts
+			//"3 bottle"	    ["3", "bottle"]
+			//"all bottle"	    ["all", "bottle"]
+			//"bottle"	        ["bottle"]
+			//"3 big bottle"	["3", "big", "bottle"]
 
 			r, err := s.roomRepo.FindByID(newPlayer.CurrentRoom) // узнали в какой сейчас комнате
 			if err != nil {
 				conn.Write([]byte("Ошибка загрузки комнаты\n> "))
 				continue
 			}
-			// Вся логика поиска и удаления — ВНУТРИ комнаты!
-			takeItem, err := r.TakeItem(itemName)
-			if err != nil {
-				conn.Write([]byte("Здесь нет такого предмета\n> "))
+
+			var count int = 1 // сколько предметов брать,по умолчанию берём 1
+			var itemName string
+
+			//Парсим → count=3, itemName="Empty bottle"
+			// Смотрим, что нам прислали
+
+			if len(parts) == 1 && parts[0] == "all" { //// Это команда "take all" — взять всё из комнаты
+				allItems := r.GetItems()         //получаем все предметы из комнаты
+				for _, stack := range allItems { //проходим по каждому предмету
+					for i := 0; i < stack.Count; i++ {
+						takenItem, _ := r.TakeItem(stack.Name)
+						newPlayer.Inventory = append(newPlayer.Inventory, takenItem)
+					}
+				}
+				s.playerRepo.Save(newPlayer)
+				s.roomRepo.Save(r)
+				conn.Write([]byte("Вы взяли все из комнаты\n> "))
+				continue
+
+			} else if len(parts) == 1 {
+				itemName = parts[0]
+			} else {
+				//Случай Б: 2 или больше частей
+				if parts[0] == "all" { //Если первое слово — "all"
+					count = -1                              //специальное значение "все"
+					itemName = strings.Join(parts[1:], " ") //itemName = strings.Join(["big", "bottle"], " ") = "big bottle"
+				} else {
+					num, err := strconv.Atoi(parts[0]) // ← пробуем распарсить число
+					if err == nil {                    //значит это число
+						count = num
+						itemName = strings.Join(parts[1:], " ")
+					} else { // это не число и не "all" — значит, название из нескольких слов
+						itemName = strings.Join(parts, " ")
+					}
+				}
+			}
+
+			//  Если это не "take all", обрабатываем обычный take
+			if itemName != "" {
+				items := r.GetItems()
+				foundIndex := -1
+				for i, stack := range items {
+					if stack.Name == itemName {
+						foundIndex = i
+						break
+					}
+				}
+				if foundIndex == -1 {
+					conn.Write([]byte("Здесь нет такого предмета\n> "))
+					continue
+				}
+				// Смотрим, сколько штук этого предмета лежит в комнате.
+				available := items[foundIndex].Count
+				// Сколько будем брать
+				takeCount := count
+				if count == -1 {
+					takeCount = available //если "all" — берём всё
+				}
+				if takeCount > available {
+					takeCount = available // нельзя взять больше, чем есть
+				}
+				if takeCount == 0 {
+					conn.Write([]byte("Нечего брать\n> "))
+					continue
+				}
+
+				//берем предметы по одному
+				for i := 0; i < takeCount; i++ {
+					//// Добавляем в инвентарь игрока и сохраняем изменения+Сохраняем изменения в комнате
+					takeItem, _ := r.TakeItem(itemName)
+					newPlayer.Inventory = append(newPlayer.Inventory, takeItem)
+				}
+				s.playerRepo.Save(newPlayer)
+				s.roomRepo.Save(r)
+
+				conn.Write([]byte(fmt.Sprintf("Ты взял %d %s\n> ", takeCount, itemName)))
 				continue
 			}
-			// Добавляем в инвентарь игрока и сохраняем изменения
-			newPlayer.Inventory = append(newPlayer.Inventory, takeItem)
+
+		}
+		//УНИЧТОЖИТЬ
+		argss, found := strings.CutPrefix(comand, "destroy ")
+		if !found {
+			//это не destroy - идем дальше
+		} else {
+			parts := strings.Fields(argss) //парсим(разбиваем) команду
+			var count int = 1
+			var itemName string
+
+			if len(parts) == 1 {
+				itemName = parts[0]
+			} else if len(parts) >= 2 {
+				if parts[0] == "all" {
+					count = -1
+					itemName = strings.Join(parts[1:], " ")
+				} else {
+					num, err := strconv.Atoi(parts[0])
+					if err == nil {
+						count = num
+						itemName = strings.Join(parts[1:], " ")
+					} else {
+						itemName = strings.Join(parts, " ")
+					}
+
+				}
+			}
+			//// Сначала считаем, сколько таких предметов есть
+			available2 := 0
+			for _, item := range newPlayer.Inventory {
+				if item == itemName {
+					available2++
+				}
+			}
+			if available2 == 0 {
+				conn.Write([]byte("У тебя нет такого предмета\n> "))
+				continue
+			}
+			//Определить, сколько уничтожать
+			destroyCount := count
+			if count == -1 {
+				destroyCount = available2
+			}
+			if destroyCount > available2 {
+				destroyCount = available2
+			}
+			if destroyCount == 0 {
+				conn.Write([]byte("Нечего уничтожать\n> "))
+				continue
+			}
+			//    Уничтожить предметы (удалить из инвентаря)
+			var newInventory []string
+			removed := 0
+			for _, item := range newPlayer.Inventory {
+				if item == itemName && removed < destroyCount {
+					removed++ // пропускаем (уничтожаем) ?
+				} else {
+					newInventory = append(newInventory, item)
+				}
+			}
+			newPlayer.Inventory = newInventory
 			s.playerRepo.Save(newPlayer)
-
-			//Сохраняем изменения в комнате
-			s.roomRepo.Save(r)
-
-			conn.Write([]byte("Ты взял:" + takeItem + "\n> "))
+			conn.Write([]byte(fmt.Sprintf("Ты уничтожил %d %s\n> ", destroyCount, itemName)))
 			continue
-
 		}
 
 		// Формируем неизвестный ответ
