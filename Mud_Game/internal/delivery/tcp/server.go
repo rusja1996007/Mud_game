@@ -271,7 +271,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 				s.playerRepo.Save(newPlayer)
 				s.roomRepo.Save(r)
 
-				conn.Write([]byte(fmt.Sprintf("Ты взял %d %s\n> ", takeCount, itemName)))
+				fmt.Fprintf(conn, "Ты взял %d %s\n> ", takeCount, itemName)
 				continue
 			}
 
@@ -303,7 +303,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 				}
 			}
 			//// Сначала считаем, сколько таких предметов есть
-			available2 := 0
+			available2 := 0 //доступно
 			for _, item := range newPlayer.Inventory {
 				if item == itemName {
 					available2++
@@ -327,18 +327,92 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 			}
 			//    Уничтожить предметы (удалить из инвентаря)
 			var newInventory []string
-			removed := 0
+			removed := 0 //кол-чиство уничтоженых
 			for _, item := range newPlayer.Inventory {
 				if item == itemName && removed < destroyCount {
-					removed++ // пропускаем (уничтожаем) ?
+					removed++ // пропускаем (унчитожаем
 				} else {
 					newInventory = append(newInventory, item)
 				}
 			}
 			newPlayer.Inventory = newInventory
 			s.playerRepo.Save(newPlayer)
-			conn.Write([]byte(fmt.Sprintf("Ты уничтожил %d %s\n> ", destroyCount, itemName)))
+			fmt.Fprintf(conn, "Ты уничтожил %d %s\n> ", destroyCount, itemName) //fmt.Fprintf(conn, ...),Пишет напрямую в соединение(ненадо отделдьно преобразовывать в байты) короче и эффективнее
 			continue
+		} //DROP
+		argsss, found := strings.CutPrefix(comand, "drop")
+		if !found {
+		} else {
+			parts := strings.Fields(argsss)
+			var count int = 1
+			var itemName string
+
+			if len(parts) == 1 {
+				itemName = parts[0]
+			} else if len(parts) >= 2 {
+				if parts[0] == "all" {
+					count = -1
+					itemName = strings.Join(parts[1:], " ")
+				} else {
+					num, err := strconv.Atoi(parts[0])
+					if err == nil {
+						count = num
+						itemName = strings.Join(parts[1:], " ")
+					} else {
+						itemName = strings.Join(parts, " ")
+					}
+				}
+			}
+			available3 := 0 //доступно
+			for _, item := range newPlayer.Inventory {
+				if item == itemName {
+					available3++
+				}
+			}
+			if available3 == 0 {
+				conn.Write([]byte("У вас нету такого предмета\n> "))
+				continue
+			}
+			dropCount := count //сколько выложить
+			if dropCount == -1 {
+				dropCount = available3
+			}
+			if dropCount > available3 {
+				dropCount = available3
+			}
+			if dropCount == 0 {
+				conn.Write([]byte("Нечего бросать\n> "))
+				continue
+			}
+			var newInventory []string
+			remove := 0
+			for _, item := range newPlayer.Inventory {
+				if item == itemName && remove < dropCount {
+					remove++
+				} else {
+					newInventory = append(newInventory, item)
+				}
+			}
+			newPlayer.Inventory = newInventory
+
+			//Добавить предметы в комнату
+			room, err := s.roomRepo.FindByID(newPlayer.CurrentRoom)
+			if err != nil {
+				conn.Write([]byte("Ошибка загрузки комнаты \n> "))
+				continue
+			}
+
+			err = room.AddItem(itemName, dropCount)
+			if err != nil {
+				conn.Write([]byte("Ошибка при добавлении предмета в комнату\n> "))
+				continue
+			}
+			s.playerRepo.Save(newPlayer)
+			s.roomRepo.Save(room)
+
+			fmt.Fprintf(conn, "Ты бросил %d %s\n> ", dropCount, itemName)
+			continue
+
 		}
 
 		// Формируем неизвестный ответ

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Room struct {
@@ -13,7 +14,7 @@ type Room struct {
 	Description string
 	Exits       map[string]string //выходы: направление → ID комнаты
 	Items       []item.ItemStack  //[]item.ItemStack = много разных предметов с количеством
-	//item.ItemStack = один вид предметов
+	mtx         sync.RWMutex
 }
 
 func (r *Room) GetID() string {
@@ -99,4 +100,28 @@ func (r *Room) TakeItem(itemName string) (string, error) {
 	}
 
 	return itemName, nil
+}
+func (r *Room) AddItem(itemName string, count int) error {
+	if itemName == "" {
+		return errors.New("Введите название предмета")
+	}
+	if count <= 0 {
+		return errors.New("Количество должно быть положительным")
+	}
+
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	for i := range r.Items {
+		if r.Items[i].Name == itemName {
+			r.Items[i].Count += count
+			return nil
+		}
+	}
+	r.Items = append(r.Items, item.ItemStack{
+		Name:  itemName,
+		Count: count,
+	})
+	return nil
+
 }
