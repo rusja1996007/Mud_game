@@ -11,11 +11,12 @@ type RoomInterface interface { //интерфейс комнаты
 	GetExits() map[string]string //Возвращает карту выходов Чтобы знать, куда можно идти
 
 	//действия
-	TakeItem(itemName string) (string, error) //Забирает предмет из комнаты (удаляет или уменьшает)
-	GetItems() []item.ItemStack               //Просто показывает, что лежит в комнате
-	OnEnter(playerID string) string           //Что происходит при входе игрока	Приветствие, события, ловушки
-	OnExit(playerID string) string            //Что происходит при выходе	Попрощаться, закрыть дверь
-	Look(playerID string) string              //Осмотр комнаты	Описание + предметы + игроки
+	TakeItem(itemName string, count int) (*item.ItemStack, error) //Забирает предмет из комнаты (удаляет или уменьшает)
+	GetItems() []*item.ItemStack                                  //Просто показывает, что лежит в комнате
+	OnEnter(playerID string) string                               //Что происходит при входе игрока	Приветствие, события, ловушки
+	OnExit(playerID string) string                                //Что происходит при выходе	Попрощаться, закрыть дверь
+	Look(playerID string) string                                  //Осмотр комнаты	Описание + предметы + игроки
+	AddItem(stack *item.ItemStack) error                          //скинуть предмет в комнату
 }
 
 // Repository = где комнаты лежат (как их найти/сохранить)

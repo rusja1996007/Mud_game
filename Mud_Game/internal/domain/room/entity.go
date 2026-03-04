@@ -13,7 +13,7 @@ type Room struct {
 	Name        string
 	Description string
 	Exits       map[string]string //выходы: направление → ID комнаты
-	Items       []item.ItemStack  //[]item.ItemStack = много разных предметов с количеством
+	Items       []*item.ItemStack //[]item.ItemStack = много разных предметов с количеством
 	mtx         sync.RWMutex
 }
 
@@ -69,13 +69,10 @@ func (r *Room) OnEnter(playerID string) string {
 func (r *Room) OnExit(playerID string) string {
 	return "Ты покинул " + r.Name
 }
-func (r *Room) GetItems() []item.ItemStack {
+func (r *Room) GetItems() []*item.ItemStack {
 	return r.Items
 }
-func (r *Room) TakeItem(itemName string) (string, error) {
-	//Когда ты используешь for _, stack := range, ты работаешь с копией элемента.
-	//Изменение stack.Count не меняет оригинал в r.Items!
-	//Нужно: использовать for i, stack := range r.Items и обращаться по индексу.
+func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 	// Сначала ищем предмет
 	foundIndex := -1
 	for i, stack := range r.Items {
@@ -85,43 +82,51 @@ func (r *Room) TakeItem(itemName string) (string, error) {
 		}
 	}
 	if foundIndex == -1 {
-		return "", errors.New("Предмет не найден")
+		return nil, errors.New("Предмет не найден")
 	}
 	// Теперь работаем с найденным
-	if r.Items[foundIndex].Count > 1 {
-		r.Items[foundIndex].Count--
-	} else {
-		//Удаление элемента из слайса
-		//У тебя есть ряд печенек. Ты хочешь убрать одну (с индексом 1):
-		//Берёшь все, кто до неё
-		//Берёшь все, кто после неё
-		//Складываешь вместе — и вуаля, средняя исчезла!
+	if r.Items[foundIndex].Count < count {
+		return nil, errors.New("Недостаточно предметов")
+	}
+	//Уменьшаем количество или удаляем
+	r.Items[foundIndex].Count -= count
+	//Удаление элемента из слайса
+	//У тебя есть ряд печенек. Ты хочешь убрать одну (с индексом 1):
+	//Берёшь все, кто до неё
+	//Берёшь все, кто после неё
+	//Складываешь вместе — и вуаля, средняя исчезла!
+	if r.Items[foundIndex].Count == 0 {
 		r.Items = append(r.Items[:foundIndex], r.Items[foundIndex+1:]...)
 	}
-
-	return itemName, nil
+	//возвращаем стопку с тем что взяли
+	return &item.ItemStack{
+		Name:  itemName,
+		Count: count,
+	}, nil
 }
-func (r *Room) AddItem(itemName string, count int) error {
-	if itemName == "" {
-		return errors.New("Введите название предмета")
+func (r *Room) AddItem(stack *item.ItemStack) error {
+	if stack == nil {
+		return errors.New("Стопка предметов не может быть пустой")
 	}
-	if count <= 0 {
+	if stack.Name == "" {
+		return errors.New("Название предмета не может быть пустым ")
+	}
+	if stack.Count <= 0 {
 		return errors.New("Количество должно быть положительным")
 	}
 
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
+	// Ищем существующую стопку с таким же названием
 	for i := range r.Items {
-		if r.Items[i].Name == itemName {
-			r.Items[i].Count += count
+		if r.Items[i].Name == stack.Name {
+			r.Items[i].Count += stack.Count
 			return nil
 		}
 	}
-	r.Items = append(r.Items, item.ItemStack{
-		Name:  itemName,
-		Count: count,
-	})
+	// Если не нашли - добавляем новую стопку
+	r.Items = append(r.Items, stack)
 	return nil
 
 }
