@@ -135,22 +135,22 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		handlers.HandleInventory(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
-	case strings.HasPrefix(cmd, "move"): //после move идет еще чтото. аналогично ниже
+	case strings.HasPrefix(cmd, "move "): //после move идет еще чтото. аналогично ниже
 
 		handlers.HandleMove(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
-	case strings.HasPrefix(cmd, "take"):
+	case strings.HasPrefix(cmd, "take "):
 
 		handlers.HandleTake(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
-	case strings.HasPrefix(cmd, "drop"):
+	case strings.HasPrefix(cmd, "drop "):
 
 		handlers.HandleDrop(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
-	case strings.HasPrefix(cmd, "destroy"):
+	case strings.HasPrefix(cmd, "destroy "):
 
 		handlers.HandleDestroy(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
