@@ -43,7 +43,7 @@ func (r *Room) Look(playerID string) string {
 	builder.WriteString("\n")
 
 	if len(r.Items) > 0 {
-		builder.WriteString("В доме есть: ")
+		builder.WriteString("Вы видите: ")
 		for i, stack := range r.Items {
 			if i > 0 {
 				builder.WriteString(", ")

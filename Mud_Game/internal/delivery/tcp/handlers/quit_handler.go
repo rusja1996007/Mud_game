@@ -11,6 +11,5 @@ func HandleQuit(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	//ПОКИНУТЬ ПРИЛОЖЕНИЕ
 
 	fmt.Fprintf(conn, "До свидания!\n")
-	playerRepo.Delete(p.ID)
 
 }

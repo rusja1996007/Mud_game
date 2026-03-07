@@ -5,15 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type PlayerModel struct {
-	gorm.Model
+	ID          string `gorm:"primaryKey;size:36"`
 	Name        string `gorm:"uniqueIndex;size:50"`
 	CurrentRoom string `gorm:"size:36"`
 	Inventory   string `gorm:"type:text"`
+	Created_at  time.Time
+	Updated_at  time.Time
+	Deleted_at  gorm.DeletedAt `gorm:"index"`
 }
 
 //Визуализация таблицы в БД:
@@ -22,9 +26,7 @@ type PlayerModel struct {
     name VARCHAR(50) UNIQUE,      -- короткое, с ограничением(уникальное, 50 символов)
     current_room VARCHAR(36),      -- короткое, с ограничением(ID комнаты)
     inventory TEXT,                 -- длинное, без ограничения( это JSON строка с предметами, много символов)
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,            -- это создаст GORM
-    deleted_at TIMESTAMP
+	created_at TIMESTAMP...
 );
 */
 
@@ -54,16 +56,24 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 
 // из игры в  БД:
 func FromEntity(p *Player) (*PlayerModel, error) {
+	fmt.Printf("🔍 FromEntity: конвертирую %s\n", p.Name)
+
+	if p.ID == "" {
+		return nil, errors.New("ID игрока пустой")
+	}
 	// Превращаем стопки предметов в JSON строку для хранения в БД
+
 	inventJSON, err := json.Marshal(p.Inventory)
 	if err != nil {
 		return nil, errors.New("Нe удалось преобразовать JSON в инвентарь ")
 	}
 	// Создаем модель БД из данных игрока
 	return &PlayerModel{
+		ID:          p.ID,
 		Name:        p.Name,
 		CurrentRoom: p.CurrentRoom,
 		Inventory:   string(inventJSON), // JSON нужно превратить в строку
-		// ID: ?? пока не решаем
+		Created_at:  time.Now(),
+		Updated_at:  time.Now(),
 	}, nil
 }

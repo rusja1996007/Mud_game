@@ -21,15 +21,22 @@ func NewPostgresRepository(db *gorm.DB) (*PostgresRepository, error) {
 	}, nil
 }
 func (r *PostgresRepository) Save(p *player.Player) error {
-	model, err := player.FromEntity(p) // Конвертируем игрока в модель
+
+	model, err := player.FromEntity(p)
 	if err != nil {
-		return err // возвращаем ошибку конвертации
+
+		return err
 	}
-	if err := r.db.Save(model).Error; err != nil { // 2. Сохраняем в БД и проверяем ошибку
-		return err // ошибка сохранения
+
+	result := r.db.Create(model)
+	if result.Error != nil {
+
+		return result.Error
 	}
+
 	return nil
 }
+
 func (r *PostgresRepository) FindByID(id string) (*player.Player, error) {
 	model := player.PlayerModel{}
 	// Ищем в БД
@@ -51,13 +58,16 @@ func (r *PostgresRepository) FindByID(id string) (*player.Player, error) {
 	return playerEntity, nil
 }
 func (r *PostgresRepository) FindByName(name string) (*player.Player, error) {
+	//С блокировкой (для защиты от гонок(db.Set)ищем
 	model := player.PlayerModel{}
-	if err := r.db.First(&model, "name = ?", name).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) { //gorm.ErrRecordNotFound - "Запись не найдена" 🔍
+	err := r.db.Set("gorm:query_option", "FOR UPDATE").First(&model, "name = ?", name).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
+	// Конвертирует в сущность игры
 	playerEntity, err := model.ToEntity()
 	if err != nil {
 		return nil, err

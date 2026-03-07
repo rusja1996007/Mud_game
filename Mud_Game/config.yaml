@@ -1,0 +1,11 @@
+port: 4000
+name_server: "My_MUD_Server"
+max_players: 100
+use_postgres: true
+database:
+  host: "localhost"
+  port: 5432
+  user: "muduser"
+  password: "mudpassword"
+  dbname: "mudgame"
+  sslmode: "disable"

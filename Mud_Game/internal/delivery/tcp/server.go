@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"Mud_game/Mud_Game/internal/delivery/tcp/handlers"
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"Mud_game/Mud_Game/internal/pkg/logger"
@@ -53,6 +54,7 @@ func (s *Server) Start() error {
 func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection - общение с игроком
 	// Гарантированно закрываем соединение при выходе из функции
 	defer conn.Close()
+	fmt.Printf("🔌 Новое подключение\n")
 
 	// Отправляем приветствие
 	// conn.Write принимает []byte, преобразуем строку в байты и для переноса строки -\n
@@ -68,28 +70,46 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 	name := string(buffer[:n]) //преобразованое имя
 	name = name[:len(name)-2]  ////преобразованое имя без \r \n в конце
 
-	//Геренириуем ID
-	id := fmt.Sprintf("player_%d", time.Now().UnixNano())
-
-	//Создаем игрока
-	newPlayer := &player.Player{
-		ID:          id,
-		Name:        name,
-		CurrentRoom: "home_01", //стартовая комната
-	}
-
-	//Сохраняем в репозиторий
-	err = s.playerRepo.Save(newPlayer)
+	//Ищем игрока в БД
+	existingPlayer, err := s.playerRepo.FindByName(name)
 	if err != nil {
-		s.logger.Error("Не удалось сохранить игрока " + err.Error())               //это вылезет мне в терминале как админу
-		fmt.Fprintf(conn, "Ошибка во время создания персонажа. Попробуй позже.\n") //это отправится игроку
+		fmt.Fprintf(conn, "Ошибка при входе в игру\n> ")
 		return
 	}
+	var currentPlayer *player.Player
 
-	s.logger.Info("Новый игрок :" + name + "(ID:" + id + ")")
-	fmt.Fprintf(conn, "Привет %s! Добро пожаловать в игру!\n> ", name)
-	room, _ := s.roomRepo.FindByID(newPlayer.CurrentRoom) //комната где сейчас  персонаж
-	fmt.Fprintf(conn, "%s\n> ", room.Look(newPlayer.ID))
+	if existingPlayer != nil {
+		//Игрок найден - загружаем
+		currentPlayer = existingPlayer
+		fmt.Fprintf(conn, "С возвращением, %s!\n> ", name)
+	} else {
+		// Новый игрок - создаём
+		//Геренириуем ID
+		id := fmt.Sprintf("player_%d", time.Now().UnixNano())
+
+		//Создаем игрока
+		currentPlayer = &player.Player{
+			ID:          id,
+			Name:        name,
+			CurrentRoom: "home_01",           //стартовая комната
+			Inventory:   []*item.ItemStack{}, // пустой инвентарь
+		}
+
+		//Сохраняем в репозиторий
+		err = s.playerRepo.Save(currentPlayer)
+		if err != nil {
+
+			s.logger.Error("Не удалось сохранить игрока " + err.Error())               //это вылезет мне в терминале как админу
+			fmt.Fprintf(conn, "Ошибка во время создания персонажа. Попробуй позже.\n") //это отправится игроку
+			return
+		}
+		fmt.Printf("✅ Игрок УСПЕШНО создан: %s\n", name)
+
+		s.logger.Info("Новый игрок :" + name + "(ID:" + id + ")")
+		fmt.Fprintf(conn, "Привет %s! Добро пожаловать в игру!\n> ", name)
+	}
+	room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom) //комната где сейчас  персонаж
+	fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
 
 	// Цикл обработки команд одного игрока
 	for {
@@ -107,7 +127,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		// Например "help\r\n" станет "help"
 		cmd = cmd[:len(cmd)-2]
 		////////////////////////////////////// команды ://///////////////////////////////////
-		if s.routeCommand(conn, cmd, newPlayer) { // выходим из цикла если routeCommand вернула true (quit)
+		if s.routeCommand(conn, cmd, currentPlayer) { // выходим из цикла если routeCommand вернула true (quit)
 			break
 		}
 	}

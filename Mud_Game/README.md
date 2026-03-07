@@ -409,3 +409,17 @@ my-mud-game/
 
  sudo systemctl start postgresql - Запуск сервера PostgreSQL
  sudo systemctl status postgresql - Проверка статуса
+ sudo ss -nltp | grep 5432 - Проверяет, открыт ли (порт 5432) для подключений. PostgreSQL ждёт гостей именно на этой двери.
+ sudo -u postgres psql - Заходим в PostgreSQL как главный администратор
+ CREATE USER muduser WITH PASSWORD 'mudpassword'; - Создаём нового жителя (пользователя) с именем muduser и паролем. Теперь у него есть свой пропуск.
+ CREATE DATABASE mudgame OWNER muduser; - Создаём квартиру (базу данных) с названием mudgame и отдаём ключи muduser. Теперь это его личное пространство.
+ GRANT ALL PRIVILEGES ON DATABASE mudgame TO muduser; - Говорим "muduser, ты здесь главный - можешь делать всё что хочешь".
+ psql -U muduser -d mudgame -h localhost(Подключение под новым пользователем) -  Заходим в квартиру (БД) как обычный житель muduser, показываем пропуск (пароль) и попадаем внутрь.
+ Дом (компьютер)
+├── Электричество (сервер PostgreSQL) - включили (start)
+├── Дверь (порт 5432) - открыта (ss -nltp)
+├── Жильцы:
+│   ├── postgres (администратор дома)
+│   └── muduser (наш игровой пользователь)
+└── Квартиры (базы данных):
+    └── mudgame (наша игровая БД) - ключи у muduser
