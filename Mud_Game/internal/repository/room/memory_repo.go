@@ -61,3 +61,13 @@ func (x *MemoryRepository) Delete(id string) error { //удалить комна
 	delete(x.rooms, id)
 	return nil
 }
+func (r *MemoryRepository) FindAll() ([]room.RoomInterface, error) {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+
+	rooms := make([]room.RoomInterface, 0, len(r.rooms))
+	for _, rm := range r.rooms {
+		rooms = append(rooms, rm)
+	}
+	return rooms, nil
+}

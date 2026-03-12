@@ -414,7 +414,8 @@ my-mud-game/
  CREATE USER muduser WITH PASSWORD 'mudpassword'; - Создаём нового жителя (пользователя) с именем muduser и паролем. Теперь у него есть свой пропуск.
  CREATE DATABASE mudgame OWNER muduser; - Создаём квартиру (базу данных) с названием mudgame и отдаём ключи muduser. Теперь это его личное пространство.
  GRANT ALL PRIVILEGES ON DATABASE mudgame TO muduser; - Говорим "muduser, ты здесь главный - можешь делать всё что хочешь".
- psql -U muduser -d mudgame -h localhost(Подключение под новым пользователем) -  Заходим в квартиру (БД) как обычный житель muduser, показываем пропуск (пароль) и попадаем внутрь.
+
+  показываем пропуск (пароль) и попадаем внутрь.
  Дом (компьютер)
 ├── Электричество (сервер PostgreSQL) - включили (start)
 ├── Дверь (порт 5432) - открыта (ss -nltp)
@@ -423,3 +424,9 @@ my-mud-game/
 │   └── muduser (наш игровой пользователь)
 └── Квартиры (базы данных):
     └── mudgame (наша игровая БД) - ключи у muduser
+
+   //psql -U muduser -d mudgame -h localhost - подключение к БД PgAdmin
+   //go run cmd/server/main.go - запуск самого сервера
+   SELECT * FROM player_models; - вытащить всю таблицу
+   DELETE FROM player_models; - удалить всю таблицу, при повторном запуске опять создасться самаы
+

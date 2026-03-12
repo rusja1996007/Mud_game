@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// in-memory игроки
 type MemoryRepository struct {
 	players map[string]*player.Player //Хранилище данных - клю это Будет ID, значение указатель на player.Player (* означает, что храним ссылку, а не копию)
 	mtx     sync.RWMutex              //замок для безопасного доступа из разных горутин

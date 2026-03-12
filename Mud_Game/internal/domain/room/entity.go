@@ -8,6 +8,13 @@ import (
 	"sync"
 )
 
+// TownExit - информация о выходе из города
+type TownExit struct {
+	Name    string //"дом Иван"
+	RoomID  string // "road_player_123"
+	OwnerID string // "player_123"
+}
+
 type Room struct {
 	ID          string
 	Name        string
@@ -15,6 +22,7 @@ type Room struct {
 	Exits       map[string]string //выходы: направление → ID комнаты
 	Items       []*item.ItemStack //[]item.ItemStack = много разных предметов с количеством
 	mtx         sync.RWMutex
+	TownExits   []TownExit `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
 }
 
 func (r *Room) GetID() string {
@@ -56,9 +64,18 @@ func (r *Room) Look(playerID string) string {
 		builder.WriteString("\n")
 	}
 	builder.WriteString("Выходы: ")
-	for exits := range r.Exits {
-		builder.WriteString(exits)
-		builder.WriteString(" ")
+
+	if r.ID == "global_town" {
+		for _, exit := range r.TownExits {
+			if exit.OwnerID == playerID {
+				builder.WriteString(exit.Name + " ")
+			}
+		}
+	} else {
+		for exits := range r.Exits {
+			builder.WriteString(exits)
+			builder.WriteString(" ")
+		}
 	}
 	return builder.String() //Строитель отдаёт всё, что мы насобирали, одной строкой.
 }

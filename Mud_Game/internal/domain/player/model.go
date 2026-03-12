@@ -56,7 +56,6 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 
 // из игры в  БД:
 func FromEntity(p *Player) (*PlayerModel, error) {
-	fmt.Printf("🔍 FromEntity: конвертирую %s\n", p.Name)
 
 	if p.ID == "" {
 		return nil, errors.New("ID игрока пустой")

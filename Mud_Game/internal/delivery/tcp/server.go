@@ -87,11 +87,56 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		//Геренириуем ID
 		id := fmt.Sprintf("player_%d", time.Now().UnixNano())
 
+		// 1. Создаём личную зону для игрока
+		zone := player.CreatePlayerZone(id, name)
+
+		// 2. Сохраняем все комнаты зоны в БД
+		for _, room := range zone.Rooms {
+			if err := s.roomRepo.Save(room); err != nil {
+				s.logger.Error("Не удалось сохранить комнату игрока: " + err.Error())
+				fmt.Fprintf(conn, "Ошибка создания комнаты. Попробуй позже\n")
+				return
+			}
+		}
+
+		//Связываем дорогу игрока с городом
+		townInterface, err := s.roomRepo.FindByID("global_town")
+		if err != nil {
+			s.logger.Error("Не удалось найти город")
+			fmt.Fprintf(conn, "Ошибка загрузки города, попробуй позже\n")
+			return
+		}
+
+		//3. Привести интерфейс к конкретному типу *room.Room
+		townRoom, ok := townInterface.(*room.Room)
+		if !ok {
+			s.logger.Error("Не удалось привести интерфейс к конкретному типу\n")
+			return
+		}
+
+		//4. Создать название выхода
+		nameExit := fmt.Sprintf("дом %s", name)
+
+		// 5. Добавить в Exits (для перемещения)
+		townRoom.Exits[nameExit] = zone.RoadID
+
+		// 5. ДОБАВИТЬ В TOWNEXITS (самое важное!)
+		townRoom.TownExits = append(townRoom.TownExits, room.TownExit{
+			Name:    nameExit,
+			RoomID:  zone.RoadID,
+			OwnerID: id,
+		})
+		if err := s.roomRepo.Save(townRoom); err != nil {
+			s.logger.Error("Не удалось обновить город: " + err.Error())
+		} else {
+
+		}
+
 		//Создаем игрока
 		currentPlayer = &player.Player{
 			ID:          id,
 			Name:        name,
-			CurrentRoom: "home_01",           //стартовая комната
+			CurrentRoom: zone.HomeRoomID,     //стартовая комната
 			Inventory:   []*item.ItemStack{}, // пустой инвентарь
 		}
 

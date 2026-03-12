@@ -3,6 +3,7 @@ package main
 import (
 	"Mud_game/Mud_Game/internal/delivery/tcp"
 	"Mud_game/Mud_Game/internal/domain/player"
+	"Mud_game/Mud_Game/internal/domain/room"
 	"Mud_game/Mud_Game/internal/pkg/config"
 	"Mud_game/Mud_Game/internal/pkg/db"
 	"Mud_game/Mud_Game/internal/pkg/logger"
@@ -13,6 +14,8 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -28,10 +31,12 @@ func main() {
 		return
 	}
 
-	// 3️⃣ ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ ДЛЯ РЕПОЗИТОРИЯ нужна для запуска сервера
-	// player.Repository - это ИНТЕРФЕЙС (может быть хоть memory, хоть postgres)
-	var pRepo player.Repository
+	// 3️⃣ ОБЪЯВЛЯЕМ ПЕРЕМЕННые ДЛЯ РЕПОЗИТОРИЯ нужна для запуска сервера
 
+	var pRepo player.Repository
+	var rRepo room.Repository
+
+	var database *gorm.DB
 	// Создаём конфиг для БД из данных, которые загрузили
 	// ВЫБИРАЕМ, КАКОЙ РЕПОЗИТОРИЙ ИСПОЛЬЗОВАТЬ
 	if cfg.UsePostgres {
@@ -46,7 +51,7 @@ func main() {
 		}
 
 		//Подключаемся к БД
-		database, err := db.NewConnection(dbConfig)
+		database, err = db.NewConnection(dbConfig)
 		if err != nil {
 			log.Error("Не удалось подключиться к БД:" + err.Error())
 			return
@@ -64,19 +69,32 @@ func main() {
 		pRepo = memoryrepo.NewMemoryRepository()
 		log.Info("📝 Используется in-memory хранилище")
 	}
+	// ===== ВЫБОР РЕПОЗИТОРИЯ ДЛЯ КОМНАТ =====
+	if cfg.UsePostgres {
+		// Используем PostgreSQL для комнат
+		rRepo, err = roomRepo.NewPostgresRepository(database)
+		if err != nil {
+			log.Error("Ошибка создания репозитория комнат: " + err.Error())
+			return
+		}
+		log.Info("✅ Комнаты будут сохраняться в PostgreSQL")
+	} else {
+		//// Используем in-memory
+		rRepo = roomRepo.NewMemoryRepository()
+		log.Info("📝 Комнаты в памяти (не сохраняются)")
+	}
+
+	//// ===== ИНИЦИАЛИЗАЦИЯ МИРА(общего города) =====
+	if err := world.InitGlobalTown(rRepo); err != nil {
+		log.Error("Ошибка создания города: " + err.Error())
+		return
+	}
 
 	log.Info("Сервер запускается...")
 	log.Info(fmt.Sprintf("Название: %s", cfg.NameServer))
 	log.Info(fmt.Sprintf("Порт: %d", cfg.Port))
 
-	//Создаем репозиторий комнат (rRepo)+ создание сервера
-	rRepo := roomRepo.NewMemoryRepository()
-	//Загружаем комнаты
-	if err := world.InitRooms(rRepo); err != nil {
-		log.Error("Ошибка загрузки комнат :" + err.Error())
-		return
-	}
-
+	//создание сервера
 	server := tcp.NewServer(strconv.Itoa(cfg.Port), log, pRepo, rRepo)
 	go func() {
 		//Запускаем сервер в отдельной горутине

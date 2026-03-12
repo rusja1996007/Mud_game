@@ -17,6 +17,7 @@ type RoomInterface interface { //интерфейс комнаты
 	OnExit(playerID string) string                                //Что происходит при выходе	Попрощаться, закрыть дверь
 	Look(playerID string) string                                  //Осмотр комнаты	Описание + предметы + игроки
 	AddItem(stack *item.ItemStack) error                          //скинуть предмет в комнату
+
 }
 
 // Repository = где комнаты лежат (как их найти/сохранить)
@@ -24,4 +25,5 @@ type Repository interface { //что умеет хранилище комнат
 	FindByID(id string) (RoomInterface, error) //возвращает интерфейс RoomInterface, Ищет комнату по ID	Чтобы переместить игрока
 	Save(room RoomInterface) error             //сохраняем любую комнату,Чтобы добавить новую или обновить
 	Delete(id string) error                    //Удаляет комнату	Если комната больше не нужна
+	FindAll() ([]RoomInterface, error)
 }

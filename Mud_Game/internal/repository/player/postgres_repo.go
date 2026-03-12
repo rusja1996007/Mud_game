@@ -28,7 +28,7 @@ func (r *PostgresRepository) Save(p *player.Player) error {
 		return err
 	}
 
-	result := r.db.Create(model)
+	result := r.db.Save(model)
 	if result.Error != nil {
 
 		return result.Error
