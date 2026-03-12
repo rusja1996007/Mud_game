@@ -120,12 +120,13 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		// 5. Добавить в Exits (для перемещения)
 		townRoom.Exits[nameExit] = zone.RoadID
 
-		// 5. ДОБАВИТЬ В TOWNEXITS (самое важное!)
+		// 5. ДОБАВИТЬ В TownExits (самое важное!)
 		townRoom.TownExits = append(townRoom.TownExits, room.TownExit{
 			Name:    nameExit,
 			RoomID:  zone.RoadID,
 			OwnerID: id,
 		})
+		//Теперь город "знает", что выход "nameExit" принадлежит игроку с ID "id".
 		if err := s.roomRepo.Save(townRoom); err != nil {
 			s.logger.Error("Не удалось обновить город: " + err.Error())
 		} else {

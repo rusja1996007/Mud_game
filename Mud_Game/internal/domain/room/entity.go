@@ -10,9 +10,9 @@ import (
 
 // TownExit - информация о выходе из города
 type TownExit struct {
-	Name    string //"дом Иван"
-	RoomID  string // "road_player_123"
-	OwnerID string // "player_123"
+	Name    string //"дом Иван"- название выхода
+	RoomID  string // "road_player_123"- ID дороги игрока
+	OwnerID string // "player_123"- КОМУ принадлежит этот выход
 }
 
 type Room struct {
@@ -65,10 +65,10 @@ func (r *Room) Look(playerID string) string {
 	}
 	builder.WriteString("Выходы: ")
 
-	if r.ID == "global_town" {
-		for _, exit := range r.TownExits {
-			if exit.OwnerID == playerID {
-				builder.WriteString(exit.Name + " ")
+	if r.ID == "global_town" { //// 1. Проверяем, что это город
+		for _, exit := range r.TownExits { // 2. Проходим по ВСЕМ выходам города
+			if exit.OwnerID == playerID { // 3. Сравниваем владельца с текущим игроком
+				builder.WriteString(exit.Name + " ") // 4. Показываем только "свои" выходы
 			}
 		}
 	} else {

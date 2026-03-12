@@ -31,6 +31,21 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		fmt.Fprintf(conn, "Туда нельзя идти\n> ")
 		return
 	}
+
+	//"Смотрим, есть ли в названии комнаты слова home_, garden_ или road_"
+
+	//Если есть — значит это личная зона (дом, огород или дорога).
+	//Если нет — значит это общая комната (город) и можно пускать без проверки.
+
+	if strings.Contains(nextRoomID, "home_") ||
+		strings.Contains(nextRoomID, "garden_") ||
+		strings.Contains(nextRoomID, "road_") {
+		//"Смотрим, есть ли в названии комнаты ID текущего игрока"
+		if !strings.Contains(nextRoomID, p.ID) {
+			fmt.Fprintf(conn, "Чужая территория, туда нельзя\n> ")
+			return
+		}
+	}
 	p.CurrentRoom = nextRoomID //Обновить позицию игрока и сохранить
 	playerRepo.Save(p)
 

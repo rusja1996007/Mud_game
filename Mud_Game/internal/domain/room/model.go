@@ -23,7 +23,7 @@ type RoomModel struct {
 }
 
 func (m *RoomModel) ToEntity() (*Room, error) {
-	//парсим выходы
+	//парсим выходы из JSON (то, что в БД)
 	var exits map[string]string
 	if m.Exits != "" {
 		err := json.Unmarshal([]byte(m.Exits), &exits)

@@ -428,5 +428,5 @@ my-mud-game/
    //psql -U muduser -d mudgame -h localhost - подключение к БД PgAdmin
    //go run cmd/server/main.go - запуск самого сервера
    SELECT * FROM player_models; - вытащить всю таблицу
-   DELETE FROM player_models; - удалить всю таблицу, при повторном запуске опять создасться самаы
+   DELETE FROM player_models; - удалить всю таблицу, при повторном запуске опять создасться сама
 
