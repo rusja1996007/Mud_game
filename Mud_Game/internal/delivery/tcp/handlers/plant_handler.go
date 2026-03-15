@@ -32,12 +32,11 @@ func HandlePlant(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		fmt.Fprintf(conn, "Номер грядки должен быть 1, 2 или 3!\n> ")
 		return
 	}
-	plotID-- //// конвертируем в индекс (0, 1, 2) --------------------------------------
-
+	plotID-- //// конвертируем в индекс (0, 1, 2)
 	// 4. получаем тип растения
 	plantName := strings.ToLower(args[2]) //----------------------------------------
 	var plantType garden.PlantType
-	var seedName string //------------------------------------------
+	var seedName string //
 
 	switch plantName {
 	case "tomato":
