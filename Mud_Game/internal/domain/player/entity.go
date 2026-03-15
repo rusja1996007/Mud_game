@@ -7,5 +7,5 @@ type Player struct {
 	Name        string
 	CurrentRoom string            //текущая комната
 	Inventory   []*item.ItemStack // ← стопки предметов (название + кол-во)
-
+	Zone        *PLayerZone
 }

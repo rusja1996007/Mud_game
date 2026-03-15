@@ -52,10 +52,10 @@ func (m *RoomModel) ToEntity() (*Room, error) {
 			// Проверяем, что это выход к дороге игрока
 			if strings.Contains(roomID, "road_") {
 				// Извлекаем OwnerID (часть после road_)
-				parts := strings.Split(roomID, "_")
+				parts := strings.Split(roomID, "_") // ["road", "player", "123"] Split: Разрезает строку на части по разделителю "_".
 				if len(parts) >= 2 {
 					// Собираем всё после первого "_"
-					ownerID := strings.Join(parts[1:], "_") // "player_123"
+					ownerID := strings.Join(parts[1:], "_") // "player_123" parts[1:] означает "все элементы, начиная с индекса 1" (пропускаем "road").
 
 					room.TownExits = append(room.TownExits, TownExit{
 						Name:    exitName,

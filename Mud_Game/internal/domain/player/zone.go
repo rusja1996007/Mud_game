@@ -1,6 +1,7 @@
 package player
 
 import (
+	"Mud_game/Mud_Game/internal/domain/garden"
 	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -13,6 +14,7 @@ type PLayerZone struct {
 	GardenID   string //сад
 	RoadID     string // дорога
 	Rooms      map[string]*room.Room
+	Garden     *garden.Garden // ✅ добавляем структуру огорода
 }
 
 func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
@@ -33,6 +35,8 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		Items: []*item.ItemStack{
 			{Name: "Empty bottle", Count: 20},
 			{Name: "Empty bag", Count: 5},
+			{Name: "tomato seeds", Count: 5},
+			{Name: "potato seeds", Count: 5},
 		},
 	}
 
@@ -48,7 +52,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		Items: []*item.ItemStack{},
 	}
 
-	garden := &room.Room{
+	gardenRoom := &room.Room{
 		ID:          gardenID,
 		Name:        fmt.Sprintf("Огород %s", PlayerName),
 		Description: "Твой маленький огород, можно выращивать растения",
@@ -56,14 +60,16 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			"road": roadID,
 			"home": homeID,
 		},
-		Items: []*item.ItemStack{
-			{Name: "Griadka", Count: 3},
-		},
+		Items: []*item.ItemStack{},
 	}
+
+	// ✅ Создаем структуру Garden с 3 грядками
+	playerGarden := garden.NewGarden(playerID, 3)
+
 	// 3. Собираем все комнаты в карту
 	rooms := map[string]*room.Room{
 		homeID:   home,
-		gardenID: garden,
+		gardenID: gardenRoom,
 		roadID:   road,
 	}
 	// 4. Возвращаем зону
@@ -73,6 +79,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		GardenID:   gardenID,
 		RoadID:     roadID,
 		Rooms:      rooms,
+		Garden:     playerGarden,
 	}
 
 }
