@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// посадить
 func HandlePlant(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 
 	args := strings.Fields(cmd) // - разбивает строку на слова, убирает лишние пробелы вначале и конце

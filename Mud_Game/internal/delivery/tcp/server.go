@@ -139,6 +139,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 			Name:        name,
 			CurrentRoom: zone.HomeRoomID,     //стартовая комната
 			Inventory:   []*item.ItemStack{}, // пустой инвентарь
+			Zone:        zone,
 		}
 
 		//Сохраняем в репозиторий
@@ -220,6 +221,19 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 		handlers.HandleDestroy(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
+
+	case strings.HasPrefix(cmd, "garden"):
+		handlers.HandleGarden(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case strings.HasPrefix(cmd, "plant "):
+		handlers.HandlePlant(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case strings.HasPrefix(cmd, "harvest "):
+		handlers.HandleHarvest(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
 	default:
 		fmt.Fprintf(conn, "Неизвестная команда\n> ")
 		return false

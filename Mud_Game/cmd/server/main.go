@@ -111,3 +111,4 @@ func main() {
 }
 
 //команда для подклюючения к серверу telnet localhost 4000
+// запустить сервер go run cmd/server/main.go

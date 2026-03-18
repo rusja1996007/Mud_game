@@ -83,18 +83,15 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 		Inventory:   inventory,        //это наш преобразованный список предметов
 	}
 
-	// ✅ Добавляем огород в зону игрока (создаем зону если нужно)
-	if gardenObj != nil {
-		// Создаем простую зону с огородом
-		// В реальности тут нужно восстановить все комнаты зоны
-		playerEntity.Zone = &PLayerZone{
-			PlayerID: m.ID,
-			Garden:   gardenObj,
-			GardenID: fmt.Sprintf("garden_%s", m.ID), // генерируем ID
-		}
-	}
-	return playerEntity, nil
+	//// ✅ ВСЕГДА создаем Zone, даже если огород пустой!
 
+	playerEntity.Zone = &PLayerZone{
+		PlayerID: m.ID,
+		Garden:   gardenObj,
+		GardenID: fmt.Sprintf("garden_%s", m.ID), // генерируем ID
+	}
+
+	return playerEntity, nil
 }
 
 // из игры в  БД:

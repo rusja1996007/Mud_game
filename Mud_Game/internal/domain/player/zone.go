@@ -37,6 +37,8 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			{Name: "Empty bag", Count: 5},
 			{Name: "tomato seeds", Count: 5},
 			{Name: "potato seeds", Count: 5},
+			{Name: "meadow_clover seeds", Count: 5},
+			{Name: "burdock seeds", Count: 5},
 		},
 	}
 
