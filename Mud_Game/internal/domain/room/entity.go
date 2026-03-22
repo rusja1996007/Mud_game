@@ -3,7 +3,7 @@ package room
 import (
 	"Mud_game/Mud_Game/internal/domain/item"
 	"errors"
-	"strconv"
+	"fmt"
 	"strings"
 	"sync"
 )
@@ -51,18 +51,20 @@ func (r *Room) Look(playerID string) string {
 	builder.WriteString("\n")
 
 	if len(r.Items) > 0 {
-		builder.WriteString("Вы видите: ")
-		for i, stack := range r.Items {
-			if i > 0 {
-				builder.WriteString(", ")
+		builder.WriteString("Вы видите:\n")
+		for _, stack := range r.Items {
+			builder.WriteString(" • ")
+			if stack.Count > 1 {
+				fmt.Fprintf(&builder, "%s x%d", stack.Name, stack.Count)
+			} else {
+				builder.WriteString(stack.Name)
 			}
-			builder.WriteString("(")
-			builder.WriteString(strconv.Itoa(stack.Count))
-			builder.WriteString(")")
-			builder.WriteString(stack.Name)
+			builder.WriteString("\n")
 		}
-		builder.WriteString("\n")
+	} else {
+		builder.WriteString("Вы не видите ничего интересного.\n")
 	}
+
 	builder.WriteString("Выходы: ")
 
 	if r.ID == "global_town" { //// 1. Проверяем, что это город
@@ -105,6 +107,10 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 	if r.Items[foundIndex].Count < count {
 		return nil, errors.New("Недостаточно предметов")
 	}
+
+	// // Сохраняем информацию о предмете ДО изменения
+	originalItem := r.Items[foundIndex]
+
 	//Уменьшаем количество или удаляем
 	r.Items[foundIndex].Count -= count
 	//Удаление элемента из слайса
@@ -117,8 +123,12 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 	}
 	//возвращаем стопку с тем что взяли
 	return &item.ItemStack{
-		Name:  itemName,
-		Count: count,
+		Name:       itemName,
+		Count:      count,
+		ItemType:   originalItem.ItemType,
+		SlotBonus:  originalItem.SlotBonus,
+		HungerRate: originalItem.HungerRate,
+		ThirstRate: originalItem.ThirstRate,
 	}, nil
 }
 func (r *Room) AddItem(stack *item.ItemStack) error {

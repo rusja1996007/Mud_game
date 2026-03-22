@@ -139,6 +139,8 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 			Name:        name,
 			CurrentRoom: zone.HomeRoomID,     //стартовая комната
 			Inventory:   []*item.ItemStack{}, // пустой инвентарь
+			Equipment:   &player.Equipment{},
+			Stats:       &player.Stats{MaxSlots: 4, Hunger: 100, Thirst: 100},
 			Zone:        zone,
 		}
 
@@ -232,6 +234,10 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 	case strings.HasPrefix(cmd, "harvest "):
 		handlers.HandleHarvest(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case strings.HasPrefix(cmd, "wear "):
+		handlers.HandleWear(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
 	default:

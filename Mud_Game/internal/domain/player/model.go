@@ -16,10 +16,23 @@ type PlayerModel struct {
 	Name        string `gorm:"uniqueIndex;size:50"`
 	CurrentRoom string `gorm:"size:36"` //где сейчас
 	Inventory   string `gorm:"type:text"`
+	Equipment   string `gorm:"type:text"`
 	GardenData  string `gorm:"type:text"` // JSON с грядками("помидор: посажен в 14:00" )
 	Created_at  time.Time
 	Updated_at  time.Time
 	Deleted_at  gorm.DeletedAt `gorm:"index"`
+}
+
+// структура для JSON экипировки:
+type EquipmentJSON struct {
+	Weapon *item.ItemStack `json:"weapon"`
+	Armor  *item.ItemStack `json:"armor"`
+	Helmet *item.ItemStack `json:"helmet"`
+	Bag    *item.ItemStack `json:"bag"`
+	Shield *item.ItemStack `json:"shield"`
+	Boots  *item.ItemStack `json:"boots"`
+	Ring1  *item.ItemStack `json:"ring1"`
+	Ring2  *item.ItemStack `json:"ring2"`
 }
 
 // Вспомогательные структуры для JSON
@@ -75,12 +88,36 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 		}
 	}
 
+	equipment := &Equipment{}
+	if m.Equipment != "" {
+		var eqData EquipmentJSON
+		if err := json.Unmarshal([]byte(m.Equipment), &eqData); err == nil {
+			equipment = &Equipment{
+				Weapon: eqData.Weapon,
+				Armor:  eqData.Armor,
+				Helmet: eqData.Helmet,
+				Bag:    eqData.Bag,
+				Shield: eqData.Shield,
+				Boots:  eqData.Boots,
+				Ring1:  eqData.Ring1,
+				Ring2:  eqData.Ring2,
+			}
+		}
+	}
+
 	// Создаем и возвращаем игрока
 	playerEntity := &Player{
 		ID:          fmt.Sprint(m.ID), //m.ID из БД превращаем в строку (fmt.Sprint)
 		Name:        m.Name,           //m.Name из БД просто копируем
 		CurrentRoom: m.CurrentRoom,    //m.CurrentRoom тоже копируем
 		Inventory:   inventory,        //это наш преобразованный список предметов
+		Equipment:   equipment,
+		Stats: &Stats{
+			MaxSlots: 4,
+			Hunger:   100,
+			Thirst:   100,
+			Level:    1,
+		},
 	}
 
 	//// ✅ ВСЕГДА создаем Zone, даже если огород пустой!
@@ -129,12 +166,28 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		gardenJSON, _ = json.Marshal(gardenData)
 	}
 
+	var equipmentJSON []byte
+	if p.Equipment != nil {
+		eqData := EquipmentJSON{
+			Weapon: p.Equipment.Weapon,
+			Armor:  p.Equipment.Armor,
+			Helmet: p.Equipment.Helmet,
+			Bag:    p.Equipment.Bag,
+			Shield: p.Equipment.Shield,
+			Boots:  p.Equipment.Boots,
+			Ring1:  p.Equipment.Ring1,
+			Ring2:  p.Equipment.Ring2,
+		}
+		equipmentJSON, _ = json.Marshal(eqData)
+	}
+
 	// Создаем модель БД из данных игрока
 	return &PlayerModel{
 		ID:          p.ID,
 		Name:        p.Name,
 		CurrentRoom: p.CurrentRoom,
 		Inventory:   string(inventJSON), // JSON нужно превратить в строку
+		Equipment:   string(equipmentJSON),
 		GardenData:  string(gardenJSON),
 		Created_at:  time.Now(),
 		Updated_at:  time.Now(),

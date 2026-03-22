@@ -46,6 +46,7 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	if len(parts) == 1 && parts[0] == "all" { //// Это команда "take all" — взять всё из комнаты
 		// Берем предметы ПОКА они есть, а не по фиксированному списку!
 		taken := 0
+		stopped := false // флаг, что остановились из-за нехватки места
 
 		for {
 			items := r.GetItems()
@@ -57,23 +58,32 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 			stack := items[0]
 			takenStack, err := r.TakeItem(stack.Name, stack.Count)
 			if err != nil {
-				fmt.Fprintf(conn, "ОШибка при взятии предмета: %s", err.Error())
+				fmt.Fprintf(conn, "Ошибка при взятии предмета: %s", err.Error())
 				continue
 			}
 
-			p.Inventory = AddToInventory(p.Inventory, takenStack)
+			if !p.AddItemToInventory(takenStack) {
+				// Если нет места - кладем предмет обратно в комнату
+				r.AddItem(takenStack)
+				fmt.Fprintf(conn, "Нет места в инвентаре! Остановлено на %s\n", takenStack.Name)
+				stopped = true
+				break
+			}
 			taken++
 
 		}
 		if taken > 0 {
 			playerRepo.Save(p)
 			roomRepo.Save(r)
-			fmt.Fprintf(conn, "Вы взяли все из комнаты\n> ")
+			if !stopped {
+				fmt.Fprintf(conn, "Вы взяли все из комнаты\n> ")
+			} else {
+				fmt.Fprintf(conn, "Вы взяли %d предметов, Освободите место для остальных.\n> ", taken)
+			}
 		} else {
-			fmt.Fprintf(conn, "В комнате нет предметов для взятия\n> ")
+			fmt.Fprintf(conn, "В комнате нет предметов\n> ")
 		}
 		return
-
 	} else if len(parts) == 1 {
 		itemName = parts[0]
 	} else {
@@ -134,7 +144,11 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 			fmt.Fprintf(conn, "Не получилось взять предметы\n> ")
 			return
 		}
-		p.Inventory = AddToInventory(p.Inventory, takenStack)
+		if !p.AddItemToInventory(takenStack) {
+			r.AddItem(takenStack)
+			fmt.Fprintf(conn, "Нет места в инвентаре!\n> ")
+			return
+		}
 		playerRepo.Save(p)
 		roomRepo.Save(r)
 

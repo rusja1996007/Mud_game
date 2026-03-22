@@ -33,12 +33,20 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			"garden": gardenID,
 		},
 		Items: []*item.ItemStack{
-			{Name: "Empty bottle", Count: 20},
-			{Name: "Empty bag", Count: 5},
-			{Name: "tomato seeds", Count: 5},
-			{Name: "potato seeds", Count: 5},
-			{Name: "meadow_clover seeds", Count: 5},
-			{Name: "burdock seeds", Count: 5},
+			{Name: "empty bottle", Count: 20, ItemType: "container"},
+			{Name: "empty bag", Count: 5, ItemType: "container"},
+			{Name: "tomato seeds", Count: 5, ItemType: "seed"},
+			{Name: "potato seeds", Count: 5, ItemType: "seed"},
+			{Name: "meadow_clover seeds", Count: 5, ItemType: "seed"},
+			{Name: "burdock seeds", Count: 5, ItemType: "seed"},
+			{Name: "leather bag", Count: 1, ItemType: "bag", SlotBonus: 4}, //кож. сумка(для переноса увеличение инвентаря)
+			{Name: "iron sword", Count: 1, ItemType: "weapon"},
+			{Name: "leather hood", Count: 1, ItemType: "helmet"}, //кож. капюшон
+			{Name: "leather armor", Count: 1, ItemType: "armor"}, //кож. броня
+			{Name: "knife", Count: 1, ItemType: "weapon"},
+			{Name: "silver ring", Count: 1, ItemType: "ring"},
+			{Name: "gold ring", Count: 1, ItemType: "ring"},
+			{Name: "black ring", Count: 1, ItemType: "ring"},
 		},
 	}
 
