@@ -145,15 +145,24 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
+	//нужна копия, т.к. если будем использовать оригинал, которого например больше двух штук, то изменения коснуться и других веще(например улучшил один меч сразу улучшился и второй)
+	copyStack := &item.ItemStack{
+		Name:       stack.Name,
+		Count:      stack.Count,
+		ItemType:   stack.ItemType,
+		SlotBonus:  stack.SlotBonus,
+		HungerRate: stack.HungerRate,
+		ThirstRate: stack.ThirstRate,
+	}
 	// Ищем существующую стопку с таким же названием
 	for i := range r.Items {
-		if r.Items[i].Name == stack.Name {
-			r.Items[i].Count += stack.Count
+		if r.Items[i].Name == copyStack.Name {
+			r.Items[i].Count += copyStack.Count
 			return nil
 		}
 	}
 	// Если не нашли - добавляем новую стопку
-	r.Items = append(r.Items, stack)
+	r.Items = append(r.Items, copyStack)
 	return nil
 
 }

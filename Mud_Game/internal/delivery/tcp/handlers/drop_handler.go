@@ -65,8 +65,10 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		fmt.Fprintf(conn, "У вас нету такого предмета\n> ")
 		return
 	}
+	//сохраняем оригинальный предмет
+	originalStack := p.Inventory[foundIndex]
 
-	available := p.Inventory[foundIndex].Count
+	available := originalStack.Count
 	dropCount := count //сколько выложить
 	if dropCount == -1 {
 		dropCount = available
@@ -88,8 +90,12 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	// ✅ СОЗДАЕМ СТОПКУ ДЛЯ БРОСКА
 	dropStack := &item.ItemStack{
-		Name:  itemName,
-		Count: dropCount,
+		Name:       originalStack.Name,
+		Count:      dropCount,
+		ItemType:   originalStack.ItemType,
+		SlotBonus:  originalStack.SlotBonus,
+		HungerRate: originalStack.HungerRate,
+		ThirstRate: originalStack.ThirstRate,
 	}
 
 	//Добавить предметы в комнату

@@ -240,6 +240,10 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		handlers.HandleWear(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
+	case strings.HasPrefix(cmd, "remove "):
+		handlers.HandleRemove(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
 	default:
 		fmt.Fprintf(conn, "Неизвестная команда\n> ")
 		return false
