@@ -134,14 +134,26 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		}
 
 		//Создаем игрока
+		//изза влияния силы на здоровья вывел отдельно в переменную
+		strength := 5
 		currentPlayer = &player.Player{
 			ID:          id,
 			Name:        name,
 			CurrentRoom: zone.HomeRoomID,     //стартовая комната
 			Inventory:   []*item.ItemStack{}, // пустой инвентарь
 			Equipment:   &player.Equipment{},
-			Stats:       &player.Stats{MaxSlots: 4, Hunger: 100, Thirst: 100},
-			Zone:        zone,
+			Stats: &player.Stats{
+				MaxSlots:   4,
+				Hunger:     100,
+				Thirst:     100,
+				Health:     50 + 5*strength,
+				Strength:   3,
+				Dexterity:  3,
+				Intelect:   2,
+				Tracking:   2,
+				Level:      1,
+				Experience: 0},
+			Zone: zone,
 		}
 
 		//Сохраняем в репозиторий
@@ -157,6 +169,10 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		s.logger.Info("Новый игрок :" + name + "(ID:" + id + ")")
 		fmt.Fprintf(conn, "Привет %s! Добро пожаловать в игру!\n> ", name)
 	}
+
+	//запускаем тикер отнимания еды и воды
+	go currentPlayer.StartHungerTicker(conn, s.playerRepo)
+	go currentPlayer.StartThirstTicker(conn, s.playerRepo)
 	room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom) //комната где сейчас  персонаж
 	fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
 
@@ -202,6 +218,10 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case cmd == "inventory":
 
 		handlers.HandleInventory(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case cmd == "stats":
+		handlers.HandleStats(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
 	case strings.HasPrefix(cmd, "move "): //после move идет еще чтото. аналогично ниже

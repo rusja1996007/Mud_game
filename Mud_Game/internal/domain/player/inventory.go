@@ -84,6 +84,10 @@ func (p *Player) CanAddItem() bool {
 // добавить предмет в инвентарь
 func (p *Player) AddItemToInventory(stack *item.ItemStack) bool {
 
+	if !p.CanAddItem() {
+		return false
+	}
+
 	if p.Inventory == nil {
 		p.Inventory = []*item.ItemStack{}
 	}
