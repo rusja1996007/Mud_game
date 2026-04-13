@@ -144,6 +144,9 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		return nil, errors.New("Нe удалось преобразовать JSON в инвентарь ")
 	}
 
+	// ✅ ОТЛАДКА: выводим JSON перед сохранением
+	fmt.Printf("DEBUG Сохранение в БД: %s\n", string(inventJSON))
+
 	//Превращаем огород в json
 	var gardenJSON []byte
 	if p.Zone != nil && p.Zone.Garden != nil {

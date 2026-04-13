@@ -103,6 +103,7 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 	if foundIndex == -1 {
 		return nil, errors.New("Предмет не найден")
 	}
+
 	// Теперь работаем с найденным
 	if r.Items[foundIndex].Count < count {
 		return nil, errors.New("Недостаточно предметов")
@@ -110,6 +111,7 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 
 	// // Сохраняем информацию о предмете ДО изменения
 	originalItem := r.Items[foundIndex]
+	fmt.Printf("DEBUG TakeItem: %s, HungerRestore = %d\n", originalItem.Name, originalItem.HungerRestore)
 
 	//Уменьшаем количество или удаляем
 	r.Items[foundIndex].Count -= count
@@ -123,12 +125,14 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 	}
 	//возвращаем стопку с тем что взяли
 	return &item.ItemStack{
-		Name:       itemName,
-		Count:      count,
-		ItemType:   originalItem.ItemType,
-		SlotBonus:  originalItem.SlotBonus,
-		HungerRate: originalItem.HungerRate,
-		ThirstRate: originalItem.ThirstRate,
+		Name:          itemName,
+		Count:         count,
+		ItemType:      originalItem.ItemType,
+		SlotBonus:     originalItem.SlotBonus,
+		HungerRate:    originalItem.HungerRate,
+		ThirstRate:    originalItem.ThirstRate,
+		HungerRestore: originalItem.HungerRestore,
+		ThirstRestore: originalItem.ThirstRestore,
 	}, nil
 }
 func (r *Room) AddItem(stack *item.ItemStack) error {
@@ -147,12 +151,14 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 
 	//нужна копия, т.к. если будем использовать оригинал, которого например больше двух штук, то изменения коснуться и других веще(например улучшил один меч сразу улучшился и второй)
 	copyStack := &item.ItemStack{
-		Name:       stack.Name,
-		Count:      stack.Count,
-		ItemType:   stack.ItemType,
-		SlotBonus:  stack.SlotBonus,
-		HungerRate: stack.HungerRate,
-		ThirstRate: stack.ThirstRate,
+		Name:          stack.Name,
+		Count:         stack.Count,
+		ItemType:      stack.ItemType,
+		SlotBonus:     stack.SlotBonus,
+		HungerRate:    stack.HungerRate,
+		ThirstRate:    stack.ThirstRate,
+		HungerRestore: stack.HungerRestore,
+		ThirstRestore: stack.ThirstRestore,
 	}
 	// Ищем существующую стопку с таким же названием
 	for i := range r.Items {

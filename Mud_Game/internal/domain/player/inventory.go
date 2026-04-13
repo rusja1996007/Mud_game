@@ -99,12 +99,14 @@ func (p *Player) AddItemToInventory(stack *item.ItemStack) bool {
 		}
 	}
 	newStack := &item.ItemStack{
-		Name:       stack.Name,
-		Count:      stack.Count,
-		ItemType:   stack.ItemType,
-		SlotBonus:  stack.SlotBonus,
-		HungerRate: stack.HungerRate,
-		ThirstRate: stack.ThirstRate,
+		Name:          stack.Name,
+		Count:         stack.Count,
+		ItemType:      stack.ItemType,
+		SlotBonus:     stack.SlotBonus,
+		HungerRate:    stack.HungerRate,
+		ThirstRate:    stack.ThirstRate,
+		HungerRestore: stack.HungerRestore,
+		ThirstRestore: stack.ThirstRestore,
 	}
 	p.Inventory = append(p.Inventory, newStack)
 

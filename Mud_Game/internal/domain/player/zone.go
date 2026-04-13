@@ -47,6 +47,8 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			{Name: "silver ring", Count: 1, ItemType: "ring"},
 			{Name: "gold ring", Count: 1, ItemType: "ring"},
 			{Name: "black ring", Count: 1, ItemType: "ring"},
+			{Name: "tomato", Count: 5, ItemType: "food", HungerRestore: 30},
+			{Name: "water bottle", Count: 2, ItemType: "drink", ThirstRestore: 20},
 		},
 	}
 
