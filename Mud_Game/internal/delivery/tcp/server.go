@@ -156,12 +156,6 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 			Zone: zone,
 		}
 
-		// ✅ ОТЛАДКА: проверяем предметы в доме
-		fmt.Printf("=== ОТЛАДКА: предметы в доме игрока %s ===\n", name)
-		for _, stack := range zone.Rooms[zone.HomeRoomID].Items {
-			fmt.Printf("Предмет: %s, HungerRestore = %d\n", stack.Name, stack.HungerRestore)
-		} ///////////////////////////////////////////
-
 		//Сохраняем в репозиторий
 		err = s.playerRepo.Save(currentPlayer)
 		if err != nil {
@@ -276,6 +270,9 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 	case strings.HasPrefix(cmd, "drink "):
 		handlers.HandleDrink(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+	case strings.HasPrefix(cmd, "fill "):
+		handlers.HandleFill(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
 	default:

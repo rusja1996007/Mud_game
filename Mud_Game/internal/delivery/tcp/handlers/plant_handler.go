@@ -46,9 +46,9 @@ func HandlePlant(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 	case "potato":
 		plantType = garden.PlantPotato
 		seedName = "potato seeds"
-	case "meadow_clover":
-		plantType = garden.PlantMeadowClover
-		seedName = "meadow_clover seeds"
+	case "clover":
+		plantType = garden.PlantClover
+		seedName = "clover seeds"
 	case "burdock":
 		plantType = garden.PlantBurdock
 		seedName = "burdock seeds"

@@ -46,7 +46,7 @@ func HandleHarvest(conn net.Conn, cmd string, p *player.Player, roomRepo room.Re
 		itemName = "potato"
 	case garden.PlantBurdock:
 		itemName = "burdock"
-	case garden.PlantMeadowClover:
+	case garden.PlantClover:
 		itemName = "meadow_clover"
 	}
 

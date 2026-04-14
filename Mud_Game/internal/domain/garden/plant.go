@@ -10,18 +10,18 @@ import (
 type PlantType string //какой то тип растения или продукта
 
 const ( //Это как переменная, но её значение нельзя изменить после объявления.
-	PlantTomato       PlantType = "Tomat"
-	PlantPotato       PlantType = "Potat"
-	PlantMeadowClover PlantType = "MeadowClover"
-	PlantBurdock      PlantType = "Burdock"
+	PlantTomato  PlantType = "Tomat"
+	PlantPotato  PlantType = "Potat"
+	PlantClover  PlantType = "Clover"
+	PlantBurdock PlantType = "Burdock"
 )
 
 // Время роста для каждого растения (в минутах)
 var PlantGrowTime = map[PlantType]time.Duration{
-	PlantTomato:       1 * time.Minute,
-	PlantPotato:       1 * time.Minute,
-	PlantMeadowClover: 2 * time.Minute,
-	PlantBurdock:      2 * time.Minute,
+	PlantTomato:  1 * time.Minute,
+	PlantPotato:  1 * time.Minute,
+	PlantClover:  2 * time.Minute,
+	PlantBurdock: 2 * time.Minute,
 }
 
 // Генератор чисел на все приложение
@@ -36,7 +36,7 @@ func GetPlantYield(plantType PlantType) (int, bool) {
 		return rng.Intn(4) + 1, true // ВОЗВРАЩАЕТ число от 1 до 4
 	case PlantPotato:
 		return rng.Intn(4) + 1, true
-	case PlantMeadowClover:
+	case PlantClover:
 		return rng.Intn(5) + 2, true //2-6
 	case PlantBurdock:
 		return rng.Intn(3) + 1, true

@@ -58,8 +58,8 @@ func HandleGarden(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			plantName = "potato"
 		case garden.PlantBurdock:
 			plantName = "burdock"
-		case garden.PlantMeadowClover:
-			plantName = "meadow_clover"
+		case garden.PlantClover:
+			plantName = "clover"
 		}
 
 		// если готов-

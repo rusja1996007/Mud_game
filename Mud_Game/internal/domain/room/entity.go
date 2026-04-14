@@ -111,7 +111,6 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 
 	// // Сохраняем информацию о предмете ДО изменения
 	originalItem := r.Items[foundIndex]
-	fmt.Printf("DEBUG TakeItem: %s, HungerRestore = %d\n", originalItem.Name, originalItem.HungerRestore)
 
 	//Уменьшаем количество или удаляем
 	r.Items[foundIndex].Count -= count

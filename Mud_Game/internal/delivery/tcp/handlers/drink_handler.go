@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
+	"time"
 )
 
 func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
@@ -40,21 +43,35 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		return
 	}
 
-	item := p.Inventory[index]
+	thatItem := p.Inventory[index]
 
-	if item.ItemType != "drink" {
+	if thatItem.ItemType != "drink" {
 		fmt.Fprintf(conn, "Это нельзя пить\n> ")
 		return
 	}
 
-	p.Stats.Thirst += item.ThirstRestore
+	p.Stats.Thirst += thatItem.ThirstRestore
 	if p.Stats.Thirst > 100 {
 		p.Stats.Thirst = 100
 	}
 
-	player.RemoveItem(&p.Inventory, itemName, 1)
+	if thatItem.Name == "water bottle" {
 
-	playerRepo.Save(p)
+		//генерация числа с 0 до 100
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		chance := rng.Intn(100) + 1
 
-	fmt.Fprintf(conn, "Ты выпил %s. Жажда:%d/100\n> ", itemName, p.Stats.Thirst)
+		if chance <= 70 {
+			p.AddItemToInventory(item.GetItem("empty bottle", 1))
+			fmt.Fprintf(conn, "Ты выпил воду, бутылка целая. Жажда:%d/100\n> ", p.Stats.Thirst)
+			player.RemoveItem(&p.Inventory, itemName, 1)
+			playerRepo.Save(p)
+			return
+		} else {
+			fmt.Fprintf(conn, "Ты выпил воду, но бутылка износилась. Жажда:%d/100\n> ", p.Stats.Thirst)
+			player.RemoveItem(&p.Inventory, itemName, 1)
+			playerRepo.Save(p)
+			return
+		}
+	}
 }

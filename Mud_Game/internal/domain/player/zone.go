@@ -13,6 +13,7 @@ type PLayerZone struct {
 	HomeRoomID string
 	GardenID   string //сад
 	RoadID     string // дорога
+	WellID     string
 	Rooms      map[string]*room.Room
 	Garden     *garden.Garden // ✅ добавляем структуру огорода
 }
@@ -23,6 +24,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 	homeID := fmt.Sprintf("home_%s", playerID)
 	gardenID := fmt.Sprintf("garden_%s", playerID)
 	roadID := fmt.Sprintf("road_%s", playerID)
+	wellID := fmt.Sprintf("well_%s", playerID)
 
 	home := &room.Room{
 		ID:          homeID,
@@ -31,24 +33,30 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		Exits: map[string]string{
 			"road":   roadID,
 			"garden": gardenID,
+			"well":   wellID,
 		},
 		Items: []*item.ItemStack{
-			{Name: "empty bottle", Count: 20, ItemType: "container"},
-			{Name: "empty bag", Count: 5, ItemType: "container"},
-			{Name: "tomato seeds", Count: 5, ItemType: "seed"},
-			{Name: "potato seeds", Count: 5, ItemType: "seed"},
-			{Name: "meadow_clover seeds", Count: 5, ItemType: "seed"},
-			{Name: "burdock seeds", Count: 5, ItemType: "seed"},
-			{Name: "leather bag", Count: 1, ItemType: "bag", SlotBonus: 4}, //кож. сумка(для переноса увеличение инвентаря)
-			{Name: "iron sword", Count: 1, ItemType: "weapon"},
-			{Name: "leather hood", Count: 1, ItemType: "helmet"}, //кож. капюшон
-			{Name: "leather armor", Count: 1, ItemType: "armor"}, //кож. броня
-			{Name: "knife", Count: 1, ItemType: "weapon"},
-			{Name: "silver ring", Count: 1, ItemType: "ring"},
-			{Name: "gold ring", Count: 1, ItemType: "ring"},
-			{Name: "black ring", Count: 1, ItemType: "ring"},
-			{Name: "tomato", Count: 5, ItemType: "food", HungerRestore: 30},
-			{Name: "water bottle", Count: 2, ItemType: "drink", ThirstRestore: 20},
+			item.GetItem("empty bottle", 3),
+			item.GetItem("water bottle", 1),
+			item.GetItem("tomato", 1),
+			item.GetItem("potato", 1),
+			item.GetItem("empty bag", 1),
+			item.GetItem("leather bag", 1),
+			item.GetItem("tomato seeds", 3),
+			item.GetItem("potato seeds", 3),
+			item.GetItem("burdock seeds", 1),
+			item.GetItem("clover seeds", 1),
+			item.GetItem("iron sword", 1),
+			item.GetItem("knife", 1),
+			item.GetItem("leather hood", 1),
+			item.GetItem("leather armor", 1),
+			item.GetItem("leather boots", 1),
+			item.GetItem("wooden shield", 1),
+			item.GetItem("silver ring", 1),
+			item.GetItem("gold ring", 1),
+			item.GetItem("black ring", 1),
+			item.GetItem("burdock", 2),
+			item.GetItem("clover", 2),
 		},
 	}
 
@@ -75,6 +83,17 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		Items: []*item.ItemStack{},
 	}
 
+	wellRoom := &room.Room{
+		ID:          wellID,
+		Name:        "Колодец",
+		Description: "Старый каменный колодец с чистой водой",
+		Exits: map[string]string{
+			"home":   homeID,
+			"garden": gardenID,
+		},
+		Items: []*item.ItemStack{},
+	}
+
 	// ✅ Создаем структуру Garden с 3 грядками
 	playerGarden := garden.NewGarden(playerID, 3)
 
@@ -83,6 +102,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		homeID:   home,
 		gardenID: gardenRoom,
 		roadID:   road,
+		wellID:   wellRoom,
 	}
 	// 4. Возвращаем зону
 	return &PLayerZone{
@@ -92,6 +112,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		RoadID:     roadID,
 		Rooms:      rooms,
 		Garden:     playerGarden,
+		WellID:     wellID,
 	}
 
 }
