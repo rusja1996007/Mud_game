@@ -90,12 +90,10 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	// ✅ СОЗДАЕМ СТОПКУ ДЛЯ БРОСКА
 	dropStack := &item.ItemStack{
-		Name:       originalStack.Name,
-		Count:      dropCount,
-		ItemType:   originalStack.ItemType,
-		SlotBonus:  originalStack.SlotBonus,
-		HungerRate: originalStack.HungerRate,
-		ThirstRate: originalStack.ThirstRate,
+		Name:      originalStack.Name,
+		Count:     dropCount,
+		ItemType:  originalStack.ItemType,
+		SlotBonus: originalStack.SlotBonus,
 	}
 
 	//Добавить предметы в комнату

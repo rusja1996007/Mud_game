@@ -7,8 +7,6 @@ type ItemData struct {
 	HungerRestore int
 	ThirstRestore int
 	SlotBonus     int
-	HungerRate    int
-	ThirstRate    int
 }
 
 // ItemsDB — база данных всех предметов в игре
@@ -151,7 +149,5 @@ func GetItem(name string, count int) *ItemStack {
 		HungerRestore: data.HungerRestore,
 		ThirstRestore: data.ThirstRestore,
 		SlotBonus:     data.SlotBonus,
-		HungerRate:    data.HungerRate,
-		ThirstRate:    data.ThirstRate,
 	}
 }

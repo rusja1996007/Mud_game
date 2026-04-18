@@ -2,11 +2,10 @@ package item
 
 // структуре представляет стопку одинаковых предметов
 type ItemStack struct {
-	Name          string `json:"name"`
-	Count         int    `json:"count"`          //сколько штук
-	SlotBonus     int    `json:"slot_bonus"`     //сколько слотов дает
-	HungerRate    int    `json:"hunger_rate"`    //сколько тратит голода(для тяжелых предметов)
-	ThirstRate    int    `json:"thirst_rate"`    //сколько тратит жажды(для тяжелых предметов)
+	Name      string `json:"name"`
+	Count     int    `json:"count"`      //сколько штук
+	SlotBonus int    `json:"slot_bonus"` //сколько слотов дает
+
 	ItemType      string `json:"item_type"`      //тип предмета, в какую ячейку можно отнести(
 	HungerRestore int    `json:"hunger_restore"` //сколько восстанавливает еды
 	ThirstRestore int    `json:"thirst_restore"` //сколько восстанавливает жажды

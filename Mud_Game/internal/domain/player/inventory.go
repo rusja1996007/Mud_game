@@ -103,8 +103,6 @@ func (p *Player) AddItemToInventory(stack *item.ItemStack) bool {
 		Count:         stack.Count,
 		ItemType:      stack.ItemType,
 		SlotBonus:     stack.SlotBonus,
-		HungerRate:    stack.HungerRate,
-		ThirstRate:    stack.ThirstRate,
 		HungerRestore: stack.HungerRestore,
 		ThirstRestore: stack.ThirstRestore,
 	}

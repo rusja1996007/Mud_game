@@ -271,6 +271,7 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case strings.HasPrefix(cmd, "drink "):
 		handlers.HandleDrink(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
+
 	case strings.HasPrefix(cmd, "fill "):
 		handlers.HandleFill(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false

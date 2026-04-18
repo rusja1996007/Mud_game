@@ -128,8 +128,6 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 		Count:         count,
 		ItemType:      originalItem.ItemType,
 		SlotBonus:     originalItem.SlotBonus,
-		HungerRate:    originalItem.HungerRate,
-		ThirstRate:    originalItem.ThirstRate,
 		HungerRestore: originalItem.HungerRestore,
 		ThirstRestore: originalItem.ThirstRestore,
 	}, nil
@@ -154,8 +152,6 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 		Count:         stack.Count,
 		ItemType:      stack.ItemType,
 		SlotBonus:     stack.SlotBonus,
-		HungerRate:    stack.HungerRate,
-		ThirstRate:    stack.ThirstRate,
 		HungerRestore: stack.HungerRestore,
 		ThirstRestore: stack.ThirstRestore,
 	}
