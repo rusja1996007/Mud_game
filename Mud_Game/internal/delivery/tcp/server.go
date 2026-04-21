@@ -170,12 +170,32 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		fmt.Fprintf(conn, "Привет %s! Добро пожаловать в игру!\n> ", name)
 	}
 
-	//запускаем тикер отнимания еды и воды
-	go currentPlayer.StartHungerTicker(conn, s.playerRepo)
-	go currentPlayer.StartThirstTicker(conn, s.playerRepo)
-	room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom) //комната где сейчас  персонаж
-	fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
+	//Восстановление охоты
+	if currentPlayer.Stats.IsHunting {
+		if time.Now().After(currentPlayer.Stats.HuntingEndTime) {
+			currentPlayer.EndHunt(conn, s.playerRepo)
+			//после завершения охоты запускаем тикеры и показываем комнату
+			go currentPlayer.StartHungerTicker(conn, s.playerRepo)
+			go currentPlayer.StartThirstTicker(conn, s.playerRepo)
+			room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom)
+			fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
+		} else {
+			fmt.Fprintf(conn, "Ты на охоте! Вернешься через %v\n> ",
+				time.Until(currentPlayer.Stats.HuntingEndTime).Round(time.Second))
 
+			go func() {
+				time.Sleep(time.Until(currentPlayer.Stats.HuntingEndTime))
+				currentPlayer.EndHunt(conn, s.playerRepo)
+			}()
+		}
+	} else {
+
+		//запускаем тикер отнимания еды и воды
+		go currentPlayer.StartHungerTicker(conn, s.playerRepo)
+		go currentPlayer.StartThirstTicker(conn, s.playerRepo)
+		room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom) //комната где сейчас  персонаж
+		fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
+	}
 	// Цикл обработки команд одного игрока
 	for {
 		// Читаем команду от игрока
@@ -199,12 +219,33 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 }
 
 func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool {
+	// ✅ Если игрок на охоте — блокируем все команды кроме "hunt"
+	if p.Stats.IsHunting {
+		if cmd == "hunt" {
+			fmt.Fprintf(conn, "Ты на охоте, вернешься через %v\n> ",
+				time.Until(p.Stats.HuntingEndTime).Round(time.Second))
+		} else if cmd == "quit" {
+			handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
+			return true
+		} else {
+			fmt.Fprintf(conn, "Ты на охоте! Нельзя использовать команды\n> ")
+		}
+		return false
+	}
 
 	if cmd == "" {
 		handlers.HandleEmpty(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 	}
 	switch {
+	case cmd == "yes":
+		handlers.HandleYesHunt(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case cmd == "hunt":
+		handlers.HandleHunt(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
 	case cmd == "quit":
 
 		handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)

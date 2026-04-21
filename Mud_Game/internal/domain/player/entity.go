@@ -28,7 +28,7 @@ type Player struct {
 	Equipment   *Equipment
 	Zone        *PLayerZone
 	Stats       *Stats // характеристики
-
+	PendingHunt bool   // ожидание подтверждения охото(yes)
 }
 
 type Stats struct {
@@ -47,6 +47,10 @@ type Stats struct {
 	//прогресс(позже)
 	Level      int
 	Experience int
+
+	//охота
+	IsHunting      bool      // на охоте ли персонаж
+	HuntingEndTime time.Time //когда закончится охота
 }
 
 // запускает таймер голода (каждые GetHUNGERInterval секунд )
@@ -155,4 +159,54 @@ func (p *Player) GetThirstInterval() int {
 	}
 
 	return interval
+}
+
+// старт охоты
+func (p *Player) StartHunt(conn net.Conn, repo Repository) {
+	//тратим 2 бутылки
+	RemoveItem(&p.Inventory, "water bottle", 2)
+
+	//устанавливаем состояние охоты
+	p.Stats.IsHunting = true
+	p.Stats.HuntingEndTime = time.Now().Add(1 * time.Hour)
+
+	repo.Save(p)
+
+	//запускаем таймер окончания охоты
+	go func() {
+		time.Sleep(1 * time.Hour)
+		p.EndHunt(conn, repo)
+	}()
+
+}
+
+// завершение охоты
+func (p *Player) EndHunt(conn net.Conn, repo Repository) {
+
+	if !p.Stats.IsHunting {
+		return //не на охоте - выходим
+	}
+
+	p.Stats.Hunger = 20
+	p.Stats.Thirst = 20
+
+	p.AddItemToInventory(&item.ItemStack{
+		Name:     "empty bottle",
+		Count:    2,
+		ItemType: "liquid container",
+	})
+
+	//генерация лута(ПОЗЖЕ)
+
+	//
+
+	p.Stats.IsHunting = false
+
+	//запускаем тикеры после возвращение
+	go p.StartHungerTicker(conn, repo)
+	go p.StartThirstTicker(conn, repo)
+
+	repo.Save(p)
+	fmt.Fprintf(conn, "Ты вернулся с охоты!\n")
+	fmt.Fprintf(conn, "Голод:%d/100, Жажда:%d/100\n> ", p.Stats.Hunger, p.Stats.Thirst)
 }
