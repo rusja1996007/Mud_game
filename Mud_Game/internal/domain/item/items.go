@@ -37,6 +37,12 @@ var ItemsDB = map[string]ItemData{
 		HungerRestore: 10,
 	},
 
+	"rubus caesius": { //Ежевика
+		Name:          "rubus caesius",
+		ItemType:      "food",
+		HungerRestore: 5,
+	},
+
 	/////////////////////////////////////container////////////////////////////////////////
 	"empty bag": {
 		Name:     "empty bag",
@@ -122,15 +128,54 @@ var ItemsDB = map[string]ItemData{
 		ItemType: "ring",
 	},
 
+	"cooper ring": { //медное
+		Name:     "cooper ring",
+		ItemType: "ring",
+	},
+
 	/////////////////////////////////ingredients////////////////////////////////////////////
-	"burdock": {
+	"burdock": { //лопух
 		Name:     "burdock",
 		ItemType: "ingredients",
 	},
 
-	"clover": {
+	"clover": { //клевер
 		Name:     "clover",
 		ItemType: "ingredients",
+	},
+	"inonotus obliquus": { //гриб чага
+		Name:     "inonotus obliquus",
+		ItemType: "ingredients",
+	},
+	"rubroboletus satanas": { //сатанинский гриб
+		Name:     "rubroboletus satanas",
+		ItemType: "ingredients",
+	},
+	"boletus edulis": { //белый гриб
+		Name:     "boletus edulis",
+		ItemType: "ingredients",
+	},
+	"hare meat": { //мясо зайца
+		Name:     "hare meat",
+		ItemType: "ingredients",
+	},
+	"hare ears": { //уши зайца
+		Name:     "hare ears",
+		ItemType: "ingredients",
+	},
+	"hare paws": { //лапы зайца
+		Name:     "hare paws",
+		ItemType: "ingredients",
+	},
+	"broken sword": {
+		Name:     "broken sword",
+		ItemType: "ingredients",
+	},
+
+	////////////////////////////////валюта//////////////////////////////////////////////
+	"coin": { //монета
+		Name:     "coin",
+		ItemType: "currency",
 	},
 }
 

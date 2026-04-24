@@ -23,6 +23,8 @@ bag       - мешок (расширяет слоты)
 food      - еда
 drink     - напиток
 seed      - семена
-container - контейнер (бутылка, мешок)
+container - контейнер (мешок)
+liquid container - бутылка
 material  - материал для крафта
+currency  - валюта
 */

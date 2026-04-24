@@ -20,7 +20,21 @@ func HandleFill(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
-	player.RemoveItem(&p.Inventory, "empty bottle", 1)
+	emptyStack := p.Inventory[index]
+
+	//удаляем пустую бутылку
+	if emptyStack.Count > 1 {
+		emptyStack.Count--
+	} else {
+		p.Inventory = append(p.Inventory[:index], p.Inventory[index+1:]...)
+	}
+
+	//если нет места - возвращаем бутылку
+	if !p.CanAddItem() {
+		p.AddItemToInventory(item.GetItem("empty bottle", 1))
+		fmt.Fprintf(conn, "Нет места для полной бутылки!\n> ")
+		return
+	}
 
 	p.AddItemToInventory(item.GetItem("water bottle", 1))
 

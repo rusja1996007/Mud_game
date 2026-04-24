@@ -15,7 +15,7 @@ type PLayerZone struct {
 	RoadID     string // дорога
 	WellID     string
 	Rooms      map[string]*room.Room
-	Garden     *garden.Garden // ✅ добавляем структуру огорода
+	Garden     *garden.Garden //
 }
 
 func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {

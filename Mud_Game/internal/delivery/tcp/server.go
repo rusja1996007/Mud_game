@@ -173,7 +173,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 	//Восстановление охоты
 	if currentPlayer.Stats.IsHunting {
 		if time.Now().After(currentPlayer.Stats.HuntingEndTime) {
-			currentPlayer.EndHunt(conn, s.playerRepo)
+			currentPlayer.EndHunt(conn, s.playerRepo, s.roomRepo)
 			//после завершения охоты запускаем тикеры и показываем комнату
 			go currentPlayer.StartHungerTicker(conn, s.playerRepo)
 			go currentPlayer.StartThirstTicker(conn, s.playerRepo)
@@ -185,7 +185,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 
 			go func() {
 				time.Sleep(time.Until(currentPlayer.Stats.HuntingEndTime))
-				currentPlayer.EndHunt(conn, s.playerRepo)
+				currentPlayer.EndHunt(conn, s.playerRepo, s.roomRepo)
 			}()
 		}
 	} else {

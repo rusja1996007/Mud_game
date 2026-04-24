@@ -32,7 +32,7 @@ func HandleHunt(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		if strings.ToLower(cmd) == "yes" {
 			//запускаем охоту
 			p.PendingHunt = false
-			p.StartHunt(conn, playerRepo)
+			p.StartHunt(conn, playerRepo, roomRepo)
 			fmt.Fprintf(conn, "Ты отправился на охоту! Вернешься через 1 час.\n> ")
 		} else {
 			p.PendingHunt = false

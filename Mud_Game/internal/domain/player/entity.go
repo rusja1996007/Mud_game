@@ -2,6 +2,8 @@ package player
 
 import (
 	"Mud_game/Mud_Game/internal/domain/item"
+	"Mud_game/Mud_Game/internal/domain/loot"
+	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
 	"net"
 	"time"
@@ -162,51 +164,74 @@ func (p *Player) GetThirstInterval() int {
 }
 
 // старт охоты
-func (p *Player) StartHunt(conn net.Conn, repo Repository) {
+func (p *Player) StartHunt(conn net.Conn, repo Repository, roomRepo room.Repository) {
 	//тратим 2 бутылки
 	RemoveItem(&p.Inventory, "water bottle", 2)
 
 	//устанавливаем состояние охоты
 	p.Stats.IsHunting = true
-	p.Stats.HuntingEndTime = time.Now().Add(1 * time.Hour)
+
+	//////////ВРЕМЕННО ДЛЯ ТЕСТА
+	huntDuration := 10 * time.Second
+	p.Stats.HuntingEndTime = time.Now().Add(huntDuration) ///////////////!!!!
 
 	repo.Save(p)
 
 	//запускаем таймер окончания охоты
 	go func() {
-		time.Sleep(1 * time.Hour)
-		p.EndHunt(conn, repo)
+		time.Sleep(huntDuration) //////////////////////
+		p.EndHunt(conn, repo, roomRepo)
 	}()
 
 }
 
 // завершение охоты
-func (p *Player) EndHunt(conn net.Conn, repo Repository) {
-
+func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repository) {
 	if !p.Stats.IsHunting {
-		return //не на охоте - выходим
+		return
 	}
 
 	p.Stats.Hunger = 20
 	p.Stats.Thirst = 20
 
-	p.AddItemToInventory(&item.ItemStack{
-		Name:     "empty bottle",
-		Count:    2,
-		ItemType: "liquid container",
-	})
+	// Генерируем лут
+	huntLoot := loot.GenerateHuntLoot(p.Stats.Tracking)
 
-	//генерация лута(ПОЗЖЕ)
+	// ВЫВОДИМ ЛУТ ИГРОКУ
+	fmt.Fprintf(conn, "\n Ты вернулся с охоты!\n")
+	fmt.Fprintf(conn, "Голод: %d/100, Жажда: %d/100\n", p.Stats.Hunger, p.Stats.Thirst)
 
-	//
+	if len(huntLoot) > 0 {
+		fmt.Fprintf(conn, "Ты нашёл:\n")
+		for _, l := range huntLoot {
+			if l.Count > 1 {
+				fmt.Fprintf(conn, "  • %s x%d\n", l.Name, l.Count)
+			} else {
+				fmt.Fprintf(conn, "  • %s\n", l.Name)
+			}
+		}
+		fmt.Fprintf(conn, "Все занёс в дом.\n")
+
+	} else {
+		fmt.Fprintf(conn, "К сожалению, тебе ничего не попалось.\n")
+	}
+
+	p.AddItemToInventory(item.GetItem("empty bottle", 2))
+
+	// Находим дом
+	homeRoom, err := roomRepo.FindByID(p.Zone.HomeRoomID)
+	if err == nil {
+		for _, lootItem := range huntLoot {
+			homeRoom.AddItem(lootItem)
+		}
+		roomRepo.Save(homeRoom)
+	}
 
 	p.Stats.IsHunting = false
 
-	//запускаем тикеры после возвращение
 	go p.StartHungerTicker(conn, repo)
 	go p.StartThirstTicker(conn, repo)
 
 	repo.Save(p)
-	fmt.Fprintf(conn, "Ты вернулся с охоты!\n")
-	fmt.Fprintf(conn, "Голод:%d/100, Жажда:%d/100\n> ", p.Stats.Hunger, p.Stats.Thirst)
+	fmt.Fprintf(conn, "> ")
 }
