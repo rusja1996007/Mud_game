@@ -10,6 +10,9 @@ type ItemStack struct {
 	HungerRestore int    `json:"hunger_restore"` //сколько восстанавливает еды
 	ThirstRestore int    `json:"thirst_restore"` //сколько восстанавливает жажды
 
+	MinDamage  int `json:"min_damage"`
+	MaxDamage  int `json:"max_damage"`
+	Durability int `json:"durability"` //прочность
 }
 
 /*
@@ -28,3 +31,12 @@ liquid container - бутылка
 material  - материал для крафта
 currency  - валюта
 */
+
+// уменьшение прочности
+func (i *ItemStack) Decrease(amount int) bool {
+	i.Durability -= amount
+	if i.Durability <= 0 {
+		return true //сломался
+	}
+	return false
+}

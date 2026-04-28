@@ -58,25 +58,25 @@ func (r *PostgresRepository) FindByID(id string) (*player.Player, error) {
 	return playerEntity, nil
 }
 func (r *PostgresRepository) FindByName(name string) (*player.Player, error) {
-	//С блокировкой (для защиты от гонок(db.Set)ищем
+
 	model := player.PlayerModel{}
-	err := r.db.Set("gorm:query_option", "FOR UPDATE").First(&model, "name = ?", name).Error
+
+	err := r.db.Unscoped().Where("name = ?", name).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	// Конвертирует в сущность игры
-	playerEntity, err := model.ToEntity()
-	if err != nil {
-		return nil, err
+	if model.Deleted_at.Valid {
+		return nil, nil //// игрок помечен как удалённый → считаем что его нет
 	}
-	return playerEntity, nil
+	return model.ToEntity()
 }
+
 func (r *PostgresRepository) Delete(id string) error {
 	//     Просто говорим "удали где id = ?"
 	// Если запись есть - удалит
 	// Если нет - ничего не сделает (и не ошибка)
-	return r.db.Delete(&player.PlayerModel{}, "id = ?", id).Error
+	return r.db.Unscoped().Delete(&player.PlayerModel{}, "id = ?", id).Error
 }

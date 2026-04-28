@@ -14,9 +14,24 @@ type LootItem struct {
 }
 
 // GenerateHuntLoot генерирует случайный лут на основе охоты
-func GenerateHuntLoot(tracking int) []*item.ItemStack {
-	var loot []*item.ItemStack
+func GenerateHuntLoot(weapon *item.ItemStack, tracking int) ([]*item.ItemStack, *WolfFightResult, string) {
+	var allLoot []*item.ItemStack
+	var wolfResult *WolfFightResult
+	var brokenMsg string
 
+	//1 - эвент с волком
+	if rand.Intn(100) < 50 {
+		var msg string
+		wolfResult, msg = FightWolf(weapon, tracking)
+		if msg != "" {
+			brokenMsg = msg
+		}
+		if wolfResult.Win {
+			allLoot = append(allLoot, wolfResult.Loot...)
+		}
+	}
+
+	//2 - обычный лут
 	for _, lootItem := range HuntLootTable {
 
 		//базовый шанс
@@ -39,14 +54,14 @@ func GenerateHuntLoot(tracking int) []*item.ItemStack {
 			}
 
 			//добавление
-			loot = append(loot, &item.ItemStack{
+			allLoot = append(allLoot, &item.ItemStack{
 				Name:     lootItem.ItemData.Name,
 				Count:    count,
 				ItemType: lootItem.ItemData.ItemType,
 			})
 		}
 	}
-	return loot
+	return allLoot, wolfResult, brokenMsg
 }
 
 // HuntLootTable - таблица лута для охоты

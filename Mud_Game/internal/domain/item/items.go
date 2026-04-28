@@ -7,6 +7,11 @@ type ItemData struct {
 	HungerRestore int
 	ThirstRestore int
 	SlotBonus     int
+
+	MinDamage int
+	MaxDamage int
+
+	Durability int
 }
 
 // ItemsDB — база данных всех предметов в игре
@@ -79,37 +84,47 @@ var ItemsDB = map[string]ItemData{
 
 	////////////////////////////////////weapon//////////////////////////////////////////////
 	"iron sword": {
-		Name:     "iron sword",
-		ItemType: "weapon",
+		Name:       "iron sword",
+		ItemType:   "weapon",
+		MinDamage:  20,
+		MaxDamage:  30,
+		Durability: 100,
 	},
 
 	"knife": {
-		Name:     "knife",
-		ItemType: "weapon",
+		Name:       "knife",
+		ItemType:   "weapon",
+		MinDamage:  5,
+		MaxDamage:  10,
+		Durability: 100,
 	},
 
 	///////////////////////////////////helmet///////////////////////////////////////////////
 	"leather hood": {
-		Name:     "leather hood",
-		ItemType: "helmet",
+		Name:       "leather hood",
+		ItemType:   "helmet",
+		Durability: 100,
 	},
 
 	//////////////////////////////////armor/////////////////////////////////////////////////
 	"leather armor": {
-		Name:     "leather armor",
-		ItemType: "armor",
+		Name:       "leather armor",
+		ItemType:   "armor",
+		Durability: 100,
 	},
 
 	//////////////////////////////////boots//////////////////////////////////////////////////
 	"leather boots": {
-		Name:     "leather boots",
-		ItemType: "boots",
+		Name:       "leather boots",
+		ItemType:   "boots",
+		Durability: 100,
 	},
 
 	/////////////////////////////////shield//////////////////////////////////////////////////
 	"wooden shield": {
-		Name:     "wooden shield",
-		ItemType: "shield",
+		Name:       "wooden shield",
+		ItemType:   "shield",
+		Durability: 100,
 	},
 
 	/////////////////////////////////ring///////////////////////////////////////////////////
@@ -194,5 +209,8 @@ func GetItem(name string, count int) *ItemStack {
 		HungerRestore: data.HungerRestore,
 		ThirstRestore: data.ThirstRestore,
 		SlotBonus:     data.SlotBonus,
+		MinDamage:     data.MinDamage,
+		MaxDamage:     data.MaxDamage,
+		Durability:    data.Durability,
 	}
 }

@@ -31,6 +31,9 @@ type Player struct {
 	Zone        *PLayerZone
 	Stats       *Stats // характеристики
 	PendingHunt bool   // ожидание подтверждения охото(yes)
+
+	stopHunger chan bool //добавили чтобы не увеличивались тики после охоты(остановка тиков)
+	stopThirst chan bool
 }
 
 type Stats struct {
@@ -57,56 +60,90 @@ type Stats struct {
 
 // запускает таймер голода (каждые GetHUNGERInterval секунд )
 func (p *Player) StartHungerTicker(conn net.Conn, repo Repository) {
-	for {
-		interval := p.GetHungerInterval()
-		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 
-		<-ticker.C //ждем один тик
-		ticker.Stop()
-
-		if p.Stats.Hunger > 0 {
-			p.Stats.Hunger--
+	//останавливаем тикеры если есть
+	if p.stopHunger != nil {
+		select {
+		case p.stopHunger <- true: //Если канал существует (!= nil), отправляем сигнал true
+		default:
 		}
-
-		if p.Stats.Hunger == 0 {
-			p.Stats.Health -= 2
-			fmt.Fprintf(conn, "Ты умираешь от голода!\n> ")
-		}
-		if p.Stats.Health <= 0 {
-			fmt.Fprintf(conn, "Ты погиб от голода, персонаж удаляется!\n> ")
-			repo.Delete(p.ID)
-			conn.Close()
-			return
-		}
-		repo.Save(p) // сохраняем только живых
+		close(p.stopHunger) //Закрываем канал (close)
 	}
+
+	p.stopHunger = make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case <-p.stopHunger: //если пришел сигнал выходим из горутины
+				return
+			case <-time.After(time.Duration(p.GetHungerInterval()) * time.Second):
+
+				//уменьшаем голод, только если не на охоте
+				if p.Stats.IsHunting {
+					continue
+				}
+
+				if p.Stats.Hunger > 0 {
+					p.Stats.Hunger--
+				}
+
+				if p.Stats.Hunger == 0 {
+					p.Stats.Health -= 2
+					fmt.Fprintf(conn, "Ты умираешь от голода!\n> ")
+				}
+				if p.Stats.Health <= 0 {
+					fmt.Fprintf(conn, "Ты погиб от голода, персонаж удаляется!\n> ")
+					repo.Delete(p.ID)
+					conn.Close()
+					return
+				}
+				repo.Save(p) // сохраняем только живых
+			}
+		}
+	}()
 }
 
 // таймер жажды (каждые getthirstticker секунд -1)
 func (p *Player) StartThirstTicker(conn net.Conn, repo Repository) {
-	for {
-		interval := p.GetThirstInterval()
-		ticker := time.NewTicker(time.Duration(interval) * time.Second)
-
-		<-ticker.C
-		ticker.Stop()
-
-		if p.Stats.Thirst > 0 {
-			p.Stats.Thirst--
+	if p.stopThirst != nil {
+		select {
+		case p.stopThirst <- true:
+		default:
 		}
 
-		if p.Stats.Thirst == 0 {
-			p.Stats.Health -= 2
-			fmt.Fprintf(conn, "Ты умираешь от жажды!\n> ")
-		}
-		if p.Stats.Health <= 0 {
-			fmt.Fprintf(conn, "Ты погиб от обезводивания, персонаж удаляется!\n> ")
-			repo.Delete(p.ID)
-			conn.Close()
-			return
-		}
-		repo.Save(p) // сохраняем только живых
+		close(p.stopThirst)
 	}
+	p.stopThirst = make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case <-p.stopThirst:
+				return
+			case <-time.After(time.Duration(p.GetThirstInterval()) * time.Second):
+				if p.Stats.IsHunting {
+					continue
+				}
+
+				if p.Stats.Thirst > 0 {
+					p.Stats.Thirst--
+				}
+
+				if p.Stats.Thirst == 0 {
+					p.Stats.Health -= 2
+					fmt.Fprintf(conn, "Ты умираешь от жажды!\n> ")
+				}
+				if p.Stats.Health <= 0 {
+					fmt.Fprintf(conn, "Ты погиб от обезвоживания, персонаж удаляется!\n> ")
+					repo.Delete(p.ID)
+					conn.Close()
+					return
+				}
+				repo.Save(p) // сохраняем только живых
+			}
+		}
+	}()
 }
 
 // возвращает интервал в секундах между тиками голода
@@ -187,15 +224,33 @@ func (p *Player) StartHunt(conn net.Conn, repo Repository, roomRepo room.Reposit
 
 // завершение охоты
 func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repository) {
+
 	if !p.Stats.IsHunting {
 		return
+	}
+	//останавливаем тикеры
+	if p.stopHunger != nil {
+		close(p.stopHunger)
+		p.stopHunger = nil
+	}
+
+	if p.stopThirst != nil {
+		close(p.stopThirst)
+		p.stopThirst = nil
 	}
 
 	p.Stats.Hunger = 20
 	p.Stats.Thirst = 20
 
 	// Генерируем лут
-	huntLoot := loot.GenerateHuntLoot(p.Stats.Tracking)
+	weapon := p.Equipment.Weapon
+	huntLoot, wolfResult, brokenMsg := loot.GenerateHuntLoot(weapon, p.Stats.Tracking)
+	if wolfResult != nil && wolfResult.Message != "" {
+		fmt.Fprintf(conn, "%s\n", wolfResult.Message)
+	}
+	if brokenMsg != "" {
+		fmt.Fprintf(conn, "%s\n", brokenMsg)
+	}
 
 	// ВЫВОДИМ ЛУТ ИГРОКУ
 	fmt.Fprintf(conn, "\n Ты вернулся с охоты!\n")
@@ -234,4 +289,15 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 
 	repo.Save(p)
 	fmt.Fprintf(conn, "> ")
+}
+
+// уменьшение прочности на amount единиц
+func (p *Player) DecreaseWeaponDurability(amount int) bool {
+	if p.Equipment.Weapon != nil {
+		if p.Equipment.Weapon.Decrease(amount) {
+			p.Equipment.Weapon = nil //сломался
+			return true
+		}
+	}
+	return false
 }
