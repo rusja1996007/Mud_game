@@ -1,5 +1,10 @@
 package item
 
+import (
+	"fmt"
+	"time"
+)
+
 // структуре представляет стопку одинаковых предметов
 type ItemStack struct {
 	Name      string `json:"name"`
@@ -13,6 +18,10 @@ type ItemStack struct {
 	MinDamage  int `json:"min_damage"`
 	MaxDamage  int `json:"max_damage"`
 	Durability int `json:"durability"` //прочность
+	Defence    int `json:"defence"`    //защита
+
+	Description string `json:"description"` //описание
+	ID          string `json:"id"`
 }
 
 /*
@@ -39,4 +48,23 @@ func (i *ItemStack) Decrease(amount int) bool {
 		return true //сломался
 	}
 	return false
+}
+
+func GenerateItemID() string {
+	return fmt.Sprintf("item_%d", time.Now().UnixNano())
+}
+
+// CanStackWith проверяет, можно ли объединить этот предмет с другим
+func (i *ItemStack) CanStackWith(other *ItemStack) bool {
+	if i.Name != other.Name {
+		return false
+	}
+
+	switch i.ItemType {
+	case "weapon", "armor", "helmet", "shield", "boots", "ring", "bag":
+		return false
+	}
+
+	//остальное стакается
+	return true
 }

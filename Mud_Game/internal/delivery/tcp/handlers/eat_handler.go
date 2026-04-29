@@ -5,6 +5,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -34,7 +35,20 @@ func HandleEat(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 		itemName = strings.Join(parts, " ")
 	}
 
-	index := p.FindItemIndex(itemName)
+	var index int = -1
+
+	if num, err := strconv.Atoi(itemName); err == nil {
+		target, idx := p.FindItemByNumber(num)
+		if target == nil {
+			fmt.Fprintf(conn, "Нет предмета с номером %d\n> ", num)
+			return
+		}
+		index = idx
+		itemName = target.Name
+	} else {
+		index = p.FindItemIndex(itemName)
+	}
+
 	if index == -1 {
 		fmt.Fprintf(conn, "Предмет не найден в инвентаре\n> ")
 		return

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -37,7 +38,19 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		itemName = strings.Join(parts, " ")
 	}
 
-	index := p.FindItemIndex(itemName)
+	var index int = -1
+	if num, err := strconv.Atoi(itemName); err == nil {
+		target, idx := p.FindItemByNumber(num)
+		if target == nil {
+			fmt.Fprintf(conn, "Нет предмета с номером %d\n> ", num)
+			return
+		}
+		index = idx
+		itemName = target.Name
+	} else {
+		index = p.FindItemIndex(itemName)
+	}
+
 	if index == -1 {
 		fmt.Fprintf(conn, "Предмет не найден\n> ")
 		return
@@ -61,17 +74,26 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 		chance := rng.Intn(100) + 1
 
+		emptyBottle := item.GetItem("empty bottle", 1)
+
 		if chance <= 70 {
-			p.AddItemToInventory(item.GetItem("empty bottle", 1))
-			fmt.Fprintf(conn, "Ты выпил воду, бутылка целая. Жажда:%d/100\n> ", p.Stats.Thirst)
-			player.RemoveItem(&p.Inventory, itemName, 1)
-			playerRepo.Save(p)
-			return
+			if !p.AddItemToInventory(emptyBottle) {
+				room, err := roomRepo.FindByID(p.CurrentRoom)
+				if err == nil {
+					room.AddItem(emptyBottle)
+					roomRepo.Save(room)
+					fmt.Fprintf(conn, "Ты выпил воду,бутылку скинул на пол. Жажда: %d/100\n> ", p.Stats.Thirst)
+				} else {
+					fmt.Fprintf(conn, "Ты выпил воду, но бутылку случайно уронил и разбил. Жажда: %d/100\n> ", p.Stats.Thirst)
+				}
+			} else {
+				fmt.Fprintf(conn, "Ты выпил воду, бутылка целая. Жажда:%d/100\n> ", p.Stats.Thirst)
+			}
 		} else {
 			fmt.Fprintf(conn, "Ты выпил воду, но бутылка износилась. Жажда:%d/100\n> ", p.Stats.Thirst)
-			player.RemoveItem(&p.Inventory, itemName, 1)
-			playerRepo.Save(p)
-			return
 		}
+		player.RemoveItem(&p.Inventory, itemName, 1)
+		playerRepo.Save(p)
+		return
 	}
 }

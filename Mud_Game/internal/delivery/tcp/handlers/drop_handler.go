@@ -28,9 +28,20 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	parts := strings.Fields(argsss)
 	var count int = 1
 	var itemName string
+	foundIndex := -1
 
 	if len(parts) == 1 {
-		itemName = parts[0]
+		if num, err := strconv.Atoi(parts[0]); err == nil {
+			target, idx := p.FindItemByNumber(num)
+			if target == nil {
+				fmt.Fprintf(conn, "Нет предмета с номером %d\n> ", num)
+				return
+			}
+			itemName = target.Name
+			foundIndex = idx
+		} else {
+			itemName = parts[0]
+		}
 	} else if len(parts) >= 2 {
 		if parts[0] == "all" {
 			count = -1
@@ -54,11 +65,12 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
-	foundIndex := -1
-	for i, stack := range p.Inventory {
-		if stack.Name == itemName {
-			foundIndex = i
-			break
+	if foundIndex == -1 {
+		for i, stack := range p.Inventory {
+			if stack.Name == itemName {
+				foundIndex = i
+				break
+			}
 		}
 	}
 	if foundIndex == -1 {
@@ -90,10 +102,15 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	// ✅ СОЗДАЕМ СТОПКУ ДЛЯ БРОСКА
 	dropStack := &item.ItemStack{
-		Name:      originalStack.Name,
-		Count:     dropCount,
-		ItemType:  originalStack.ItemType,
-		SlotBonus: originalStack.SlotBonus,
+		Name:        originalStack.Name,
+		Count:       dropCount,
+		ItemType:    originalStack.ItemType,
+		SlotBonus:   originalStack.SlotBonus,
+		MinDamage:   originalStack.MinDamage,
+		MaxDamage:   originalStack.MaxDamage,
+		Durability:  originalStack.Durability,
+		Description: originalStack.Description,
+		ID:          originalStack.ID,
 	}
 
 	//Добавить предметы в комнату

@@ -93,21 +93,13 @@ func (p *Player) AddItemToInventory(stack *item.ItemStack) bool {
 	}
 
 	for _, existing := range p.Inventory {
-		if existing.Name == stack.Name {
+		if existing.CanStackWith(stack) {
 			existing.Count += stack.Count
 			return true
 		}
 	}
-	newStack := &item.ItemStack{
-		Name:          stack.Name,
-		Count:         stack.Count,
-		ItemType:      stack.ItemType,
-		SlotBonus:     stack.SlotBonus,
-		HungerRestore: stack.HungerRestore,
-		ThirstRestore: stack.ThirstRestore,
-	}
-	p.Inventory = append(p.Inventory, newStack)
 
+	p.Inventory = append(p.Inventory, stack)
 	return true
 }
 
@@ -123,4 +115,12 @@ func (p *Player) FindItemIndex(name string) int {
 
 	}
 	return -1
+}
+
+// возвращает предмет по номеру и его индекс
+func (p *Player) FindItemByNumber(number int) (*item.ItemStack, int) {
+	if number < 1 || number > len(p.Inventory) {
+		return nil, -1
+	}
+	return p.Inventory[number-1], number - 1
 }

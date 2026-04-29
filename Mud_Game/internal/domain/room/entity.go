@@ -52,13 +52,15 @@ func (r *Room) Look(playerID string) string {
 
 	if len(r.Items) > 0 {
 		builder.WriteString("Вы видите:\n")
-		for _, stack := range r.Items {
-			builder.WriteString(" • ")
-			if stack.Count > 1 {
-				fmt.Fprintf(&builder, "%s x%d", stack.Name, stack.Count)
-			} else {
-				builder.WriteString(stack.Name)
+		for i, stack := range r.Items {
+			fmt.Fprintf(&builder, "  %d. %s", i+1, stack.Name)
+			if stack.Durability > 0 {
+				fmt.Fprintf(&builder, "(прочность:%d)", stack.Durability)
 			}
+			if stack.Count > 1 {
+				fmt.Fprintf(&builder, " x%d", stack.Count)
+			}
+
 			builder.WriteString("\n")
 		}
 	} else {
@@ -130,6 +132,11 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 		SlotBonus:     originalItem.SlotBonus,
 		HungerRestore: originalItem.HungerRestore,
 		ThirstRestore: originalItem.ThirstRestore,
+		MinDamage:     originalItem.MinDamage,
+		MaxDamage:     originalItem.MaxDamage,
+		Durability:    originalItem.Durability,
+		Description:   originalItem.Description,
+		ID:            originalItem.ID,
 	}, nil
 }
 func (r *Room) AddItem(stack *item.ItemStack) error {
@@ -146,24 +153,15 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	//нужна копия, т.к. если будем использовать оригинал, которого например больше двух штук, то изменения коснуться и других веще(например улучшил один меч сразу улучшился и второй)
-	copyStack := &item.ItemStack{
-		Name:          stack.Name,
-		Count:         stack.Count,
-		ItemType:      stack.ItemType,
-		SlotBonus:     stack.SlotBonus,
-		HungerRestore: stack.HungerRestore,
-		ThirstRestore: stack.ThirstRestore,
-	}
 	// Ищем существующую стопку с таким же названием
 	for i := range r.Items {
-		if r.Items[i].Name == copyStack.Name {
-			r.Items[i].Count += copyStack.Count
+		if r.Items[i].CanStackWith(stack) {
+			r.Items[i].Count += stack.Count
 			return nil
 		}
 	}
 	// Если не нашли - добавляем новую стопку
-	r.Items = append(r.Items, copyStack)
+	r.Items = append(r.Items, stack)
 	return nil
 
 }

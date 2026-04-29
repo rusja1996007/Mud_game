@@ -33,13 +33,17 @@ func FightWolf(weapon *item.ItemStack, tracking int) (*WolfFightResult, string) 
 
 	var winChance int
 
-	switch weapon.Name {
-	case "knife":
-		winChance = 20
-	case "iron sword":
-		winChance = 50
-	default:
+	if weapon == nil {
 		winChance = 0
+	} else {
+		switch weapon.Name {
+		case "knife":
+			winChance = 20
+		case "iron sword":
+			winChance = 50
+		default:
+			winChance = 0
+		}
 	}
 
 	//рол победы

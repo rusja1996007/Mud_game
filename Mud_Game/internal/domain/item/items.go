@@ -11,15 +11,20 @@ type ItemData struct {
 	MinDamage int
 	MaxDamage int
 
-	Durability int
+	Durability int //прочность
+	Defence    int //защита
+
+	Description string
+	ID          string
 }
 
 // ItemsDB — база данных всех предметов в игре
 var ItemsDB = map[string]ItemData{
 	//////////////////////////////////////liquid container////////////////////////////////
 	"empty bottle": {
-		Name:     "empty bottle",
-		ItemType: "liquid container",
+		Name:        "empty bottle",
+		ItemType:    "liquid container",
+		Description: "--",
 	},
 
 	//////////////////////////////////////drink///////////////////////////////////////////
@@ -27,6 +32,7 @@ var ItemsDB = map[string]ItemData{
 		Name:          "water bottle",
 		ItemType:      "drink",
 		ThirstRestore: 30,
+		Description:   "--",
 	},
 
 	//////////////////////////////////////food////////////////////////////////////////////
@@ -34,52 +40,62 @@ var ItemsDB = map[string]ItemData{
 		Name:          "tomato",
 		ItemType:      "food",
 		HungerRestore: 10,
+		Description:   "--",
 	},
 
 	"potato": {
 		Name:          "potato",
 		ItemType:      "food",
 		HungerRestore: 10,
+		Description:   "--",
 	},
 
 	"rubus caesius": { //Ежевика
 		Name:          "rubus caesius",
 		ItemType:      "food",
 		HungerRestore: 5,
+		Description:   "--",
 	},
 
 	/////////////////////////////////////container////////////////////////////////////////
 	"empty bag": {
-		Name:     "empty bag",
-		ItemType: "container",
+		Name:        "empty bag",
+		ItemType:    "container",
+		Description: "--",
 	},
 
 	/////////////////////////////////////bag//////////////////////////////////////////////
 	"leather bag": {
-		Name:      "leather bag",
-		ItemType:  "bag",
-		SlotBonus: 4,
+		Name:       "leather bag",
+		ItemType:   "bag",
+		SlotBonus:  4,
+		Durability: 100,
+		Defence:    1,
 	},
 
 	/////////////////////////////////////seed/////////////////////////////////////////////
 	"tomato seeds": {
-		Name:     "tomato seeds",
-		ItemType: "seed",
+		Name:        "tomato seeds",
+		ItemType:    "seed",
+		Description: "--",
 	},
 
 	"potato seeds": {
-		Name:     "potato seeds",
-		ItemType: "seed",
+		Name:        "potato seeds",
+		ItemType:    "seed",
+		Description: "--",
 	},
 
 	"burdock seeds": {
-		Name:     "burdock seeds",
-		ItemType: "seed",
+		Name:        "burdock seeds",
+		ItemType:    "seed",
+		Description: "--",
 	},
 
 	"clover seeds": {
-		Name:     "clover seeds",
-		ItemType: "seed",
+		Name:        "clover seeds",
+		ItemType:    "seed",
+		Description: "--",
 	},
 
 	////////////////////////////////////weapon//////////////////////////////////////////////
@@ -104,6 +120,7 @@ var ItemsDB = map[string]ItemData{
 		Name:       "leather hood",
 		ItemType:   "helmet",
 		Durability: 100,
+		Defence:    6,
 	},
 
 	//////////////////////////////////armor/////////////////////////////////////////////////
@@ -111,6 +128,7 @@ var ItemsDB = map[string]ItemData{
 		Name:       "leather armor",
 		ItemType:   "armor",
 		Durability: 100,
+		Defence:    10,
 	},
 
 	//////////////////////////////////boots//////////////////////////////////////////////////
@@ -118,6 +136,7 @@ var ItemsDB = map[string]ItemData{
 		Name:       "leather boots",
 		ItemType:   "boots",
 		Durability: 100,
+		Defence:    5,
 	},
 
 	/////////////////////////////////shield//////////////////////////////////////////////////
@@ -125,72 +144,87 @@ var ItemsDB = map[string]ItemData{
 		Name:       "wooden shield",
 		ItemType:   "shield",
 		Durability: 100,
+		Defence:    20,
 	},
 
 	/////////////////////////////////ring///////////////////////////////////////////////////
 	"silver ring": {
-		Name:     "silver ring",
-		ItemType: "ring",
+		Name:        "silver ring",
+		ItemType:    "ring",
+		Description: "обычное серебряное кольцо",
 	},
 
 	"gold ring": {
-		Name:     "gold ring",
-		ItemType: "ring",
+		Name:        "gold ring",
+		ItemType:    "ring",
+		Description: "обычное золотое кольцо",
 	},
 
 	"black ring": {
-		Name:     "black ring",
-		ItemType: "ring",
+		Name:        "black ring",
+		ItemType:    "ring",
+		Description: "черное титановое кольцо",
 	},
 
 	"cooper ring": { //медное
-		Name:     "cooper ring",
-		ItemType: "ring",
+		Name:        "cooper ring",
+		ItemType:    "ring",
+		Description: "обычное медное кольцо",
 	},
 
 	/////////////////////////////////ingredients////////////////////////////////////////////
 	"burdock": { //лопух
-		Name:     "burdock",
-		ItemType: "ingredients",
+		Name:        "burdock",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 
 	"clover": { //клевер
-		Name:     "clover",
-		ItemType: "ingredients",
+		Name:        "clover",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 	"inonotus obliquus": { //гриб чага
-		Name:     "inonotus obliquus",
-		ItemType: "ingredients",
+		Name:        "inonotus obliquus",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 	"rubroboletus satanas": { //сатанинский гриб
-		Name:     "rubroboletus satanas",
-		ItemType: "ingredients",
+		Name:        "rubroboletus satanas",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 	"boletus edulis": { //белый гриб
-		Name:     "boletus edulis",
-		ItemType: "ingredients",
+		Name:        "boletus edulis",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 	"hare meat": { //мясо зайца
-		Name:     "hare meat",
-		ItemType: "ingredients",
+		Name:        "hare meat",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 	"hare ears": { //уши зайца
-		Name:     "hare ears",
-		ItemType: "ingredients",
+		Name:        "hare ears",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 	"hare paws": { //лапы зайца
-		Name:     "hare paws",
-		ItemType: "ingredients",
+		Name:        "hare paws",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 	"broken sword": {
-		Name:     "broken sword",
-		ItemType: "ingredients",
+		Name:        "broken sword",
+		ItemType:    "ingredients",
+		Description: "--",
 	},
 
 	////////////////////////////////валюта//////////////////////////////////////////////
 	"coin": { //монета
-		Name:     "coin",
-		ItemType: "currency",
+		Name:        "coin",
+		ItemType:    "currency",
+		Description: "Повсемирная волюта",
 	},
 }
 
@@ -203,6 +237,7 @@ func GetItem(name string, count int) *ItemStack {
 	}
 
 	return &ItemStack{
+		ID:            GenerateItemID(),
 		Name:          data.Name,
 		Count:         count,
 		ItemType:      data.ItemType,
@@ -212,5 +247,7 @@ func GetItem(name string, count int) *ItemStack {
 		MinDamage:     data.MinDamage,
 		MaxDamage:     data.MaxDamage,
 		Durability:    data.Durability,
+		Defence:       data.Defence,
+		Description:   data.Description,
 	}
 }

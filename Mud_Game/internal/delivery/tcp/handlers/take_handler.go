@@ -37,8 +37,47 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
-	var count int = 1 // сколько предметов брать,по умолчанию берём 1
+	var count int = 1 //по умолчанию
 	var itemName string
+
+	// Проверка на номер предмета
+	if len(parts) == 1 {
+		if num, err := strconv.Atoi(parts[0]); err == nil {
+			items := r.GetItems()
+			if num < 1 || num > len(items) {
+				fmt.Fprintf(conn, "Нет предмета с номером %d\n> ", num)
+				return
+			}
+			stack := items[num-1]
+			itemName = stack.Name
+			count = stack.Count
+			goto takeItem
+		} else {
+			itemName = parts[0]
+		}
+	} else if len(parts) > 1 {
+		// обычная обработка (all, число + название и т.д.)
+		if parts[0] == "all" {
+			count = -1
+			itemName = strings.Join(parts[1:], " ")
+		} else {
+			num, err := strconv.Atoi(parts[0])
+			if err == nil && num > 0 {
+				count = num
+				itemName = strings.Join(parts[1:], " ")
+			} else if err == nil && num <= 0 {
+				fmt.Fprintf(conn, "Количество должно быть положительным числом\n> ")
+				return
+			} else {
+				itemName = strings.Join(parts, " ")
+			}
+		}
+	}
+
+	if itemName == "" {
+		fmt.Fprintf(conn, "Что взять?\n> ")
+		return
+	}
 
 	//Парсим → count=3, itemName="Empty bottle"(пример)
 	// Смотрим, что нам прислали
@@ -109,6 +148,7 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
+takeItem:
 	//  Если это не "take all", обрабатываем обычный take
 	if itemName != "" {
 		items := r.GetItems()

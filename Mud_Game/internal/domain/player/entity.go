@@ -245,9 +245,17 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 	// Генерируем лут
 	weapon := p.Equipment.Weapon
 	huntLoot, wolfResult, brokenMsg := loot.GenerateHuntLoot(weapon, p.Stats.Tracking)
+	if wolfResult != nil && wolfResult.Win && p.Equipment.Weapon != nil {
+		if weapon.Decrease(5) {
+			brokenMsg = "Твое оружие сломалось в бою!"
+			p.Equipment.Weapon = nil
+		}
+	}
+
 	if wolfResult != nil && wolfResult.Message != "" {
 		fmt.Fprintf(conn, "%s\n", wolfResult.Message)
 	}
+
 	if brokenMsg != "" {
 		fmt.Fprintf(conn, "%s\n", brokenMsg)
 	}

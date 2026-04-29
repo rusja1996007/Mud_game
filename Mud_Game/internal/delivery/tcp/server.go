@@ -251,11 +251,6 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return true // сигнал на выход
 
-	case cmd == "look":
-
-		handlers.HandleLook(conn, cmd, p, s.roomRepo, s.playerRepo)
-		return false
-
 	case cmd == "inventory":
 
 		handlers.HandleInventory(conn, cmd, p, s.roomRepo, s.playerRepo)
@@ -315,6 +310,10 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 	case strings.HasPrefix(cmd, "fill "):
 		handlers.HandleFill(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case strings.HasPrefix(cmd, "look"):
+		handlers.HandleLook(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
 	default:

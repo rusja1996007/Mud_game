@@ -37,7 +37,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 		},
 		Items: []*item.ItemStack{
 			item.GetItem("empty bottle", 3),
-			item.GetItem("water bottle", 2),
+			item.GetItem("water bottle", 8),
 			item.GetItem("tomato", 1),
 			item.GetItem("potato", 1),
 			item.GetItem("empty bag", 1),
@@ -57,6 +57,8 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			item.GetItem("black ring", 1),
 			item.GetItem("burdock", 2),
 			item.GetItem("clover", 2),
+			item.GetItem("knife", 1),
+			item.GetItem("iron sword", 1),
 		},
 	}
 
