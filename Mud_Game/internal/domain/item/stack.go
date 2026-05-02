@@ -15,13 +15,17 @@ type ItemStack struct {
 	HungerRestore int    `json:"hunger_restore"` //сколько восстанавливает еды
 	ThirstRestore int    `json:"thirst_restore"` //сколько восстанавливает жажды
 
-	MinDamage  int `json:"min_damage"`
-	MaxDamage  int `json:"max_damage"`
-	Durability int `json:"durability"` //прочность
-	Defence    int `json:"defence"`    //защита
+	MinDamage     int `json:"min_damage"`
+	MaxDamage     int `json:"max_damage"`
+	Durability    int `json:"durability"` //прочность
+	Defence       int `json:"defence"`    //защита
+	MagicDefence  int `json:"magic_defence"`
+	FireDefence   int `json:"fire_defence"`
+	PoisonDefence int `json:"poison_defence"`
 
 	Description string `json:"description"` //описание
-	ID          string `json:"id"`
+	ID          string `json:"id"`          //Универсльный id
+
 }
 
 /*

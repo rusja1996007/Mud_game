@@ -1,10 +1,12 @@
 package player
 
 import (
+	"Mud_game/Mud_Game/internal/domain/combat"
 	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/loot"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
+	"math/rand"
 	"net"
 	"time"
 )
@@ -23,14 +25,15 @@ type Equipment struct {
 }
 
 type Player struct {
-	ID          string
-	Name        string
-	CurrentRoom string            //текущая комната
-	Inventory   []*item.ItemStack // ← стопки предметов (название + кол-во)
-	Equipment   *Equipment
-	Zone        *PLayerZone
-	Stats       *Stats // характеристики
-	PendingHunt bool   // ожидание подтверждения охото(yes)
+	ID                string
+	Name              string
+	CurrentRoom       string            //текущая комната
+	Inventory         []*item.ItemStack // ← стопки предметов (название + кол-во)
+	Equipment         *Equipment
+	Zone              *PLayerZone
+	Stats             *Stats    // характеристики
+	PendingHunt       bool      // ожидание подтверждения охото(yes)
+	PendingHuntExpiry time.Time //время, когда запрос истекает
 
 	stopHunger chan bool //добавили чтобы не увеличивались тики после охоты(остановка тиков)
 	stopThirst chan bool
@@ -244,8 +247,20 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 
 	// Генерируем лут
 	weapon := p.Equipment.Weapon
-	huntLoot, wolfResult, brokenMsg := loot.GenerateHuntLoot(weapon, p.Stats.Tracking)
-	if wolfResult != nil && wolfResult.Win && p.Equipment.Weapon != nil {
+	defence := p.GetTotalDefence()
+	huntLoot, wolfResult, brokenMsg, totalDamage := loot.GenerateHuntLoot(weapon, p.Stats.Tracking, defence)
+
+	//применяем урон
+	if totalDamage > 0 {
+		p.Stats.Health -= totalDamage
+		if p.Stats.Health <= 0 {
+			fmt.Fprintf(conn, "Ты погиб на охоте!\n")
+			repo.Delete(p.ID)
+			conn.Close()
+			return
+		}
+	}
+	if wolfResult != nil && wolfResult.Win && weapon != nil {
 		if weapon.Decrease(5) {
 			brokenMsg = "Твое оружие сломалось в бою!"
 			p.Equipment.Weapon = nil
@@ -308,4 +323,95 @@ func (p *Player) DecreaseWeaponDurability(amount int) bool {
 		}
 	}
 	return false
+}
+
+// возвращает общую физическую защиту игрока
+func (p *Player) GetTotalDefence() int {
+	total := 0
+
+	if p.Equipment.Armor != nil {
+		total += p.Equipment.Armor.Defence
+	}
+
+	if p.Equipment.Bag != nil {
+		total += p.Equipment.Bag.Defence
+	}
+
+	if p.Equipment.Boots != nil {
+		total += p.Equipment.Boots.Defence
+	}
+
+	if p.Equipment.Shield != nil {
+		total += p.Equipment.Shield.Defence
+	}
+	if p.Equipment.Helmet != nil {
+		total += p.Equipment.Helmet.Defence
+	}
+
+	return total
+
+}
+
+// наносит урон игроку с учетом защиты
+func (p *Player) TakeDamage(damage int, dmgType combat.DamageType) {
+	defence := 0
+
+	switch dmgType {
+	case combat.DamagePhysical:
+		defence = p.GetTotalDefence()
+	case combat.DamageFire:
+		defence = p.GetTotalFireDefence()
+	case combat.DamagePoison:
+		defence = p.GetTotalPoisonDefence()
+	case combat.DamageMagic:
+		defence = p.GetTotalMagicDefence()
+	default:
+		defence = 0
+	}
+
+	finalDamage := damage - defence
+	if finalDamage < 1 {
+		finalDamage = 1
+	}
+
+	p.Stats.Health -= finalDamage
+
+	p.DecreaseArmorDurability()
+}
+
+// снижаем прочность брони, 20% шанс износа при каждом ударе
+func (p *Player) DecreaseArmorDurability() {
+	if rand.Intn(100) >= 20 {
+		return //не изнашивается
+	}
+
+	//износ...
+	if p.Equipment.Helmet != nil {
+		if p.Equipment.Helmet.Decrease(2) {
+			fmt.Println("Твой шлем сломался!")
+			p.Equipment.Helmet = nil
+		}
+	}
+
+	if p.Equipment.Armor != nil {
+		if p.Equipment.Armor.Decrease(4) {
+			fmt.Println("Твоя броня сломалась!")
+			p.Equipment.Armor = nil
+		}
+	}
+
+	if p.Equipment.Shield != nil {
+		if p.Equipment.Shield.Decrease(8) {
+			fmt.Println("Твой щит сломался!")
+			p.Equipment.Shield = nil
+		}
+	}
+
+	if p.Equipment.Boots != nil {
+		if p.Equipment.Boots.Decrease(2) {
+			fmt.Println("Твои ботинки уничтожены!")
+			p.Equipment.Boots = nil
+		}
+	}
+
 }

@@ -43,7 +43,8 @@ func HandleHunt(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	//запрашиваем подтверждение
 	p.PendingHunt = true
+	p.PendingHuntExpiry = time.Now().Add(15 * time.Second)
 	fmt.Fprintf(conn, "ВНИМАНИЕ! Охота займет 1 час реального времени.\n> ")
 	fmt.Fprintf(conn, "Ты не сможешь управлять персонажем до ее окончания.\n> ")
-	fmt.Fprintf(conn, "Напиши 'yes' для подтверждения\n> ")
+	fmt.Fprintf(conn, "У тебя есть 15 секунд, чтобы написать 'yes'.\n> ")
 }

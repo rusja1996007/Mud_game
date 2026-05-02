@@ -228,8 +228,14 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 			handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
 			return true
 		} else {
-			fmt.Fprintf(conn, "Ты на охоте! Нельзя использовать команды\n> ")
+			fmt.Fprintf(conn, "Ты на охоте! Нельзя использовать команды кроме hunt и quit\n> ")
 		}
+		return false
+	}
+
+	if p.PendingHunt && cmd != "yes" {
+		p.PendingHunt = false
+		fmt.Fprintf(conn, "Подтверждение охоты отменено.\n> ")
 		return false
 	}
 

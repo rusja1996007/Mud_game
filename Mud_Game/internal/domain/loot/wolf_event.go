@@ -2,6 +2,8 @@ package loot
 
 import (
 	"Mud_game/Mud_Game/internal/domain/item"
+
+	"fmt"
 	"math/rand"
 )
 
@@ -29,7 +31,7 @@ type WolfFightResult struct {
 }
 
 // симуляци боя
-func FightWolf(weapon *item.ItemStack, tracking int) (*WolfFightResult, string) {
+func FightWolf(weapon *item.ItemStack, tracking int, playerDefence int) (*WolfFightResult, string, int) {
 
 	var winChance int
 
@@ -51,11 +53,18 @@ func FightWolf(weapon *item.ItemStack, tracking int) (*WolfFightResult, string) 
 
 	//если проиграл:
 	if !win {
+		//волк наносит 5-15 урона
+		wolfDamage := 5 + rand.Intn(11)
+		finalDamage := wolfDamage - playerDefence
+		if finalDamage < 1 {
+			finalDamage = 1
+		}
+
 		return &WolfFightResult{
 			Win:     false,
 			Loot:    nil,
-			Message: "Ты встретил волка! Ты попытался дать отпор, но понял, что не справляешься, и убежал.",
-		}, ""
+			Message: fmt.Sprintf("Ты встретил волка! Ты попытался дать отпор, но понял, что не справляешься, и убежал. Потерял %d жизней.", finalDamage),
+		}, "", 0
 	}
 
 	//если вин генерируем дроп
@@ -84,9 +93,24 @@ func FightWolf(weapon *item.ItemStack, tracking int) (*WolfFightResult, string) 
 		}
 	}
 
-	return &WolfFightResult{
+	//уменьшаем прочность оружия
+	broken := false
+	if weapon != nil {
+		if weapon.Decrease(5) {
+			broken = true
+		}
+	}
+
+	result := &WolfFightResult{
 		Win:     true,
 		Loot:    loot,
 		Message: "Ты встретил волка и одолел его!",
-	}, ""
+	}
+
+	if broken {
+		return result, "Твое оружие сломалось в бою!", 0
+	}
+
+	return result, "", 0
+
 }

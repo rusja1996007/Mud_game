@@ -137,6 +137,10 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 		Durability:    originalItem.Durability,
 		Description:   originalItem.Description,
 		ID:            originalItem.ID,
+		Defence:       originalItem.Defence,
+		MagicDefence:  originalItem.MagicDefence,
+		PoisonDefence: originalItem.PoisonDefence,
+		FireDefence:   originalItem.FireDefence,
 	}, nil
 }
 func (r *Room) AddItem(stack *item.ItemStack) error {

@@ -11,8 +11,11 @@ type ItemData struct {
 	MinDamage int
 	MaxDamage int
 
-	Durability int //прочность
-	Defence    int //защита
+	Durability    int //прочность
+	Defence       int //защита(физ)
+	MagicDefence  int
+	FireDefence   int
+	PoisonDefence int
 
 	Description string
 	ID          string
@@ -66,11 +69,12 @@ var ItemsDB = map[string]ItemData{
 
 	/////////////////////////////////////bag//////////////////////////////////////////////
 	"leather bag": {
-		Name:       "leather bag",
-		ItemType:   "bag",
-		SlotBonus:  4,
-		Durability: 100,
-		Defence:    1,
+		Name:        "leather bag",
+		ItemType:    "bag",
+		SlotBonus:   4,
+		Durability:  100,
+		Defence:     1,
+		Description: "Кожаный мешок, позволяет носить больше предметов",
 	},
 
 	/////////////////////////////////////seed/////////////////////////////////////////////
@@ -117,34 +121,38 @@ var ItemsDB = map[string]ItemData{
 
 	///////////////////////////////////helmet///////////////////////////////////////////////
 	"leather hood": {
-		Name:       "leather hood",
-		ItemType:   "helmet",
-		Durability: 100,
-		Defence:    6,
+		Name:        "leather hood",
+		ItemType:    "helmet",
+		Durability:  100,
+		Defence:     2,
+		Description: "Голову от дубины спасёт. От меча — вряд ли. Но голова целее, чем без него",
 	},
 
 	//////////////////////////////////armor/////////////////////////////////////////////////
 	"leather armor": {
-		Name:       "leather armor",
-		ItemType:   "armor",
-		Durability: 100,
-		Defence:    10,
+		Name:        "leather armor",
+		ItemType:    "armor",
+		Durability:  100,
+		Defence:     10,
+		Description: "Грубая дублёная кожа — не парадная броня, но в бою не подведёт и бежать не помешает",
 	},
 
 	//////////////////////////////////boots//////////////////////////////////////////////////
 	"leather boots": {
-		Name:       "leather boots",
-		ItemType:   "boots",
-		Durability: 100,
-		Defence:    5,
+		Name:        "leather boots",
+		ItemType:    "boots",
+		Durability:  100,
+		Defence:     3,
+		Description: "Мягче железа, крепче тряпья. Шаг слышен, но не лязгает.",
 	},
 
 	/////////////////////////////////shield//////////////////////////////////////////////////
 	"wooden shield": {
-		Name:       "wooden shield",
-		ItemType:   "shield",
-		Durability: 100,
-		Defence:    20,
+		Name:        "wooden shield",
+		ItemType:    "shield",
+		Durability:  100,
+		Defence:     20,
+		Description: "Лёгкий, дешёвый, шумит мало. Горит — быстро.",
 	},
 
 	/////////////////////////////////ring///////////////////////////////////////////////////
@@ -249,5 +257,8 @@ func GetItem(name string, count int) *ItemStack {
 		Durability:    data.Durability,
 		Defence:       data.Defence,
 		Description:   data.Description,
+		MagicDefence:  data.MagicDefence,
+		PoisonDefence: data.PoisonDefence,
+		FireDefence:   data.FireDefence,
 	}
 }
