@@ -135,7 +135,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 
 		//Создаем игрока
 		//изза влияния силы на здоровья вывел отдельно в переменную
-		strength := 5
+		strength := 3
 		currentPlayer = &player.Player{
 			ID:          id,
 			Name:        name,
@@ -231,6 +231,23 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 			fmt.Fprintf(conn, "Ты на охоте! Нельзя использовать команды кроме hunt и quit\n> ")
 		}
 		return false
+	}
+
+	//обновление статов при левелапе
+	if p.PendingLevelUp {
+		if time.Now().After(p.PendingLevelUpExpiry) {
+			p.PendingLevelUp = false
+			fmt.Fprintf(conn, "Время выбор истекло. Повышение отменено.\n> ")
+			return false
+		}
+
+		if cmd == "1" || cmd == "2" || cmd == "3" || cmd == "4" {
+			p.ProcessLevelUp(cmd, conn)
+			return false
+		} else {
+			fmt.Fprintf(conn, "Некорректный вывод. Введите 1,2,3 или 4.\n> ")
+			return false
+		}
 	}
 
 	if p.PendingHunt && cmd != "yes" {

@@ -37,6 +37,9 @@ type Player struct {
 
 	stopHunger chan bool //добавили чтобы не увеличивались тики после охоты(остановка тиков)
 	stopThirst chan bool
+
+	PendingLevelUp       bool      // ожидает ли игрок выбора характеристики
+	PendingLevelUpExpiry time.Time // время истечения запроса
 }
 
 type Stats struct {
@@ -248,7 +251,7 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 	// Генерируем лут
 	weapon := p.Equipment.Weapon
 	defence := p.GetTotalDefence()
-	huntLoot, wolfResult, brokenMsg, totalDamage := loot.GenerateHuntLoot(weapon, p.Stats.Tracking, defence)
+	huntLoot, wolfResult, brokenMsg, totalDamage, totalXP := loot.GenerateHuntLoot(weapon, p.Stats.Tracking, defence)
 
 	//применяем урон
 	if totalDamage > 0 {
@@ -259,6 +262,11 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 			conn.Close()
 			return
 		}
+	}
+
+	if totalXP > 0 {
+		p.AddExperience(totalXP, conn)
+		fmt.Fprintf(conn, "Ты получил %d опыта.\n", totalXP)
 	}
 	if wolfResult != nil && wolfResult.Win && weapon != nil {
 		if weapon.Decrease(5) {
@@ -310,6 +318,7 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 	go p.StartHungerTicker(conn, repo)
 	go p.StartThirstTicker(conn, repo)
 
+	p.CheckLevelUp(conn)
 	repo.Save(p)
 	fmt.Fprintf(conn, "> ")
 }
@@ -352,6 +361,107 @@ func (p *Player) GetTotalDefence() int {
 
 }
 
+// возвращает общую огненую защиту игрока
+func (p *Player) GetTotalFireDefence() int {
+	total := 0
+
+	if p.Equipment.Helmet != nil {
+		total += p.Equipment.Helmet.FireDefence
+	}
+
+	if p.Equipment.Armor != nil {
+		total += p.Equipment.Armor.FireDefence
+	}
+
+	if p.Equipment.Bag != nil {
+		total += p.Equipment.Bag.FireDefence
+	}
+
+	if p.Equipment.Shield != nil {
+		total += p.Equipment.Shield.FireDefence
+	}
+
+	if p.Equipment.Boots != nil {
+		total += p.Equipment.Boots.FireDefence
+	}
+
+	if p.Equipment.Ring1 != nil {
+		total += p.Equipment.Ring1.FireDefence
+	}
+
+	if p.Equipment.Ring2 != nil {
+		total += p.Equipment.Ring2.FireDefence
+	}
+	return total
+}
+
+// возвращают общую защиту от яда
+func (p *Player) GetTotalPoisonDefence() int {
+	total := 0
+
+	if p.Equipment.Helmet != nil {
+		total += p.Equipment.Helmet.PoisonDefence
+	}
+
+	if p.Equipment.Armor != nil {
+		total += p.Equipment.Armor.PoisonDefence
+	}
+
+	if p.Equipment.Bag != nil {
+		total += p.Equipment.Bag.PoisonDefence
+	}
+
+	if p.Equipment.Shield != nil {
+		total += p.Equipment.Shield.PoisonDefence
+	}
+
+	if p.Equipment.Boots != nil {
+		total += p.Equipment.Boots.PoisonDefence
+	}
+
+	if p.Equipment.Ring1 != nil {
+		total += p.Equipment.Ring1.PoisonDefence
+	}
+
+	if p.Equipment.Ring2 != nil {
+		total += p.Equipment.Ring2.PoisonDefence
+	}
+	return total
+}
+
+func (p *Player) GetTotalMagicDefence() int {
+	total := 0
+
+	if p.Equipment.Helmet != nil {
+		total += p.Equipment.Helmet.MagicDefence
+	}
+
+	if p.Equipment.Armor != nil {
+		total += p.Equipment.Armor.MagicDefence
+	}
+
+	if p.Equipment.Bag != nil {
+		total += p.Equipment.Bag.MagicDefence
+	}
+
+	if p.Equipment.Shield != nil {
+		total += p.Equipment.Shield.MagicDefence
+	}
+
+	if p.Equipment.Boots != nil {
+		total += p.Equipment.Boots.MagicDefence
+	}
+
+	if p.Equipment.Ring1 != nil {
+		total += p.Equipment.Ring1.MagicDefence
+	}
+
+	if p.Equipment.Ring2 != nil {
+		total += p.Equipment.Ring2.MagicDefence
+	}
+	return total
+}
+
 // наносит урон игроку с учетом защиты
 func (p *Player) TakeDamage(damage int, dmgType combat.DamageType) {
 	defence := 0
@@ -369,10 +479,7 @@ func (p *Player) TakeDamage(damage int, dmgType combat.DamageType) {
 		defence = 0
 	}
 
-	finalDamage := damage - defence
-	if finalDamage < 1 {
-		finalDamage = 1
-	}
+	finalDamage := max(damage-defence, 1)
 
 	p.Stats.Health -= finalDamage
 
@@ -414,4 +521,69 @@ func (p *Player) DecreaseArmorDurability() {
 		}
 	}
 
+}
+
+// сколько опыта нужно для следующего уровня.
+func (p *Player) GetExpForNextLevel() int {
+	return 100 * p.Stats.Level
+}
+
+func (p *Player) AddExperience(amount int, conn net.Conn) {
+	p.Stats.Experience += amount
+
+}
+
+func (p *Player) LevelUp(conn net.Conn) {
+
+	p.PendingLevelUp = true
+	p.PendingLevelUpExpiry = time.Now().Add(30 * time.Second)
+	fmt.Fprintf(conn, "\n🎉 Поздравляем! Вы достигли %d уровня!\n", p.Stats.Level+1)
+	fmt.Fprintf(conn, "Выберите характеристику для повышения:\n")
+	fmt.Fprintf(conn, "  1. Сила (+5 HP)\n")
+	fmt.Fprintf(conn, "  2. Ловкость\n")
+	fmt.Fprintf(conn, "  3. Интеллект\n")
+	fmt.Fprintf(conn, "  4. Следопытство\n")
+	fmt.Fprintf(conn, "Введите номер (1-4):\n")
+
+}
+
+func (p *Player) ProcessLevelUp(choice string, conn net.Conn) {
+	if !p.PendingLevelUp {
+		return
+	}
+
+	p.PendingLevelUp = false
+	p.Stats.Level++
+
+	switch choice {
+	case "1":
+		p.Stats.Strength++
+		p.Stats.Health = 50 + p.Stats.Strength*5
+		fmt.Fprintf(conn, "Сила увеличeна на 1 единицу\n")
+
+	case "2":
+		p.Stats.Dexterity++
+		fmt.Fprintf(conn, "Ловкость увеличeна на 1 единицу\n")
+
+	case "3":
+		p.Stats.Intelect++
+		fmt.Fprintf(conn, "Интелект увеличeн на 1 единицу\n")
+
+	case "4":
+		p.Stats.Tracking++
+		fmt.Fprintf(conn, "Следопытство увеличeно на 1 единицу\n")
+	}
+	fmt.Fprintf(conn, "> ")
+
+}
+
+func (p *Player) CheckLevelUp(conn net.Conn) bool {
+	leveled := false
+	for p.Stats.Experience >= p.GetExpForNextLevel() {
+		p.Stats.Experience -= p.GetExpForNextLevel()
+		p.LevelUp(conn)
+		leveled = true
+
+	}
+	return leveled
 }

@@ -31,7 +31,14 @@ type WolfFightResult struct {
 }
 
 // симуляци боя
-func FightWolf(weapon *item.ItemStack, tracking int, playerDefence int) (*WolfFightResult, string, int) {
+//*WolfFightResult
+
+//string (сообщение о поломке)
+
+//int (урон)
+
+// int (опыт)
+func FightWolf(weapon *item.ItemStack, tracking int, playerDefence int) (*WolfFightResult, string, int, int) {
 
 	var winChance int
 
@@ -42,7 +49,7 @@ func FightWolf(weapon *item.ItemStack, tracking int, playerDefence int) (*WolfFi
 		case "knife":
 			winChance = 20
 		case "iron sword":
-			winChance = 50
+			winChance = 100 //////////////////////////////////////////временно
 		default:
 			winChance = 0
 		}
@@ -64,12 +71,12 @@ func FightWolf(weapon *item.ItemStack, tracking int, playerDefence int) (*WolfFi
 			Win:     false,
 			Loot:    nil,
 			Message: fmt.Sprintf("Ты встретил волка! Ты попытался дать отпор, но понял, что не справляешься, и убежал. Потерял %d жизней.", finalDamage),
-		}, "", 0
+		}, "", finalDamage, 0
 	}
 
 	//если вин генерируем дроп
 	var loot []*item.ItemStack
-
+	xp := 50
 	for _, wolfItem := range WolfLootTable {
 		chance := wolfItem.Chance
 
@@ -108,9 +115,9 @@ func FightWolf(weapon *item.ItemStack, tracking int, playerDefence int) (*WolfFi
 	}
 
 	if broken {
-		return result, "Твое оружие сломалось в бою!", 0
+		return result, "Твое оружие сломалось в бою!", 0, xp
 	}
 
-	return result, "", 0
+	return result, "", 0, xp
 
 }
