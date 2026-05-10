@@ -38,8 +38,8 @@ type Player struct {
 	stopHunger chan bool //добавили чтобы не увеличивались тики после охоты(остановка тиков)
 	stopThirst chan bool
 
-	PendingLevelUp       bool      // ожидает ли игрок выбора характеристики
-	PendingLevelUpExpiry time.Time // время истечения запроса
+	PendingStatChoiсe       bool      //ожидает ли игрок выбор
+	PendingStatChoiсeExpiry time.Time //время на выбор характеристики
 }
 
 type Stats struct {
@@ -56,8 +56,9 @@ type Stats struct {
 	Tracking  int //следопытство
 
 	//прогресс(позже)
-	Level      int
-	Experience int
+	Level            int
+	Experience       int
+	PendingStatPoint int //неиспользованые очки характеристик
 
 	//охота
 	IsHunting      bool      // на охоте ли персонаж
@@ -534,46 +535,11 @@ func (p *Player) AddExperience(amount int, conn net.Conn) {
 }
 
 func (p *Player) LevelUp(conn net.Conn) {
-
-	p.PendingLevelUp = true
-	p.PendingLevelUpExpiry = time.Now().Add(30 * time.Second)
-	fmt.Fprintf(conn, "\n🎉 Поздравляем! Вы достигли %d уровня!\n", p.Stats.Level+1)
-	fmt.Fprintf(conn, "Выберите характеристику для повышения:\n")
-	fmt.Fprintf(conn, "  1. Сила (+5 HP)\n")
-	fmt.Fprintf(conn, "  2. Ловкость\n")
-	fmt.Fprintf(conn, "  3. Интеллект\n")
-	fmt.Fprintf(conn, "  4. Следопытство\n")
-	fmt.Fprintf(conn, "Введите номер (1-4):\n")
-
-}
-
-func (p *Player) ProcessLevelUp(choice string, conn net.Conn) {
-	if !p.PendingLevelUp {
-		return
-	}
-
-	p.PendingLevelUp = false
+	p.Stats.PendingStatPoint++
 	p.Stats.Level++
-
-	switch choice {
-	case "1":
-		p.Stats.Strength++
-		p.Stats.Health = 50 + p.Stats.Strength*5
-		fmt.Fprintf(conn, "Сила увеличeна на 1 единицу\n")
-
-	case "2":
-		p.Stats.Dexterity++
-		fmt.Fprintf(conn, "Ловкость увеличeна на 1 единицу\n")
-
-	case "3":
-		p.Stats.Intelect++
-		fmt.Fprintf(conn, "Интелект увеличeн на 1 единицу\n")
-
-	case "4":
-		p.Stats.Tracking++
-		fmt.Fprintf(conn, "Следопытство увеличeно на 1 единицу\n")
-	}
-	fmt.Fprintf(conn, "> ")
+	fmt.Fprintf(conn, "\n🎉 Поздравляем! Вы достигли %d уровня!\n", p.Stats.Level)
+	fmt.Fprintf(conn, "Вы получили очко характеристик\n")
+	fmt.Fprintf(conn, "Используйте команду 'statpoints' для распределения\n")
 
 }
 
@@ -586,4 +552,32 @@ func (p *Player) CheckLevelUp(conn net.Conn) bool {
 
 	}
 	return leveled
+}
+
+// процес выбора характеристики при лвлАпе
+func (p *Player) ProcessStatChoice(choice string, conn net.Conn) {
+	if !p.PendingStatChoiсe {
+		return
+	}
+
+	p.PendingStatChoiсe = false
+	p.Stats.PendingStatPoint--
+
+	switch choice {
+	case "1":
+		p.Stats.Strength++
+		p.Stats.Health = 50 + p.Stats.Strength*5
+		fmt.Fprintf(conn, "Сила увеличена до %d, максимальное здоровье: %d\n", p.Stats.Strength, p.Stats.Health)
+	case "2":
+		p.Stats.Dexterity++
+		fmt.Fprintf(conn, "Ловкость увеличена до %d\n", p.Stats.Dexterity)
+	case "3":
+		p.Stats.Intelect++
+		fmt.Fprintf(conn, "Интеллект увеличен до %d\n", p.Stats.Intelect)
+	case "4":
+		p.Stats.Tracking++
+		fmt.Fprintf(conn, "Следопытство увеличено до %d\n", p.Stats.Tracking)
+	}
+	fmt.Fprintf(conn, " >")
+
 }

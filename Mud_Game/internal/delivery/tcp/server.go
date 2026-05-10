@@ -233,19 +233,19 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		return false
 	}
 
-	//обновление статов при левелапе
-	if p.PendingLevelUp {
-		if time.Now().After(p.PendingLevelUpExpiry) {
-			p.PendingLevelUp = false
-			fmt.Fprintf(conn, "Время выбор истекло. Повышение отменено.\n> ")
+	//обработка выбора характеристик
+	if p.PendingStatChoiсe {
+		if time.Now().After(p.PendingStatChoiсeExpiry) {
+			p.PendingStatChoiсe = false
+			fmt.Fprintf(conn, "Время ожидания истекло, введите повторно 'statpoints'\n> ")
 			return false
 		}
 
 		if cmd == "1" || cmd == "2" || cmd == "3" || cmd == "4" {
-			p.ProcessLevelUp(cmd, conn)
+			p.ProcessStatChoice(cmd, conn)
 			return false
 		} else {
-			fmt.Fprintf(conn, "Некорректный вывод. Введите 1,2,3 или 4.\n> ")
+			fmt.Fprintf(conn, "Некорректный ввод. Введите 1,2,3 или 4\n> ")
 			return false
 		}
 	}
@@ -281,6 +281,9 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 	case cmd == "stats":
 		handlers.HandleStats(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+	case cmd == "statpoints":
+		handlers.HandleStatPoints(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
 	case strings.HasPrefix(cmd, "move "): //после move идет еще чтото. аналогично ниже

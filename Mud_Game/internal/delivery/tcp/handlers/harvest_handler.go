@@ -32,11 +32,14 @@ func HandleHarvest(conn net.Conn, cmd string, p *player.Player, roomRepo room.Re
 
 	plotID--
 
-	plantType, vsego, ok := p.Zone.Garden.Harvest(plotID)
+	plantType, vsego, ok, exp := p.Zone.Garden.Harvest(plotID)
 	if !ok {
 		fmt.Fprintf(conn, "На этой грядке ничего нет для сбора или растение еще не выросло!\n> ")
 		return
 	}
+
+	p.AddExperience(exp, conn)
+	fmt.Fprintf(conn, "Ты получил %d опыта\n> ", exp)
 
 	var itemName string
 	switch plantType {

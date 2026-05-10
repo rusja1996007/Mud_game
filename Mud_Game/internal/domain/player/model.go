@@ -12,27 +12,28 @@ import (
 )
 
 type PlayerModel struct {
-	ID             string `gorm:"primaryKey;size:36"`
-	Name           string `gorm:"uniqueIndex;size:50"`
-	CurrentRoom    string `gorm:"size:36"` //где сейчас
-	Inventory      string `gorm:"type:text"`
-	Equipment      string `gorm:"type:text"`
-	GardenData     string `gorm:"type:text"` // JSON с грядками("помидор: посажен в 14:00" )
-	Created_at     time.Time
-	Updated_at     time.Time
-	Deleted_at     gorm.DeletedAt `gorm:"index"`
-	IsHunting      bool           `gorm:"default:false"`
-	HuntingEndTime time.Time      `gorm:"default:null"`
-	Strength       int            `gorm:"default:0"`
-	Dexterity      int            `gorm:"default:0"`
-	Intelect       int            `gorm:"default:0"`
-	Tracking       int            `gorm:"default:0"`
-	MaxSlots       int            `gorm:"default:0"`
-	Hunger         int            `gorm:"default:0"`
-	Thirst         int            `gorm:"default:0"`
-	Health         int            `gorm:"default:0"`
-	Level          int            `gorm:"default:0"`
-	Experience     int            `gorm:"default:0"`
+	ID               string `gorm:"primaryKey;size:36"`
+	Name             string `gorm:"uniqueIndex;size:50"`
+	CurrentRoom      string `gorm:"size:36"` //где сейчас
+	Inventory        string `gorm:"type:text"`
+	Equipment        string `gorm:"type:text"`
+	GardenData       string `gorm:"type:text"` // JSON с грядками("помидор: посажен в 14:00" )
+	Created_at       time.Time
+	Updated_at       time.Time
+	Deleted_at       gorm.DeletedAt `gorm:"index"`
+	IsHunting        bool           `gorm:"default:false"`
+	HuntingEndTime   time.Time      `gorm:"default:null"`
+	Strength         int            `gorm:"default:0"`
+	Dexterity        int            `gorm:"default:0"`
+	Intelect         int            `gorm:"default:0"`
+	Tracking         int            `gorm:"default:0"`
+	MaxSlots         int            `gorm:"default:0"`
+	Hunger           int            `gorm:"default:0"`
+	Thirst           int            `gorm:"default:0"`
+	Health           int            `gorm:"default:0"`
+	Level            int            `gorm:"default:0"`
+	Experience       int            `gorm:"default:0"`
+	PendingStatPoint int            `gorm:"default:0"`
 }
 
 // структура для JSON экипировки:
@@ -125,18 +126,19 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 		Inventory:   inventory,        //это наш преобразованный список предметов
 		Equipment:   equipment,
 		Stats: &Stats{
-			MaxSlots:       m.MaxSlots,
-			Hunger:         m.Hunger,
-			Thirst:         m.Thirst,
-			Health:         m.Health,
-			Experience:     m.Experience,
-			Level:          m.Level,
-			IsHunting:      m.IsHunting,
-			HuntingEndTime: m.HuntingEndTime,
-			Strength:       m.Strength,
-			Dexterity:      m.Dexterity,
-			Intelect:       m.Intelect,
-			Tracking:       m.Tracking,
+			MaxSlots:         m.MaxSlots,
+			Hunger:           m.Hunger,
+			Thirst:           m.Thirst,
+			Health:           m.Health,
+			Experience:       m.Experience,
+			Level:            m.Level,
+			IsHunting:        m.IsHunting,
+			HuntingEndTime:   m.HuntingEndTime,
+			Strength:         m.Strength,
+			Dexterity:        m.Dexterity,
+			Intelect:         m.Intelect,
+			Tracking:         m.Tracking,
+			PendingStatPoint: m.PendingStatPoint,
 		},
 	}
 
@@ -206,25 +208,26 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 
 	// Создаем модель БД из данных игрока
 	return &PlayerModel{
-		ID:             p.ID,
-		Name:           p.Name,
-		CurrentRoom:    p.CurrentRoom,
-		Inventory:      string(inventJSON), // JSON нужно превратить в строку
-		Equipment:      string(equipmentJSON),
-		GardenData:     string(gardenJSON),
-		Created_at:     time.Now(),
-		Updated_at:     time.Now(),
-		IsHunting:      p.Stats.IsHunting,
-		HuntingEndTime: p.Stats.HuntingEndTime,
-		Strength:       p.Stats.Strength,
-		Dexterity:      p.Stats.Dexterity,
-		Intelect:       p.Stats.Intelect,
-		Tracking:       p.Stats.Tracking,
-		Level:          p.Stats.Level,
-		Experience:     p.Stats.Experience,
-		Hunger:         p.Stats.Hunger,
-		Thirst:         p.Stats.Thirst,
-		Health:         p.Stats.Health,
-		MaxSlots:       p.Stats.MaxSlots,
+		ID:               p.ID,
+		Name:             p.Name,
+		CurrentRoom:      p.CurrentRoom,
+		Inventory:        string(inventJSON), // JSON нужно превратить в строку
+		Equipment:        string(equipmentJSON),
+		GardenData:       string(gardenJSON),
+		Created_at:       time.Now(),
+		Updated_at:       time.Now(),
+		IsHunting:        p.Stats.IsHunting,
+		HuntingEndTime:   p.Stats.HuntingEndTime,
+		Strength:         p.Stats.Strength,
+		Dexterity:        p.Stats.Dexterity,
+		Intelect:         p.Stats.Intelect,
+		Tracking:         p.Stats.Tracking,
+		Level:            p.Stats.Level,
+		Experience:       p.Stats.Experience,
+		Hunger:           p.Stats.Hunger,
+		Thirst:           p.Stats.Thirst,
+		Health:           p.Stats.Health,
+		MaxSlots:         p.Stats.MaxSlots,
+		PendingStatPoint: p.Stats.PendingStatPoint,
 	}, nil
 }

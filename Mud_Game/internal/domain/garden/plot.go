@@ -40,20 +40,24 @@ func (g *Garden) Plant(plotID int, plantType PlantType) bool {
 }
 
 // собрать урожай
-func (g *Garden) Harvest(plotID int) (PlantType, int, bool) {
+// int - кол-во
+// int - XP
+func (g *Garden) Harvest(plotID int) (PlantType, int, bool, int) {
 	if plotID < 0 || plotID >= len(g.Plots) {
-		return "", 0, false
+		return "", 0, false, 0
 	}
 
 	plant := g.Plots[plotID].Plant
 	if plant == nil || !plant.IsReady() {
-		return "", 0, false
+		return "", 0, false, 0
 	}
 	yield, _ := GetPlantYield(plant.Type)
 
 	//очищаем грядку
 	g.Plots[plotID].Plant = nil
 
-	return plant.Type, yield, true
+	exp := 10 //за сбор 1 растения
+
+	return plant.Type, yield, true, exp
 
 }
