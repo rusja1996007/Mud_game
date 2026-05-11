@@ -143,7 +143,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 			Inventory:   []*item.ItemStack{}, // пустой инвентарь
 			Equipment:   &player.Equipment{},
 			Stats: &player.Stats{
-				MaxSlots:   4,
+				MaxSlots:   8,
 				Hunger:     100,
 				Thirst:     100,
 				Health:     50 + 5*strength,
@@ -336,6 +336,13 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 	case strings.HasPrefix(cmd, "fill "):
 		handlers.HandleFill(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case cmd == "craft":
+		handlers.HandleCraft(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+	case strings.HasPrefix(cmd, "craft "):
+		handlers.HandleCraft(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
 	case strings.HasPrefix(cmd, "look"):

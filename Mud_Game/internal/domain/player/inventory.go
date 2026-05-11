@@ -59,7 +59,7 @@ func (p *Player) GetUsedSlots() int {
 
 // максимальное количество слотов
 func (p *Player) GetMaxSlots() int {
-	baseSlots := 4 //базово 4 слота
+	baseSlots := 8 //базово 4 слота
 
 	if p.Equipment == nil {
 		return baseSlots

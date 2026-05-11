@@ -42,14 +42,14 @@ var ItemsDB = map[string]ItemData{
 	"tomato": {
 		Name:          "tomato",
 		ItemType:      "food",
-		HungerRestore: 10,
+		HungerRestore: 5,
 		Description:   "--",
 	},
 
 	"potato": {
 		Name:          "potato",
 		ItemType:      "food",
-		HungerRestore: 10,
+		HungerRestore: 5,
 		Description:   "--",
 	},
 
@@ -58,6 +58,13 @@ var ItemsDB = map[string]ItemData{
 		ItemType:      "food",
 		HungerRestore: 5,
 		Description:   "--",
+	},
+
+	"vegetable set": {
+		Name:          "vegetable set",
+		ItemType:      "food",
+		HungerRestore: 30,
+		Description:   "Простенький овощной набор",
 	},
 
 	/////////////////////////////////////container////////////////////////////////////////
