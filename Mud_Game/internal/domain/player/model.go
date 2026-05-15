@@ -1,6 +1,7 @@
 package player
 
 import (
+	"Mud_game/Mud_Game/internal/domain/buff"
 	"Mud_game/Mud_Game/internal/domain/garden"
 	"Mud_game/Mud_Game/internal/domain/item"
 	"encoding/json"
@@ -34,6 +35,7 @@ type PlayerModel struct {
 	Level            int            `gorm:"default:0"`
 	Experience       int            `gorm:"default:0"`
 	PendingStatPoint int            `gorm:"default:0"`
+	ActiveBuffs      string         `gorm:"type:text"` // JSON сериализация баффов
 }
 
 // структура для JSON экипировки:
@@ -72,9 +74,16 @@ type PlotJSON struct {
 // *Player - возвращаем игрока из БД
 // из БД в игру
 func (m *PlayerModel) ToEntity() (*Player, error) {
-	var inventory []*item.ItemStack
+
+	//парсим бафы
+	var activeBuffs []*buff.Buff
+	if m.ActiveBuffs != "" {
+		json.Unmarshal([]byte(m.ActiveBuffs), &activeBuffs)
+	}
 
 	//парсим инвентарь
+	var inventory []*item.ItemStack
+
 	if m.Inventory != "" {
 		err := json.Unmarshal([]byte(m.Inventory), &inventory) //&inventory - это указатель на нашу коробку. Мы говорим: "положи результат вот в эту коробку(inventory)".
 		if err != nil {
@@ -141,6 +150,8 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 			PendingStatPoint: m.PendingStatPoint,
 		},
 	}
+	//присваиваем бафы
+	playerEntity.ActiveBuffs = activeBuffs
 
 	//// ✅ ВСЕГДА создаем Zone, даже если огород пустой!
 
@@ -162,6 +173,8 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 	if p.ID == "" {
 		return nil, errors.New("ID игрока пустой")
 	}
+	//превращаем бафы в json
+	activeBuffsJson, _ := json.Marshal(p.ActiveBuffs)
 
 	// Превращаем инвентарь в json
 	inventJSON, err := json.Marshal(p.Inventory)
@@ -229,5 +242,6 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		Health:           p.Stats.Health,
 		MaxSlots:         p.Stats.MaxSlots,
 		PendingStatPoint: p.Stats.PendingStatPoint,
+		ActiveBuffs:      string(activeBuffsJson),
 	}, nil
 }

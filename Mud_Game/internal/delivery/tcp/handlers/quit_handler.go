@@ -8,8 +8,7 @@ import (
 )
 
 func HandleQuit(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
-	//ПОКИНУТЬ ПРИЛОЖЕНИЕ
-
+	p.StopAllTickers() // ← останавливаем все тикеры
 	fmt.Fprintf(conn, "До свидания!\n")
-
+	conn.Close()
 }

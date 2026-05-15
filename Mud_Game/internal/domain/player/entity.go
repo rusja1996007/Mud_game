@@ -1,6 +1,7 @@
 package player
 
 import (
+	"Mud_game/Mud_Game/internal/domain/buff"
 	"Mud_game/Mud_Game/internal/domain/combat"
 	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/loot"
@@ -25,21 +26,27 @@ type Equipment struct {
 }
 
 type Player struct {
-	ID                string
-	Name              string
-	CurrentRoom       string            //текущая комната
-	Inventory         []*item.ItemStack // ← стопки предметов (название + кол-во)
-	Equipment         *Equipment
-	Zone              *PLayerZone
-	Stats             *Stats    // характеристики
+	ID          string
+	Name        string
+	CurrentRoom string            //текущая комната
+	Inventory   []*item.ItemStack // ← стопки предметов (название + кол-во)
+	Equipment   *Equipment
+	Zone        *PLayerZone
+	Stats       *Stats // характеристики
+
+	//охота
 	PendingHunt       bool      // ожидание подтверждения охото(yes)
 	PendingHuntExpiry time.Time //время, когда запрос истекает
+	stopHunger        chan bool //добавили чтобы не увеличивались тики после охоты(остановка тиков)
+	stopThirst        chan bool
 
-	stopHunger chan bool //добавили чтобы не увеличивались тики после охоты(остановка тиков)
-	stopThirst chan bool
-
+	// характеристики
 	PendingStatChoiсe       bool      //ожидает ли игрок выбор
 	PendingStatChoiсeExpiry time.Time //время на выбор характеристики
+
+	//бафы
+	ActiveBuffs    []*buff.Buff //список активных бафов
+	stopBuffTicker chan bool    //канал остановки тикера
 }
 
 type Stats struct {
@@ -580,4 +587,96 @@ func (p *Player) ProcessStatChoice(choice string, conn net.Conn) {
 	}
 	fmt.Fprintf(conn, " >")
 
+}
+
+// запуск бафа
+func (p *Player) StartBuffTicker(conn net.Conn, repo Repository) {
+
+	if p.stopBuffTicker != nil {
+		select {
+		case p.stopBuffTicker <- true:
+		default:
+			close(p.stopBuffTicker)
+
+		}
+	}
+
+	p.stopBuffTicker = make(chan bool)
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-p.stopBuffTicker:
+				return
+			case <-ticker.C:
+				for _, buff := range p.ActiveBuffs {
+					if buff.RemainingTime > 0 {
+						buff.RemainingTime -= 1 * time.Second
+					}
+				}
+				p.processBuffs(conn, repo)
+			}
+		}
+	}()
+}
+
+// Проверяет все активные баффы игрока и применяет их эффекты.
+func (p *Player) processBuffs(conn net.Conn, repo Repository) {
+	now := time.Now()
+	newBuffs := make([]*buff.Buff, 0)
+
+	for _, b := range p.ActiveBuffs {
+		if b.RemainingTime <= 0 {
+			continue // бафф истёк
+		}
+
+		// Проверяем интервал срабатывания
+		if b.Interval > 0 {
+			// Если LastTick не установлен или прошло >= Interval
+			if b.LastTick.IsZero() || now.Sub(b.LastTick) >= b.Interval {
+				p.applyBuffEffect(b, conn)
+				b.LastTick = now
+			}
+		}
+
+		newBuffs = append(newBuffs, b)
+	}
+
+	p.ActiveBuffs = newBuffs
+	repo.Save(p)
+}
+
+// применить баф
+func (p *Player) applyBuffEffect(b *buff.Buff, conn net.Conn) {
+	switch b.Type {
+	case buff.HealthRegen:
+		p.Stats.Health += b.Value
+		maxHealth := 50 + p.Stats.Strength*5
+		if p.Stats.Health > maxHealth {
+			p.Stats.Health = maxHealth
+		}
+		//fmt.Fprintf(conn, "Вы восстановили %d жизней.\n", b.Value)
+	}
+}
+
+// StopAllTickers останавливает все тикеры игрока
+func (p *Player) StopAllTickers() {
+	if p.stopBuffTicker != nil {
+		p.stopBuffTicker <- true
+		close(p.stopBuffTicker)
+		p.stopBuffTicker = nil
+	}
+	if p.stopHunger != nil {
+		p.stopHunger <- true
+		close(p.stopHunger)
+		p.stopHunger = nil
+	}
+	if p.stopThirst != nil {
+		p.stopThirst <- true
+		close(p.stopThirst)
+		p.stopThirst = nil
+	}
 }

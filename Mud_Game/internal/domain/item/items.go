@@ -64,7 +64,7 @@ var ItemsDB = map[string]ItemData{
 		Name:          "vegetable set",
 		ItemType:      "food",
 		HungerRestore: 30,
-		Description:   "Простенький овощной набор",
+		Description:   "+5 HP\n+1 HP /30 сек\nПростенький овощной набор",
 	},
 
 	/////////////////////////////////////container////////////////////////////////////////

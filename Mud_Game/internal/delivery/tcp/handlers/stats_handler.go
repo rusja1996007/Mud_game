@@ -25,4 +25,15 @@ func HandleStats(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 	fmt.Fprintf(conn, "Слоты: %d/%d\n", p.GetUsedSlots(), p.GetMaxSlots())
 	fmt.Fprintf(conn, "==========================\n> ")
 
+	if len(p.ActiveBuffs) > 0 {
+		fmt.Fprintf(conn, "\n✨ Активные эффекты:\n")
+		for _, b := range p.ActiveBuffs {
+			minutes := int(b.RemainingTime.Minutes())
+			seconds := int(b.RemainingTime.Seconds()) % 60
+			fmt.Fprintf(conn, "  • %s\n", b.Description)
+			fmt.Fprintf(conn, "    осталось: %dм %dс\n", minutes, seconds)
+		}
+	}
+	fmt.Fprintf(conn, ">")
+
 }

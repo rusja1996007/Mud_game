@@ -66,6 +66,7 @@ func HandleEat(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 	if p.Stats.Hunger > 100 {
 		p.Stats.Hunger = 100
 	}
+	p.ApplyItemEffect(itemName, conn)
 
 	//удаляем 1 единицу самой еды
 	player.RemoveItem(&p.Inventory, itemName, 1)

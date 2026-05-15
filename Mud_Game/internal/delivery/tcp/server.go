@@ -54,6 +54,14 @@ func (s *Server) Start() error {
 func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection - общение с игроком
 	// Гарантированно закрываем соединение при выходе из функции
 	defer conn.Close()
+
+	var currentPlayer *player.Player
+
+	defer func() {
+		if currentPlayer != nil {
+			currentPlayer.StopAllTickers()
+		}
+	}()
 	fmt.Printf("🔌 Новое подключение\n")
 
 	// Отправляем приветствие
@@ -76,7 +84,6 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		fmt.Fprintf(conn, "Ошибка при входе в игру\n> ")
 		return
 	}
-	var currentPlayer *player.Player
 
 	if existingPlayer != nil {
 		//Игрок найден - загружаем
@@ -193,6 +200,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		//запускаем тикер отнимания еды и воды
 		go currentPlayer.StartHungerTicker(conn, s.playerRepo)
 		go currentPlayer.StartThirstTicker(conn, s.playerRepo)
+		go currentPlayer.StartBuffTicker(conn, s.playerRepo)
 		room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom) //комната где сейчас  персонаж
 		fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
 	}
@@ -261,6 +269,15 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		return false
 	}
 	switch {
+	//////////////////////////////////////////////////
+	case cmd == "damage":
+		p.Stats.Health -= 40
+		if p.Stats.Health < 1 {
+			p.Stats.Health = 1
+		}
+		fmt.Fprintf(conn, "Здоровье уменьшено до %d\n> ", p.Stats.Health)
+		return false
+		///////////////////////////////////////////////////
 	case cmd == "yes":
 		handlers.HandleYesHunt(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
