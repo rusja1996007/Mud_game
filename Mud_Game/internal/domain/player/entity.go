@@ -47,6 +47,7 @@ type Player struct {
 	//бафы
 	ActiveBuffs    []*buff.Buff //список активных бафов
 	stopBuffTicker chan bool    //канал остановки тикера
+
 }
 
 type Stats struct {
@@ -70,6 +71,10 @@ type Stats struct {
 	//охота
 	IsHunting      bool      // на охоте ли персонаж
 	HuntingEndTime time.Time //когда закончится охота
+
+	//сон
+	IsSleeping     bool      //спит?
+	SleepStartTime time.Time //время когда начал спать
 }
 
 // запускает таймер голода (каждые GetHUNGERInterval секунд )
@@ -263,7 +268,7 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 
 	//применяем урон
 	if totalDamage > 0 {
-		p.Stats.Health -= totalDamage
+		p.TakeDamage(totalDamage, combat.DamagePhysical, conn)
 		if p.Stats.Health <= 0 {
 			fmt.Fprintf(conn, "Ты погиб на охоте!\n")
 			repo.Delete(p.ID)
@@ -471,7 +476,7 @@ func (p *Player) GetTotalMagicDefence() int {
 }
 
 // наносит урон игроку с учетом защиты
-func (p *Player) TakeDamage(damage int, dmgType combat.DamageType) {
+func (p *Player) TakeDamage(damage int, dmgType combat.DamageType, conn net.Conn) {
 	defence := 0
 
 	switch dmgType {
@@ -487,16 +492,21 @@ func (p *Player) TakeDamage(damage int, dmgType combat.DamageType) {
 		defence = 0
 	}
 
-	finalDamage := max(damage-defence, 1)
+	//процентное снижение урона (защита/защита+100)
+	reduction := float64(defence) / (float64(defence) + 100)
+	finalDamage := int(float64(damage) * (1 - reduction))
+	finalDamage = max(finalDamage, 1) //возвращает большее из двух чисел(замена если fdamage<1-fdamage=1)
 
 	p.Stats.Health -= finalDamage
+
+	fmt.Fprintf(conn, "Ты получил %d урона!\n", finalDamage)
 
 	p.DecreaseArmorDurability()
 }
 
 // снижаем прочность брони, 20% шанс износа при каждом ударе
 func (p *Player) DecreaseArmorDurability() {
-	if rand.Intn(100) >= 20 {
+	if rand.Intn(100) >= 50 { ///////////////////////////////////
 		return //не изнашивается
 	}
 

@@ -3,7 +3,6 @@ package loot
 import (
 	"Mud_game/Mud_Game/internal/domain/item"
 
-	"fmt"
 	"math/rand"
 )
 
@@ -62,16 +61,12 @@ func FightWolf(weapon *item.ItemStack, tracking int, playerDefence int) (*WolfFi
 	if !win {
 		//волк наносит 5-15 урона
 		wolfDamage := 5 + rand.Intn(11)
-		finalDamage := wolfDamage - playerDefence
-		if finalDamage < 1 {
-			finalDamage = 1
-		}
 
 		return &WolfFightResult{
 			Win:     false,
 			Loot:    nil,
-			Message: fmt.Sprintf("Ты встретил волка! Ты попытался дать отпор, но понял, что не справляешься, и убежал. Потерял %d жизней.", finalDamage),
-		}, "", finalDamage, 0
+			Message: "Ты встретил волка! Ты попытался дать отпор, но понял, что не справляешься, и убежал.",
+		}, "", wolfDamage, 0
 	}
 
 	//если вин генерируем дроп

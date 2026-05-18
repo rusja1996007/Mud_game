@@ -36,6 +36,8 @@ type PlayerModel struct {
 	Experience       int            `gorm:"default:0"`
 	PendingStatPoint int            `gorm:"default:0"`
 	ActiveBuffs      string         `gorm:"type:text"` // JSON сериализация баффов
+	IsSleeping       bool           `gorm:"default:false"`
+	SleepStartTime   time.Time      `gorm:"default:null"`
 }
 
 // структура для JSON экипировки:
@@ -150,6 +152,11 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 			PendingStatPoint: m.PendingStatPoint,
 		},
 	}
+
+	//добавляем статус(спит или нет)
+	playerEntity.Stats.IsSleeping = m.IsSleeping
+	playerEntity.Stats.SleepStartTime = m.SleepStartTime
+
 	//присваиваем бафы
 	playerEntity.ActiveBuffs = activeBuffs
 
@@ -243,5 +250,7 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		MaxSlots:         p.Stats.MaxSlots,
 		PendingStatPoint: p.Stats.PendingStatPoint,
 		ActiveBuffs:      string(activeBuffsJson),
+		IsSleeping:       p.Stats.IsSleeping,
+		SleepStartTime:   p.Stats.SleepStartTime,
 	}, nil
 }

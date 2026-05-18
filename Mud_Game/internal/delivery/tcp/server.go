@@ -227,14 +227,24 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 }
 
 func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool {
+
+	if cmd == "quit" {
+		handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return true
+	}
+
+	//если спишь, блокируем все
+	if p.Stats.IsSleeping && cmd != "wake" {
+		fmt.Fprintf(conn, "Ты спишь, проснись командой 'wake'.\n> ")
+		return false
+	}
+
 	// ✅ Если игрок на охоте — блокируем все команды кроме "hunt"
 	if p.Stats.IsHunting {
 		if cmd == "hunt" {
 			fmt.Fprintf(conn, "Ты на охоте, вернешься через %v\n> ",
 				time.Until(p.Stats.HuntingEndTime).Round(time.Second))
-		} else if cmd == "quit" {
-			handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
-			return true
+
 		} else {
 			fmt.Fprintf(conn, "Ты на охоте! Нельзя использовать команды кроме hunt и quit\n> ")
 		}
@@ -269,7 +279,7 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		return false
 	}
 	switch {
-	//////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
 	case cmd == "damage":
 		p.Stats.Health -= 40
 		if p.Stats.Health < 1 {
@@ -277,7 +287,14 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		}
 		fmt.Fprintf(conn, "Здоровье уменьшено до %d\n> ", p.Stats.Health)
 		return false
-		///////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////
+	case cmd == "sleep":
+		handlers.HandleSleep(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case cmd == "wake":
+		handlers.HandleWake(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
 	case cmd == "yes":
 		handlers.HandleYesHunt(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false

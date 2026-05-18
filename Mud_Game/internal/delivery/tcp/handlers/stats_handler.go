@@ -20,10 +20,16 @@ func HandleStats(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 	fmt.Fprintf(conn, "Интеллект: %d\n", p.Stats.Intelect)
 	fmt.Fprintf(conn, "Следопытство: %d\n", p.Stats.Tracking)
 	fmt.Fprintf(conn, "==========================\n")
+	fmt.Fprintf(conn, "🛡️ Защита:\n")
+	fmt.Fprintf(conn, "Физическая: %d\n", p.GetTotalDefence())
+	fmt.Fprintf(conn, "Магическая: %d\n", p.GetTotalMagicDefence())
+	fmt.Fprintf(conn, "От яда: %d\n", p.GetTotalPoisonDefence())
+	fmt.Fprintf(conn, "От огня: %d\n", p.GetTotalFireDefence())
+	fmt.Fprintf(conn, "==========================\n")
 	fmt.Fprintf(conn, "Уровень: %d\n", p.Stats.Level)
 	fmt.Fprintf(conn, "Опыт: %d/%d\n", p.Stats.Experience, maxEXP)
 	fmt.Fprintf(conn, "Слоты: %d/%d\n", p.GetUsedSlots(), p.GetMaxSlots())
-	fmt.Fprintf(conn, "==========================\n> ")
+	fmt.Fprintf(conn, "==========================\n")
 
 	if len(p.ActiveBuffs) > 0 {
 		fmt.Fprintf(conn, "\n✨ Активные эффекты:\n")
