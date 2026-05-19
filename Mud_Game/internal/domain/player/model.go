@@ -38,6 +38,9 @@ type PlayerModel struct {
 	ActiveBuffs      string         `gorm:"type:text"` // JSON сериализация баффов
 	IsSleeping       bool           `gorm:"default:false"`
 	SleepStartTime   time.Time      `gorm:"default:null"`
+	IsTraveling      bool           `gorm:"default:false"`
+	TravelEndTime    time.Time      `gorm:"default:null"`
+	TravelTargetRoom string         `gorm:"size:36"`
 }
 
 // структура для JSON экипировки:
@@ -153,6 +156,11 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 		},
 	}
 
+	//добавляем статус(в путешествии или нет)
+	playerEntity.Stats.IsTraveling = m.IsTraveling
+	playerEntity.Stats.TravelEndTime = m.TravelEndTime
+	playerEntity.Stats.TravelTargetRoom = m.TravelTargetRoom
+
 	//добавляем статус(спит или нет)
 	playerEntity.Stats.IsSleeping = m.IsSleeping
 	playerEntity.Stats.SleepStartTime = m.SleepStartTime
@@ -252,5 +260,8 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		ActiveBuffs:      string(activeBuffsJson),
 		IsSleeping:       p.Stats.IsSleeping,
 		SleepStartTime:   p.Stats.SleepStartTime,
+		IsTraveling:      p.Stats.IsTraveling,
+		TravelEndTime:    p.Stats.TravelEndTime,
+		TravelTargetRoom: p.Stats.TravelTargetRoom,
 	}, nil
 }

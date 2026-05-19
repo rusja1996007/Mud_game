@@ -201,45 +201,120 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		go currentPlayer.StartHungerTicker(conn, s.playerRepo)
 		go currentPlayer.StartThirstTicker(conn, s.playerRepo)
 		go currentPlayer.StartBuffTicker(conn, s.playerRepo)
-		room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom) //комната где сейчас  персонаж
-		fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
-	}
-	// Цикл обработки команд одного игрока
-	for {
-		// Читаем команду от игрока
-		// n - сколько байт реально прочитали
-		n, err := conn.Read(buffer)
-		if err != nil {
-			s.logger.Info("Игрок отключился")
-			break // Выходим из цикла, сработает defer conn.Close()
+
+		if currentPlayer.Stats.IsTraveling {
+			if time.Now().After(currentPlayer.Stats.TravelEndTime) {
+				// Завершаем путешествие при входе
+				currentPlayer.CurrentRoom = currentPlayer.Stats.TravelTargetRoom
+				currentPlayer.Stats.IsTraveling = false
+				currentPlayer.Stats.TravelEndTime = time.Time{}
+				currentPlayer.Stats.TravelTargetRoom = ""
+				s.playerRepo.Save(currentPlayer)
+
+				room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom) //комната где сейчас  персонаж
+				fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
+			} else {
+				remaining := time.Until(currentPlayer.Stats.TravelEndTime).Round(time.Second)
+				fmt.Fprintf(conn, "Ты в пути. Осталось: %v. Команды недоступны.\n> ", remaining)
+
+			}
 		}
-		// Преобразуем байты в строку
-		// buffer[:n] - берем только прочитанные байты (остальной буфер пустой)
-		cmd := string(buffer[:n])
-		// Обрезаем символы \r\n (нажатие Enter)
-		// Например "help\r\n" станет "help"
-		cmd = cmd[:len(cmd)-2]
-		////////////////////////////////////// команды ://///////////////////////////////////
-		if s.routeCommand(conn, cmd, currentPlayer) { // выходим из цикла если routeCommand вернула true (quit)
-			break
+		// Цикл обработки команд одного игрока
+		for {
+			// Читаем команду от игрока
+			// n - сколько байт реально прочитали
+			n, err := conn.Read(buffer)
+			if err != nil {
+				s.logger.Info("Игрок отключился")
+				break // Выходим из цикла, сработает defer conn.Close()
+			}
+			// Преобразуем байты в строку
+			// buffer[:n] - берем только прочитанные байты (остальной буфер пустой)
+			cmd := string(buffer[:n])
+			// Обрезаем символы \r\n (нажатие Enter)
+			// Например "help\r\n" станет "help"
+			cmd = cmd[:len(cmd)-2]
+			////////////////////////////////////// команды ://///////////////////////////////////
+			if s.routeCommand(conn, cmd, currentPlayer) { // выходим из цикла если routeCommand вернула true (quit)
+				break
+			}
 		}
 	}
 }
-
 func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool {
-
+	//всегда можем выйти
 	if cmd == "quit" {
 		handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return true
 	}
+	//путешествие
+	if p.PendingTravel {
+		if cmd == "yes" {
+			p.PendingTravel = false
 
+			p.Stats.Hunger -= 10
+			p.Stats.Thirst -= 20
+
+			p.Stats.IsTraveling = true
+			p.Stats.TravelEndTime = time.Now().Add(5 * time.Second) //////////////временно
+
+			if p.PendingTravelDirection == "south" {
+				p.Stats.TravelTargetRoom = "global_town"
+				fmt.Fprintf(conn, "Ты отправляешься в город. Путь займёт 5 минут.\n> ")
+			} else if strings.HasPrefix(p.PendingTravelDirection, "дом ") {
+				if p.Zone == nil {
+					return false
+				}
+
+				p.Stats.TravelTargetRoom = p.Zone.RoadID
+				fmt.Printf("DEBUG: TravelTargetRoom = %s (RoadID)\n", p.Stats.TravelTargetRoom) ////////
+				fmt.Fprintf(conn, "Ты отправляешься домой. Путь займёт 5 минут.\n> ")
+			}
+			s.playerRepo.Save(p)
+			return false
+		} else if cmd == "no" {
+			p.PendingTravel = false
+			fmt.Fprintf(conn, "Путь отменен\n> ")
+			return false
+		} else {
+			fmt.Fprintf(conn, "Сначала подтверди путешествие командой 'yes' или отмени его командой 'no'\n> ")
+			return false
+		}
+	}
+
+	// Если в путешествии — блокируем все команды
+	if p.Stats.IsTraveling {
+		if time.Now().After(p.Stats.TravelEndTime) {
+			p.CurrentRoom = p.Stats.TravelTargetRoom
+			p.Stats.IsTraveling = false
+			p.Stats.TravelEndTime = time.Time{}
+			p.Stats.TravelTargetRoom = ""
+			s.playerRepo.Save(p)
+
+			room, err := s.roomRepo.FindByID(p.CurrentRoom)
+			if err != nil {
+				fmt.Fprintf(conn, "Ошибка загрузки комнаты.\n> ")
+				return false
+			}
+
+			fmt.Fprintf(conn, "Ты прибыл!\n")
+			fmt.Fprintf(conn, "%s\n> ", room.Look(p.ID))
+			return false
+
+		} else {
+
+			remaining := time.Until(p.Stats.TravelEndTime).Round(time.Second)
+			fmt.Fprintf(conn, "Ты в пути. Осталось: %v. Команды недоступны.\n> ", remaining)
+			return false
+		}
+	}
 	//если спишь, блокируем все
 	if p.Stats.IsSleeping && cmd != "wake" {
 		fmt.Fprintf(conn, "Ты спишь, проснись командой 'wake'.\n> ")
 		return false
 	}
 
-	// ✅ Если игрок на охоте — блокируем все команды кроме "hunt"
+	// Если игрок на охоте — блокируем все команды кроме "hunt"
 	if p.Stats.IsHunting {
 		if cmd == "hunt" {
 			fmt.Fprintf(conn, "Ты на охоте, вернешься через %v\n> ",

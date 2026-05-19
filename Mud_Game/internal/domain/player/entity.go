@@ -48,6 +48,10 @@ type Player struct {
 	ActiveBuffs    []*buff.Buff //список активных бафов
 	stopBuffTicker chan bool    //канал остановки тикера
 
+	//путешествие
+	PendingTravel          bool
+	PendingTravelDirection string
+	PendingTravelExpiry    time.Time
 }
 
 type Stats struct {
@@ -75,6 +79,11 @@ type Stats struct {
 	//сон
 	IsSleeping     bool      //спит?
 	SleepStartTime time.Time //время когда начал спать
+
+	//путеществие
+	IsTraveling      bool      //в путешествии?
+	TravelEndTime    time.Time //время когда закончится путешествие
+	TravelTargetRoom string    //Это поле хранит ID комнаты, куда игрок идёт:
 }
 
 // запускает таймер голода (каждые GetHUNGERInterval секунд )

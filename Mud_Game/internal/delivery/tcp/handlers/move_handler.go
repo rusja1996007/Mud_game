@@ -5,6 +5,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
 	"strings"
+	"time"
 
 	"net"
 )
@@ -25,13 +26,62 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		fmt.Fprintf(conn, "Комната  не найдена\n> ")
 		return
 	}
-	exits := room.GetExits()           //получить карту выходов
+	exits := room.GetExits() //получить карту выходов
+
 	nextRoomID, ok := exits[direction] //Проверить, есть ли такое направление(direction)
 	if !ok {
+		fmt.Printf("DEBUG: Выход '%s' не найден!\n", direction)
 		fmt.Fprintf(conn, "Туда нельзя идти\n> ")
 		return
 	}
 
+	//===========================Путешествие===============================
+	//Если игрок дома и идет домой
+	if p.CurrentRoom == p.Zone.RoadID && direction == "south" {
+		if p.Stats.Hunger < 10 {
+			fmt.Fprintf(conn, "Ты голоден для далеких прогулок.\n> ")
+			return
+		}
+
+		if p.Stats.Thirst < 20 {
+			fmt.Fprintf(conn, "Тебе нужно хорошо попить перед путешествием.\n> ")
+			return
+		}
+
+		//запрос подтверждения
+		p.PendingTravel = true
+		p.PendingTravelDirection = direction
+		p.PendingTravelExpiry = time.Now().Add(15 * time.Second)
+
+		fmt.Fprintf(conn, "⚠️ Путешествие в город займёт 5 минут реального времени.\n")
+		fmt.Fprintf(conn, "Потребуется: 10 голода и 20 жажды.\n")
+		fmt.Fprintf(conn, "Ты не сможешь управлять персонажем до окончания.\n")
+		fmt.Fprintf(conn, "Напиши 'yes' для подтверждения или 'no' для отмены.\n> ")
+		return
+	}
+
+	// Если игрок в городе и идёт домой
+	if p.CurrentRoom == "global_town" && strings.HasPrefix(direction, "дом ") {
+		if p.Stats.Hunger < 10 {
+			fmt.Fprintf(conn, "Ты слишком голоден для путешествия. Поешь сначала.\n> ")
+			return
+		}
+		if p.Stats.Thirst < 20 {
+			fmt.Fprintf(conn, "Ты слишком хочешь пить для путешествия. Попей сначала.\n> ")
+			return
+		}
+
+		// Запрашиваем подтверждение
+		p.PendingTravel = true
+		p.PendingTravelDirection = direction
+		p.PendingTravelExpiry = time.Now().Add(15 * time.Second)
+
+		fmt.Fprintf(conn, "⚠️ Путешествие домой займёт 5 минут реального времени.\n")
+		fmt.Fprintf(conn, "Потребуется: 10 голода и 20 жажды.\n")
+		fmt.Fprintf(conn, "Ты не сможешь управлять персонажем до окончания.\n")
+		fmt.Fprintf(conn, "Напиши 'yes' для подтверждения.\n> ")
+		return
+	}
 	//"Смотрим, есть ли в названии комнаты слова home_, garden_ или road_"
 
 	//Если есть — значит это личная зона (дом, огород или дорога).
