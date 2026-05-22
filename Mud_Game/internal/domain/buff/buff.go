@@ -6,7 +6,8 @@ import "time"
 type Type string
 
 const (
-	HealthRegen Type = "health_regen" //реген ХП
+	HealthRegen    Type = "health_regen"     //реген ХП
+	MaxHealthBoost Type = "max_health_boost" //+макс хп
 )
 
 // представляет временный эффект

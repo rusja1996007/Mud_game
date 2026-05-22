@@ -59,6 +59,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			item.GetItem("clover", 6),
 			item.GetItem("knife", 1),
 			item.GetItem("iron sword", 1),
+			item.GetItem("coin", 20),
 		},
 	}
 

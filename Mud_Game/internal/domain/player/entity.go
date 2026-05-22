@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -26,6 +27,8 @@ type Equipment struct {
 }
 
 type Player struct {
+	connMutex sync.Mutex //для безопасной записи в conn
+
 	ID          string
 	Name        string
 	CurrentRoom string            //текущая комната
@@ -77,13 +80,24 @@ type Stats struct {
 	HuntingEndTime time.Time //когда закончится охота
 
 	//сон
-	IsSleeping     bool      //спит?
-	SleepStartTime time.Time //время когда начал спать
+	IsSleeping      bool      //спит дома
+	SleepStartTime  time.Time //время когда начал спать
+	IsSleepingHotel bool      //спит в отеле
 
 	//путеществие
 	IsTraveling      bool      //в путешествии?
 	TravelEndTime    time.Time //время когда закончится путешествие
 	TravelTargetRoom string    //Это поле хранит ID комнаты, куда игрок идёт:
+
+	//временные бонус к макс. здоровью
+	MaxHealthBonus int
+}
+
+// SendMessage безопасно отправляет сообщение игроку
+func (p *Player) SendMessage(conn net.Conn, msg string) {
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
+	fmt.Fprint(conn, msg)
 }
 
 // запускает таймер голода (каждые GetHUNGERInterval секунд )
@@ -636,19 +650,27 @@ func (p *Player) StartBuffTicker(conn net.Conn, repo Repository) {
 						buff.RemainingTime -= 1 * time.Second
 					}
 				}
-				p.processBuffs(conn, repo)
+				p.processBuffs(repo)
 			}
 		}
 	}()
 }
 
 // Проверяет все активные баффы игрока и применяет их эффекты.
-func (p *Player) processBuffs(conn net.Conn, repo Repository) {
+func (p *Player) processBuffs(repo Repository) {
 	now := time.Now()
 	newBuffs := make([]*buff.Buff, 0)
 
 	for _, b := range p.ActiveBuffs {
 		if b.RemainingTime <= 0 {
+
+			if b.Type == buff.MaxHealthBoost {
+				p.Stats.MaxHealthBonus -= b.Value
+				maxHealt := 50 + p.Stats.Strength*5 + p.Stats.MaxHealthBonus
+				if p.Stats.Health > maxHealt {
+					p.Stats.Health = maxHealt
+				}
+			}
 			continue // бафф истёк
 		}
 
@@ -656,7 +678,7 @@ func (p *Player) processBuffs(conn net.Conn, repo Repository) {
 		if b.Interval > 0 {
 			// Если LastTick не установлен или прошло >= Interval
 			if b.LastTick.IsZero() || now.Sub(b.LastTick) >= b.Interval {
-				p.applyBuffEffect(b, conn)
+				p.ApplyBuffEffect(b)
 				b.LastTick = now
 			}
 		}
@@ -669,7 +691,7 @@ func (p *Player) processBuffs(conn net.Conn, repo Repository) {
 }
 
 // применить баф
-func (p *Player) applyBuffEffect(b *buff.Buff, conn net.Conn) {
+func (p *Player) ApplyBuffEffect(b *buff.Buff) {
 	switch b.Type {
 	case buff.HealthRegen:
 		p.Stats.Health += b.Value
@@ -678,6 +700,14 @@ func (p *Player) applyBuffEffect(b *buff.Buff, conn net.Conn) {
 			p.Stats.Health = maxHealth
 		}
 		//fmt.Fprintf(conn, "Вы восстановили %d жизней.\n", b.Value)
+
+	case buff.MaxHealthBoost:
+		p.Stats.MaxHealthBonus += b.Value
+		maxHealt := 50 + p.Stats.Strength*5 + p.Stats.MaxHealthBonus
+		if p.Stats.Health > maxHealt {
+			p.Stats.Health = maxHealt
+		}
+
 	}
 }
 

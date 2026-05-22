@@ -267,10 +267,29 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 				}
 
 				p.Stats.TravelTargetRoom = p.Zone.RoadID
-				fmt.Printf("DEBUG: TravelTargetRoom = %s (RoadID)\n", p.Stats.TravelTargetRoom) ////////
 				fmt.Fprintf(conn, "Ты отправляешься домой. Путь займёт 5 минут.\n> ")
 			}
 			s.playerRepo.Save(p)
+
+			//запуск горутины для автоматического завершения
+			go func() {
+				time.Sleep(time.Until(p.Stats.TravelEndTime))
+
+				//безопасно отправляем сообщение
+				p.SendMessage(conn, "\nТы прибыл!\n")
+
+				//обновляем состояние
+				p.CurrentRoom = p.Stats.TravelTargetRoom
+				p.Stats.IsTraveling = false
+				p.Stats.TravelEndTime = time.Time{}
+				p.Stats.TravelTargetRoom = ""
+				s.playerRepo.Save(p)
+
+				room, _ := s.roomRepo.FindByID(p.CurrentRoom)
+				p.SendMessage(conn, room.Look(p.ID)+"\n> ")
+
+			}()
+
 			return false
 		} else if cmd == "no" {
 			p.PendingTravel = false
@@ -311,6 +330,12 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	//если спишь, блокируем все
 	if p.Stats.IsSleeping && cmd != "wake" {
 		fmt.Fprintf(conn, "Ты спишь, проснись командой 'wake'.\n> ")
+		return false
+	}
+
+	//если в отеле то ждем
+	if p.Stats.IsSleepingHotel {
+		fmt.Fprintf(conn, "Ты отдыхаешь в отеле. Подожди окончания отдыха.\n> ")
 		return false
 	}
 
@@ -458,6 +483,9 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		handlers.HandleLook(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
+	case strings.HasPrefix(cmd, "pay 20"):
+		handlers.HandleHotel(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
 	default:
 		fmt.Fprintf(conn, "Неизвестная команда\n> ")
 		return false

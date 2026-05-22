@@ -2,9 +2,13 @@ package db
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Config struct {
@@ -24,9 +28,20 @@ func NewConnection(cfg Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
 
+	// Настройка логгера с увеличенным порогом SLOW SQL
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold: 1 * time.Second, // предупреждение только если запрос дольше 1 секунды
+			LogLevel:      logger.Warn,     // логировать только ошибки и предупреждения
+		},
+	)
+
 	// Открываем соединение
 	//Стучится в дверь (gorm.Open)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: newLogger,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("Не удалось подключиться к БД: %w", err)
 	}

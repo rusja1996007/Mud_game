@@ -37,10 +37,12 @@ type PlayerModel struct {
 	PendingStatPoint int            `gorm:"default:0"`
 	ActiveBuffs      string         `gorm:"type:text"` // JSON сериализация баффов
 	IsSleeping       bool           `gorm:"default:false"`
+	IsSleepingHotel  bool           `gorm:"default:false"`
 	SleepStartTime   time.Time      `gorm:"default:null"`
 	IsTraveling      bool           `gorm:"default:false"`
 	TravelEndTime    time.Time      `gorm:"default:null"`
 	TravelTargetRoom string         `gorm:"size:36"`
+	MaxHealthBonus   int            `gorm:"default:0"`
 }
 
 // структура для JSON экипировки:
@@ -164,9 +166,11 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 	//добавляем статус(спит или нет)
 	playerEntity.Stats.IsSleeping = m.IsSleeping
 	playerEntity.Stats.SleepStartTime = m.SleepStartTime
+	playerEntity.Stats.IsSleepingHotel = m.IsSleepingHotel
 
 	//присваиваем бафы
 	playerEntity.ActiveBuffs = activeBuffs
+	playerEntity.Stats.MaxHealthBonus = m.MaxHealthBonus
 
 	//// ✅ ВСЕГДА создаем Zone, даже если огород пустой!
 
@@ -259,9 +263,11 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		PendingStatPoint: p.Stats.PendingStatPoint,
 		ActiveBuffs:      string(activeBuffsJson),
 		IsSleeping:       p.Stats.IsSleeping,
+		IsSleepingHotel:  p.Stats.IsSleepingHotel,
 		SleepStartTime:   p.Stats.SleepStartTime,
 		IsTraveling:      p.Stats.IsTraveling,
 		TravelEndTime:    p.Stats.TravelEndTime,
 		TravelTargetRoom: p.Stats.TravelTargetRoom,
+		MaxHealthBonus:   p.Stats.MaxHealthBonus,
 	}, nil
 }

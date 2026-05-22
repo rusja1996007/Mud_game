@@ -8,7 +8,7 @@ import (
 )
 
 func HandleStats(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
-	maxHP := 50 + p.Stats.Strength*5
+	maxHP := 50 + p.Stats.Strength*5 + p.Stats.MaxHealthBonus
 	maxEXP := p.GetExpForNextLevel()
 	fmt.Fprintf(conn, "======ХАРАКТЕРИСТИКИ======\n")
 	fmt.Fprintf(conn, "Здоровье: %d/%d\n", p.Stats.Health, maxHP)
@@ -40,6 +40,6 @@ func HandleStats(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 			fmt.Fprintf(conn, "    осталось: %dм %dс\n", minutes, seconds)
 		}
 	}
-	fmt.Fprintf(conn, ">")
+	fmt.Fprintf(conn, "> ")
 
 }

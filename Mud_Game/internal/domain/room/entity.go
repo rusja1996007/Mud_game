@@ -70,9 +70,19 @@ func (r *Room) Look(playerID string) string {
 	builder.WriteString("Выходы: ")
 
 	if r.ID == "global_town" { //// 1. Проверяем, что это город
+
+		//показываем обычные выходы:
+		for exitName := range r.Exits {
+			if !strings.HasPrefix(exitName, "дом ") {
+				builder.WriteString(exitName + ", ")
+			}
+		}
+
+		//показываем персональные выходы(дом игрока)
+
 		for _, exit := range r.TownExits { // 2. Проходим по ВСЕМ выходам города
 			if exit.OwnerID == playerID { // 3. Сравниваем владельца с текущим игроком
-				builder.WriteString(exit.Name + " ") // 4. Показываем только "свои" выходы
+				builder.WriteString(exit.Name + " ")
 			}
 		}
 	} else {
