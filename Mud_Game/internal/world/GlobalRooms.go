@@ -2,6 +2,7 @@ package world
 
 import (
 	"Mud_game/Mud_Game/internal/domain/item"
+	"Mud_game/Mud_Game/internal/domain/monster"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
 )
@@ -21,7 +22,8 @@ func InitGlobalTown(repo room.Repository) error {
 		Name:        "Городская площадь",
 		Description: "Центральная площадь города. Сюда ведут дороги от домов игроков.",
 		Exits: map[string]string{
-			"hotel": "hotel",
+			"hotel":   "hotel",
+			"dungeon": "dungeon_entrance_goblins",
 		},
 		Items: []*item.ItemStack{},
 	}
@@ -50,5 +52,36 @@ func InitGlobalTown(repo room.Repository) error {
 	if err := repo.Save(town); err != nil {
 		return fmt.Errorf("Ошибка обновления города: %v", err)
 	}
+
+	//СОЗДАЕМ ВХОД В ПОДЗЕМЕЛЬЕ
+	entrance := &room.Room{
+		ID:          "dungeon_entrance_goblins",
+		Name:        "Вход в подземелье",
+		Description: "Тёмный каменный проход, ведущий в глубины.",
+		Exits: map[string]string{
+			"town": "global_town",    //выход на дорогу
+			"down": "dungeon_goblin", //спуска дальше
+		},
+		Items: []*item.ItemStack{},
+	}
+	if err := repo.Save(entrance); err != nil {
+		return fmt.Errorf("Ошибка создания входа в подземелье:%v", err)
+	}
+
+	//Создаем комнату с гоблинами
+	goblinRoom := &room.Room{
+		ID:          "dungeon_goblin",
+		Name:        "Логово гоблинов",
+		Description: "Маленькая пещера. ",
+		Exits: map[string]string{
+			"up": "dungeon_entrance_goblins",
+		},
+		Items:   []*item.ItemStack{},
+		Monster: monster.NewGoblin("dungeon_goblin"),
+	}
+	if err := repo.Save(goblinRoom); err != nil {
+		return fmt.Errorf("Ошибка создания комнаты с гоблинами:%v", err)
+	}
+
 	return nil
 }

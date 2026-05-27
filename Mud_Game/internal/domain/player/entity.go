@@ -571,7 +571,7 @@ func (p *Player) GetExpForNextLevel() int {
 
 func (p *Player) AddExperience(amount int, conn net.Conn) {
 	p.Stats.Experience += amount
-
+	p.CheckLevelUp(conn)
 }
 
 func (p *Player) LevelUp(conn net.Conn) {

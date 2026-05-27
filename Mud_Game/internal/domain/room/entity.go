@@ -2,6 +2,7 @@ package room
 
 import (
 	"Mud_game/Mud_Game/internal/domain/item"
+	"Mud_game/Mud_Game/internal/domain/monster"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,7 +23,8 @@ type Room struct {
 	Exits       map[string]string //выходы: направление → ID комнаты
 	Items       []*item.ItemStack //[]item.ItemStack = много разных предметов с количеством
 	mtx         sync.RWMutex
-	TownExits   []TownExit `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
+	TownExits   []TownExit       `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
+	Monster     *monster.Monster `json:"-"`
 }
 
 func (r *Room) GetID() string {
@@ -47,8 +49,14 @@ func (r *Room) Look(playerID string) string {
 
 	builder.WriteString(r.Name) //Текст добавляется в буфер, без копирования всей строки заново
 	builder.WriteString("\n")
-	builder.WriteString(r.Description)
-	builder.WriteString("\n")
+
+	//динамическое описание монстра
+	if r.Monster != nil && r.Monster.IsAlive {
+		builder.WriteString(r.Monster.Description)
+		builder.WriteString("\n")
+	} else if r.ID == "dungeon_goblin" {
+		builder.WriteString("Пещера пуста. Следы битвы видны повсюду.\n")
+	}
 
 	if len(r.Items) > 0 {
 		builder.WriteString("Вы видите:\n")
@@ -178,4 +186,18 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 	r.Items = append(r.Items, stack)
 	return nil
 
+}
+
+// проверка наличия монстра
+func (r *Room) GetMonster() *monster.Monster {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+	return r.Monster
+}
+
+// обновление монстра(после урона)
+func (r *Room) SetMonster(m *monster.Monster) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	r.Monster = m
 }

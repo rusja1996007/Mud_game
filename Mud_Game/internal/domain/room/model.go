@@ -2,6 +2,8 @@ package room
 
 import (
 	"Mud_game/Mud_Game/internal/domain/item"
+	"Mud_game/Mud_Game/internal/domain/monster"
+	"log"
 	"strings"
 
 	"encoding/json"
@@ -17,6 +19,7 @@ type RoomModel struct {
 	Description string `gorm:"type:text"`
 	Exits       string `gorm:"type:text"`
 	Items       string `gorm:"type:text"`
+	MonsterData string `gorm:"type:text"`
 	Created_at  time.Time
 	Updated_at  time.Time
 	Deleted_at  gorm.DeletedAt `gorm:"index"`
@@ -46,6 +49,16 @@ func (m *RoomModel) ToEntity() (*Room, error) {
 		Exits:       exits,
 		Items:       items,
 		TownExits:   []TownExit{}, // пока пусто
+	}
+
+	monsterData, err := m.getMonster()
+	if err != nil {
+		log.Printf("Ошибка создания монстра", err)
+	}
+
+	room.Monster = monsterData
+	if room.ID == "dungeon_goblin" && room.Monster == nil {
+		room.Monster = monster.NewGoblin(room.ID)
 	}
 	if room.ID == "global_town" {
 		for exitName, roomID := range room.Exits {
@@ -77,12 +90,15 @@ func FromEntity(r *Room) (*RoomModel, error) {
 	if err != nil {
 		return nil, errors.New("Не удалось преобразовать выходы")
 	}
+
 	//парс в JSON предметы из комнаты
 	items, err := json.Marshal(r.Items)
 	if err != nil {
 		return nil, errors.New("Не удалось преобразовать предметы")
 	}
-	return &RoomModel{
+
+	//создаем модель
+	model := &RoomModel{
 		ID:          r.ID,
 		Name:        r.Name,
 		Description: r.Description,
@@ -90,5 +106,39 @@ func FromEntity(r *Room) (*RoomModel, error) {
 		Items:       string(items),
 		Created_at:  time.Now(),
 		Updated_at:  time.Now(),
-	}, nil
+	}
+
+	//сохраняем монстра
+	if err := model.saveMonsterJSON(r.Monster); err != nil {
+		return nil, err
+	}
+	return model, nil
+}
+
+// saveMonsterJSOM сохраняет монстра в JSON
+func (m *RoomModel) saveMonsterJSON(mon *monster.Monster) error {
+
+	if mon == nil {
+		m.MonsterData = ""
+		return nil
+	}
+
+	data, err := json.Marshal(mon)
+	if err != nil {
+		return err
+	}
+
+	m.MonsterData = string(data)
+	return nil
+}
+
+// getMonster загрузка из JSON
+func (m *RoomModel) getMonster() (*monster.Monster, error) {
+	if m.MonsterData == "" {
+		return nil, nil
+	}
+
+	var mon monster.Monster
+	err := json.Unmarshal([]byte(m.MonsterData), &mon)
+	return &mon, err
 }

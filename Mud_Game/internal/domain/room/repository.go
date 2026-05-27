@@ -1,6 +1,9 @@
 package room
 
-import "Mud_game/Mud_Game/internal/domain/item"
+import (
+	"Mud_game/Mud_Game/internal/domain/item"
+	"Mud_game/Mud_Game/internal/domain/monster"
+)
 
 // Room = сама комната (что она делает)
 type RoomInterface interface { //интерфейс комнаты
@@ -18,6 +21,8 @@ type RoomInterface interface { //интерфейс комнаты
 	Look(playerID string) string                                  //Осмотр комнаты	Описание + предметы + игроки
 	AddItem(stack *item.ItemStack) error                          //скинуть предмет в комнату
 
+	GetMonster() *monster.Monster  //наличие понстра в комнате
+	SetMonster(m *monster.Monster) //обновление монстра(после урона)
 }
 
 // Repository = где комнаты лежат (как их найти/сохранить)
