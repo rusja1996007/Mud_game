@@ -53,7 +53,7 @@ func (m *RoomModel) ToEntity() (*Room, error) {
 
 	monsterData, err := m.getMonster()
 	if err != nil {
-		log.Printf("Ошибка создания монстра", err)
+		log.Printf("Ошибка создания монстра: %v", err)
 	}
 
 	room.Monster = monsterData
