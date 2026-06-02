@@ -51,8 +51,9 @@ func (r *Room) Look(playerID string) string {
 	builder.WriteString("\n")
 
 	//динамическое описание монстра
-	if r.Monster != nil && r.Monster.IsAlive {
-		builder.WriteString(r.Monster.Description)
+	monster := r.GetMonster()
+	if monster != nil && monster.IsAlive {
+		builder.WriteString(monster.Description)
 		builder.WriteString("\n")
 	} else if r.ID == "dungeon_goblin" {
 		builder.WriteString("Пещера пуста. Следы битвы видны повсюду.\n")
@@ -192,6 +193,10 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 func (r *Room) GetMonster() *monster.Monster {
 	r.mtx.RLock()
 	defer r.mtx.RUnlock()
+
+	if r.Monster != nil {
+		r.Monster.CheckRespawn() ////проверяем респавн
+	}
 	return r.Monster
 }
 

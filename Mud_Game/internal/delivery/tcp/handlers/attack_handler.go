@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"time"
 )
 
 // функция атаки на монстра
@@ -62,6 +63,7 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	if monster.Health <= 0 {
 		monster.Health = 0
 		monster.IsAlive = false
+		monster.RespawnTime = time.Now().Add(30 * time.Second) ///////пока что через 30 сек.
 		room.SetMonster(monster)
 		roomRepo.Save(room)
 
