@@ -23,6 +23,9 @@ type RoomInterface interface { //интерфейс комнаты
 
 	GetMonster() *monster.Monster  //наличие понстра в комнате
 	SetMonster(m *monster.Monster) //обновление монстра(после урона)
+
+	GetPlayerOccupantID() string   //получение id игрока который в данже
+	SetPlayerOccupantID(id string) //установка id игрока для блокировки данжа
 }
 
 // Repository = где комнаты лежат (как их найти/сохранить)

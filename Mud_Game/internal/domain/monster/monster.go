@@ -15,6 +15,7 @@ type Monster struct {
 	IsAlive     bool
 	Description string
 	RespawnTime time.Time
+	TimeToLoot  time.Time //до какова времени можно обыскивать лут
 }
 
 // создания гоблина в комнате

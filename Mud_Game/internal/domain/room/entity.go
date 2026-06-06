@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 )
 
 // TownExit - информация о выходе из города
@@ -25,6 +26,8 @@ type Room struct {
 	mtx         sync.RWMutex
 	TownExits   []TownExit       `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
 	Monster     *monster.Monster `json:"-"`
+
+	playerOccupantID string `json:"-"` //для блокировки данжа если там ктото есть
 }
 
 func (r *Room) GetID() string {
@@ -55,6 +58,13 @@ func (r *Room) Look(playerID string) string {
 	if monster != nil && monster.IsAlive {
 		builder.WriteString(monster.Description)
 		builder.WriteString("\n")
+	} else if monster != nil && !monster.IsAlive {
+		remaining := time.Until(r.Monster.TimeToLoot).Round(time.Second)
+		if remaining > 0 {
+			builder.WriteString(fmt.Sprintf("⚠️ Пещера обвалится через %v. У тебя есть время на обыск!\n", remaining))
+		} else {
+			builder.WriteString("Пещера обвалилась.\n")
+		}
 	} else if r.ID == "dungeon_goblin" {
 		builder.WriteString("Пещера пуста. Следы битвы видны повсюду.\n")
 	}
@@ -205,4 +215,18 @@ func (r *Room) SetMonster(m *monster.Monster) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	r.Monster = m
+}
+
+// получение ID игрока который в комнате
+func (r *Room) GetPlayerOccupantID() string {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+	return r.playerOccupantID
+}
+
+// установка ID игрока в комнате
+func (r *Room) SetPlayerOccupantID(id string) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	r.playerOccupantID = id
 }

@@ -23,6 +23,8 @@ type RoomModel struct {
 	Created_at  time.Time
 	Updated_at  time.Time
 	Deleted_at  gorm.DeletedAt `gorm:"index"`
+
+	PlayerOccupantID string `gorm:"size:36"`
 }
 
 func (m *RoomModel) ToEntity() (*Room, error) {
@@ -43,12 +45,13 @@ func (m *RoomModel) ToEntity() (*Room, error) {
 		}
 	}
 	room := &Room{
-		ID:          m.ID,
-		Name:        m.Name,
-		Description: m.Description,
-		Exits:       exits,
-		Items:       items,
-		TownExits:   []TownExit{}, // пока пусто
+		ID:               m.ID,
+		Name:             m.Name,
+		Description:      m.Description,
+		Exits:            exits,
+		Items:            items,
+		TownExits:        []TownExit{}, // пока пусто
+		playerOccupantID: m.PlayerOccupantID,
 	}
 
 	monsterData, err := m.getMonster()
@@ -99,13 +102,14 @@ func FromEntity(r *Room) (*RoomModel, error) {
 
 	//создаем модель
 	model := &RoomModel{
-		ID:          r.ID,
-		Name:        r.Name,
-		Description: r.Description,
-		Exits:       string(exits),
-		Items:       string(items),
-		Created_at:  time.Now(),
-		Updated_at:  time.Now(),
+		ID:               r.ID,
+		Name:             r.Name,
+		Description:      r.Description,
+		Exits:            string(exits),
+		Items:            string(items),
+		Created_at:       time.Now(),
+		Updated_at:       time.Now(),
+		PlayerOccupantID: r.playerOccupantID,
 	}
 
 	//сохраняем монстра

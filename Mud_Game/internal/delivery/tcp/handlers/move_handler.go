@@ -35,6 +35,29 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
+	//проверка занятости данжа "гоблинов"
+	if nextRoomID == "dungeon_goblin" {
+		targetRoom, err := roomRepo.FindByID(nextRoomID)
+		if err == nil {
+			occupantID := targetRoom.GetPlayerOccupantID()
+			if occupantID != "" && occupantID != p.ID {
+				fmt.Fprintf(conn, "В подземелье уже ктото есть.\n> ")
+				return
+			}
+
+			//Если пусто то занимаем место "окупанта"
+			targetRoom.SetPlayerOccupantID(p.ID)
+			roomRepo.Save(targetRoom)
+		}
+	}
+
+	//если выходим от "гоблинов" сбрасываем
+	if p.CurrentRoom == "dungeon_goblin" && nextRoomID != "dungeon_goblin" {
+		currentRoom, _ := roomRepo.FindByID(p.CurrentRoom)
+		currentRoom.SetPlayerOccupantID("")
+		roomRepo.Save(currentRoom)
+	}
+
 	//===========================Путешествие===============================
 	//Если игрок дома и идет домой
 	if p.CurrentRoom == p.Zone.RoadID && direction == "south" {

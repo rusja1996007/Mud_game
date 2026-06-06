@@ -63,7 +63,8 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	if monster.Health <= 0 {
 		monster.Health = 0
 		monster.IsAlive = false
-		monster.RespawnTime = time.Now().Add(30 * time.Second) ///////пока что через 30 сек.
+		monster.TimeToLoot = time.Now().Add(40 * time.Second) ///////пока что время на осмотр лута  -
+		monster.RespawnTime = time.Now().Add(1 * time.Minute) ///////пока что через 30 сек.
 		room.SetMonster(monster)
 		roomRepo.Save(room)
 
@@ -74,9 +75,29 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		randCoins := 1 + rand.Intn(5)
 		player.AddItem(&p.Inventory, "coin", randCoins)
 
+		//предупреждение об обвале за 20 секунд
+		go func() {
+			time.Sleep(20 * time.Second)
+			if p.CurrentRoom == "dungeon_goblin" {
+				p.SendMessage(conn, "\n💥 Стены пещеры сильно трясутся! Камни падают с потолка! Пещера вот-вот обвалится!\n> ")
+			}
+		}()
+
+		go func() {
+			time.Sleep(40 * time.Second) //////пока что время на осмотр лута  (обратный отсчет)
+			//проверяем что игрок еще в данже
+			if p.CurrentRoom == "dungeon_goblin" {
+				//телепортируем на вход
+				p.CurrentRoom = "dungeon_entrance_goblins"
+				playerRepo.Save(p)
+				p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
+			}
+		}()
+
 		fmt.Fprintf(conn, "Ты нанес %d урона! %s повержен!\n", finalDamageMonster, monster.Name)
 		fmt.Fprintf(conn, "Получено %d опыта.\n", monster.Experience)
 		fmt.Fprintf(conn, "Найдено %d монет.\n> ", randCoins)
+		fmt.Fprintf(conn, "⚠️ Пещера начнёт разрушаться через 2 минуты. У тебя есть время на обыск!\n> ")
 		return
 	}
 
@@ -99,6 +120,12 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	//проверка смерти
 	if p.Stats.Health <= 0 {
 		fmt.Fprintf(conn, "💀 Ты погиб, персонаж удаляется...\n")
+		//очищаем поле "окупанта"
+		currentRoom, _ := roomRepo.FindByID(p.CurrentRoom)
+		if currentRoom != nil && currentRoom.GetID() == "dungeon_goblin" {
+			currentRoom.SetPlayerOccupantID("")
+			roomRepo.Save(currentRoom)
+		}
 		playerRepo.Delete(p.ID)
 		conn.Close()
 		return
