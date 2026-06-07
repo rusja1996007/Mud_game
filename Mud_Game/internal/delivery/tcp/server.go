@@ -490,6 +490,10 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case strings.HasPrefix(cmd, "attack"):
 		handlers.HandleAttack(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
+
+	case strings.HasPrefix(cmd, "search"):
+		handlers.HandleSearch(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
 	default:
 		fmt.Fprintf(conn, "Неизвестная команда\n> ")
 		return false
