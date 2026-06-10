@@ -53,8 +53,11 @@ type Player struct {
 
 	//путешествие
 	PendingTravel          bool
-	PendingTravelDirection string
-	PendingTravelExpiry    time.Time
+	PendingTravelDirection string    //Ожидаемое направление поездки
+	PendingTravelExpiry    time.Time //Ожидающее истечение срока действия поездки
+
+	//поиск
+	IsSearching bool //сейчас обыскивает?(лут)
 }
 
 type Stats struct {

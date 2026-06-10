@@ -197,7 +197,7 @@ var ItemsDB = map[string]ItemData{
 	"clover": { //клевер
 		Name:        "clover",
 		ItemType:    "ingredients",
-		Description: "--",
+		Description: "Клевер, ростет везде.",
 	},
 	"inonotus obliquus": { //гриб чага
 		Name:        "inonotus obliquus",
@@ -212,7 +212,7 @@ var ItemsDB = map[string]ItemData{
 	"boletus edulis": { //белый гриб
 		Name:        "boletus edulis",
 		ItemType:    "ingredients",
-		Description: "--",
+		Description: "Обычный белый гриб. Сырой несьедобный.",
 	},
 	"hare meat": { //мясо зайца
 		Name:        "hare meat",

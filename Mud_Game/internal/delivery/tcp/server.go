@@ -39,6 +39,20 @@ func (s *Server) Start() error {
 	// . Сохраняем слушателя в структуру
 	s.listener = listener
 	s.logger.Info("Запуск сервера TCP по порту :" + s.port)
+
+	// ✅ ЗАПУСКАЕМ ГЛОБАЛЬНЫЙ ТАЙМЕР респавна предметов у входа в подземелье
+	go func() {
+		ticker := time.NewTicker(20 * time.Second)
+		for range ticker.C {
+			entranceRoom, err := s.roomRepo.FindByID("dungeon_entrance_goblins")
+			if err == nil && entranceRoom != nil {
+				entranceRoom.(*room.Room).RegenerateItems()
+				s.roomRepo.Save(entranceRoom)
+				fmt.Println("DEBUG: Предметы у входа в подземелье обновлены")
+			}
+		}
+	}()
+
 	for {
 		//Ждем подключения (блокируется до появления игрока)
 		conn, err := s.listener.Accept()
@@ -46,10 +60,12 @@ func (s *Server) Start() error {
 			s.logger.Error("ОШибка подключения :" + err.Error())
 			continue
 		}
+
 		//  Запускаем обработчик в отдельной горутине
 		// Каждый игрок работает параллельно!
 		go s.handleConnection(conn)
 	}
+
 }
 func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection - общение с игроком
 	// Гарантированно закрываем соединение при выходе из функции
@@ -240,7 +256,9 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 			}
 		}
 	}
+
 }
+
 func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool {
 	//всегда можем выйти
 	if cmd == "quit" {
@@ -252,23 +270,29 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		if cmd == "yes" {
 			p.PendingTravel = false
 
-			p.Stats.Hunger -= 10
-			p.Stats.Thirst -= 20
-
-			p.Stats.IsTraveling = true
-			p.Stats.TravelEndTime = time.Now().Add(5 * time.Second) //////////////временно
-
 			if p.PendingTravelDirection == "south" {
+				p.Stats.Hunger -= 10
+				p.Stats.Thirst -= 20
 				p.Stats.TravelTargetRoom = "global_town"
 				fmt.Fprintf(conn, "Ты отправляешься в город. Путь займёт 5 минут.\n> ")
 			} else if strings.HasPrefix(p.PendingTravelDirection, "дом ") {
 				if p.Zone == nil {
 					return false
 				}
+				p.Stats.Hunger -= 10
+				p.Stats.Thirst -= 20
 
 				p.Stats.TravelTargetRoom = p.Zone.RoadID
 				fmt.Fprintf(conn, "Ты отправляешься домой. Путь займёт 5 минут.\n> ")
+			} else if p.PendingTravelDirection == "dungeon" {
+				p.Stats.Hunger -= 5
+				p.Stats.Thirst -= 5
+				p.Stats.TravelTargetRoom = "dungeon_entrance_goblins"
+				fmt.Fprintf(conn, "Ты отправляешься к подземелью. Путь займёт 2 минуты.\n> ")
 			}
+
+			p.Stats.IsTraveling = true
+			p.Stats.TravelEndTime = time.Now().Add(5 * time.Second) //////////////временно
 			s.playerRepo.Save(p)
 
 			//запуск горутины для автоматического завершения

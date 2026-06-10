@@ -51,6 +51,31 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		}
 	}
 
+	//поход ко входу в пещеру
+	if nextRoomID == "dungeon_entrance_goblins" && direction == "dungeon" {
+		if p.Stats.Thirst <= 15 {
+			fmt.Fprintf(conn, "Тебе нужно хорошо попить перед путешествием.\n> ")
+			return
+		}
+
+		if p.Stats.Hunger <= 15 {
+			fmt.Fprintf(conn, "Ты голоден для далеких прогулок.\n> ")
+			return
+		}
+
+		//запрос подтверждения
+		p.PendingTravel = true
+		p.PendingTravelDirection = "dungeon"
+		p.PendingTravelExpiry = time.Now().Add(15 * time.Second)
+
+		fmt.Fprintf(conn, "⚠️ Путешествие до подземелья займёт 2 минуты реального времени.\n")
+		fmt.Fprintf(conn, "Потребуется: 5 голода и 5 жажды.\n")
+		fmt.Fprintf(conn, "Ты не сможешь управлять персонажем до окончания.\n")
+		fmt.Fprintf(conn, "Напиши 'yes' для подтверждения или 'no' для отмены.\n> ")
+		return
+
+	}
+
 	//если выходим от "гоблинов" сбрасываем
 	if p.CurrentRoom == "dungeon_goblin" && nextRoomID != "dungeon_goblin" {
 		currentRoom, _ := roomRepo.FindByID(p.CurrentRoom)
@@ -59,21 +84,21 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	}
 
 	//===========================Путешествие===============================
-	//Если игрок дома и идет домой
+	//Если игрок дома и идет в город(south)
 	if p.CurrentRoom == p.Zone.RoadID && direction == "south" {
-		if p.Stats.Hunger < 10 {
+		if p.Stats.Hunger < 20 {
 			fmt.Fprintf(conn, "Ты голоден для далеких прогулок.\n> ")
 			return
 		}
 
-		if p.Stats.Thirst < 20 {
+		if p.Stats.Thirst < 30 {
 			fmt.Fprintf(conn, "Тебе нужно хорошо попить перед путешествием.\n> ")
 			return
 		}
 
 		//запрос подтверждения
 		p.PendingTravel = true
-		p.PendingTravelDirection = direction
+		p.PendingTravelDirection = "south"
 		p.PendingTravelExpiry = time.Now().Add(15 * time.Second)
 
 		fmt.Fprintf(conn, "⚠️ Путешествие в город займёт 5 минут реального времени.\n")
@@ -85,11 +110,11 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	// Если игрок в городе и идёт домой
 	if p.CurrentRoom == "global_town" && strings.HasPrefix(direction, "дом ") {
-		if p.Stats.Hunger < 10 {
+		if p.Stats.Hunger < 20 {
 			fmt.Fprintf(conn, "Ты слишком голоден для путешествия. Поешь сначала.\n> ")
 			return
 		}
-		if p.Stats.Thirst < 20 {
+		if p.Stats.Thirst < 30 {
 			fmt.Fprintf(conn, "Ты слишком хочешь пить для путешествия. Попей сначала.\n> ")
 			return
 		}

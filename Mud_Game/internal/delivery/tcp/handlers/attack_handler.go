@@ -83,14 +83,20 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			}
 		}()
 
+		//время на осмотр лута
 		go func() {
 			time.Sleep(40 * time.Second) //////пока что время на осмотр лута  (обратный отсчет)
 			//проверяем что игрок еще в данже
 			if p.CurrentRoom == "dungeon_goblin" {
-				//телепортируем на вход
+				//телепортируем на вход и уничтожаем если не успели забрать предметы
+				room.ClearItems()
 				p.CurrentRoom = "dungeon_entrance_goblins"
 				playerRepo.Save(p)
 				p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
+
+				//очищаем occupantID
+				room.SetPlayerOccupantID("")
+				roomRepo.Save(room)
 			}
 		}()
 

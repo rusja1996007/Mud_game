@@ -53,6 +53,10 @@ func (m *RoomModel) ToEntity() (*Room, error) {
 		TownExits:        []TownExit{}, // пока пусто
 		playerOccupantID: m.PlayerOccupantID,
 	}
+	//время когда появятся предметы в комнате
+	if m.ID == "dungeon_entrance_goblins" && room.NextSpawnTime.IsZero() {
+		room.NextSpawnTime = time.Now()
+	}
 
 	monsterData, err := m.getMonster()
 	if err != nil {

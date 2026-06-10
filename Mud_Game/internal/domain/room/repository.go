@@ -20,6 +20,7 @@ type RoomInterface interface { //интерфейс комнаты
 	OnExit(playerID string) string                                //Что происходит при выходе	Попрощаться, закрыть дверь
 	Look(playerID string) string                                  //Осмотр комнаты	Описание + предметы + игроки
 	AddItem(stack *item.ItemStack) error                          //скинуть предмет в комнату
+	ClearItems()                                                  //очитсить комнату от предметов
 
 	GetMonster() *monster.Monster  //наличие понстра в комнате
 	SetMonster(m *monster.Monster) //обновление монстра(после урона)

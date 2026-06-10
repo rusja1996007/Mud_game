@@ -5,6 +5,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/monster"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
+	"time"
 )
 
 // ✅ ДОБАВИТЬ после создания репозиториев
@@ -53,7 +54,7 @@ func InitGlobalTown(repo room.Repository) error {
 		return fmt.Errorf("Ошибка обновления города: %v", err)
 	}
 
-	//СОЗДАЕМ ВХОД В ПОДЗЕМЕЛЬЕ
+	//СОЗДАЕМ ВХОД В ПОДЗЕМЕЛЬЕ С ГОБЛИНОМ
 	entrance := &room.Room{
 		ID:          "dungeon_entrance_goblins",
 		Name:        "Вход в подземелье",
@@ -62,13 +63,14 @@ func InitGlobalTown(repo room.Repository) error {
 			"town": "global_town",    //выход на дорогу
 			"down": "dungeon_goblin", //спуска дальше
 		},
-		Items: []*item.ItemStack{},
+		Items:         []*item.ItemStack{},
+		NextSpawnTime: time.Now(),
 	}
 	if err := repo.Save(entrance); err != nil {
 		return fmt.Errorf("Ошибка создания входа в подземелье:%v", err)
 	}
 
-	//Создаем комнату с гоблинами
+	//Создаем ПОДЗЕМЕЛЬЕ С гоблином
 	goblinRoom := &room.Room{
 		ID:          "dungeon_goblin",
 		Name:        "Логово гоблинов",

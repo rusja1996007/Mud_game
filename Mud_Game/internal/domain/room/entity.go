@@ -5,6 +5,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/monster"
 	"errors"
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -27,7 +28,8 @@ type Room struct {
 	TownExits   []TownExit       `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
 	Monster     *monster.Monster `json:"-"`
 
-	playerOccupantID string `json:"-"` //для блокировки данжа если там ктото есть
+	playerOccupantID string    `json:"-"` //для блокировки данжа если там ктото есть
+	NextSpawnTime    time.Time //следующее время обновления предметов
 }
 
 func (r *Room) GetID() string {
@@ -69,9 +71,10 @@ func (r *Room) Look(playerID string) string {
 		builder.WriteString("Пещера пуста. Следы битвы видны повсюду.\n")
 	}
 
-	if len(r.Items) > 0 {
+	items := r.GetItems()
+	if len(items) > 0 {
 		builder.WriteString("Вы видите:\n")
-		for i, stack := range r.Items {
+		for i, stack := range items {
 			fmt.Fprintf(&builder, "  %d. %s", i+1, stack.Name)
 			if stack.Durability > 0 {
 				fmt.Fprintf(&builder, "(прочность:%d)", stack.Durability)
@@ -229,4 +232,31 @@ func (r *Room) SetPlayerOccupantID(id string) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	r.playerOccupantID = id
+}
+
+// очищение от предметов комнаты
+func (r *Room) ClearItems() {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	r.Items = []*item.ItemStack{}
+}
+
+// генерация для входа в подземелье итемов
+func (r *Room) RegenerateItems() {
+	r.Items = []*item.ItemStack{}
+
+	possibleItems := []string{"clover", "burdock", "boletus edulis"}
+
+	for _, itemName := range possibleItems {
+
+		// 30% шанс появления предмета
+		if rand.Intn(100) < 50 {
+			count := 1 + rand.Intn(3)
+
+			newItem := item.GetItem(itemName, count)
+			if newItem != nil {
+				r.Items = append(r.Items, newItem)
+			}
+		}
+	}
 }

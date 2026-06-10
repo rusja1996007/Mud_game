@@ -14,6 +14,11 @@ import (
 // обыск локации
 func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 
+	if p.IsSearching {
+		fmt.Fprintf(conn, "Ты уже все осматриваешь.Подожди.\n> ")
+		return
+	}
+
 	if p.CurrentRoom != "dungeon_goblin" {
 		fmt.Fprintf(conn, "Тебе тут нечего обыскивать.\n> ")
 		return
@@ -33,34 +38,60 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		return
 	}
 
-	found := false
+	p.IsSearching = true
+	fmt.Fprintf(conn, "Ты начинаешь обыскивать пещеру...\n")
 
-	for _, lootItem := range loot.CaveLootTable {
+	go func() {
+		defer func() {
+			p.IsSearching = false
+		}()
+		time.Sleep(10 * time.Second)
 
-		// шанс
-		chance := lootItem.BaseChance + 5*p.Stats.Tracking
+		if p.CurrentRoom == "dungeon_goblin" && time.Now().Before(monster.TimeToLoot) {
 
-		//если успех:
-		if rand.Intn(100) < chance {
-			//расчет кол-ва
-			count := lootItem.MinCount
-			if lootItem.MaxCount > lootItem.MinCount {
-				count += rand.Intn(lootItem.MaxCount - lootItem.MinCount + 1)
+			var foundItems []*item.ItemStack
+
+			//генерируем лут
+
+			found := false
+
+			for _, lootItem := range loot.CaveLootTable {
+
+				// шанс
+				chance := lootItem.BaseChance + 5*p.Stats.Tracking
+
+				//если успех:
+				if rand.Intn(100) < chance {
+					//расчет кол-ва
+					count := lootItem.MinCount
+					if lootItem.MaxCount > lootItem.MinCount {
+						count += rand.Intn(lootItem.MaxCount - lootItem.MinCount + 1)
+					}
+					itemStack := &item.ItemStack{
+						Name:     lootItem.ItemData.Name,
+						Count:    count,
+						ItemType: lootItem.ItemData.ItemType,
+					}
+					room.AddItem(itemStack)
+					roomRepo.Save(room)
+					foundItems = append(foundItems, itemStack)
+					found = true
+				}
+
 			}
-			itemStack := &item.ItemStack{
-				Name:     lootItem.ItemData.Name,
-				Count:    count,
-				ItemType: lootItem.ItemData.ItemType,
+			if found {
+				p.SendMessage(conn, "Вы обнаружили:\n")
+				for _, item := range foundItems {
+					p.SendMessage(conn, fmt.Sprintf(" - %s x%d\n", item.Name, item.Count))
+				}
+				p.SendMessage(conn, "> ")
+			} else {
+				p.SendMessage(conn, "Ты обыскал пещеру, но ничего не нашёл.\n> ")
 			}
-			room.AddItem(itemStack)
-			roomRepo.Save(room)
-			fmt.Fprintf(conn, "В пещере ты нашел %s x%d \n", itemStack.Name, itemStack.Count)
-			found = true
+		} else if p.CurrentRoom == "dungeon_goblin" {
+			p.SendMessage(conn, "Ты не успел закончить обыск — пещера обвалилась!\n> ")
 		}
+	}()
 
-	}
-	if !found {
-		fmt.Fprintf(conn, "Ты обыскал пещеру, но ничего не нашел.\n")
-	}
 	fmt.Fprintf(conn, "> ")
 }
