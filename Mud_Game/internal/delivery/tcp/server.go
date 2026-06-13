@@ -48,7 +48,7 @@ func (s *Server) Start() error {
 			if err == nil && entranceRoom != nil {
 				entranceRoom.(*room.Room).RegenerateItems()
 				s.roomRepo.Save(entranceRoom)
-				fmt.Println("DEBUG: Предметы у входа в подземелье обновлены")
+
 			}
 		}
 	}()
@@ -517,6 +517,10 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 	case strings.HasPrefix(cmd, "search"):
 		handlers.HandleSearch(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case strings.HasPrefix(cmd, "escape"):
+		handlers.HandleEscape(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 	default:
 		fmt.Fprintf(conn, "Неизвестная команда\n> ")

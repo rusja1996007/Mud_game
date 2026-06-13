@@ -72,7 +72,7 @@
 └── Квартиры (базы данных):
     └── mudgame (наша игровая БД) - ключи у muduser
 
-   //psql -U muduser -d mudgame -h localhost - подключение к БД PgAdmin
+   //psql -U muduser -d mudgame -h localhost - подключение к БД PgAdmin (пароль pass)
    //go run cmd/server/main.go - запуск самого сервера
    SELECT * FROM player_models; - вытащить всю таблицу
    DELETE FROM player_models; - удалить всю таблицу, при повторном запуске опять создасться сама
@@ -105,6 +105,7 @@ sleep                      спать
 wake                       проснуться      
 pay 20                     оплата гостиницы
 search                     обыск
+escape                     побег 
 
 1. Базовая система (без классов)
 

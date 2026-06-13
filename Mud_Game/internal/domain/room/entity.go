@@ -30,6 +30,8 @@ type Room struct {
 
 	playerOccupantID string    `json:"-"` //для блокировки данжа если там ктото есть
 	NextSpawnTime    time.Time //следующее время обновления предметов
+
+	ExitRoom string `json:"exit_room_id"` //куда телепортироваться при побеге
 }
 
 func (r *Room) GetID() string {
@@ -250,7 +252,7 @@ func (r *Room) RegenerateItems() {
 	for _, itemName := range possibleItems {
 
 		// 30% шанс появления предмета
-		if rand.Intn(100) < 50 {
+		if rand.Intn(100) < 30 {
 			count := 1 + rand.Intn(3)
 
 			newItem := item.GetItem(itemName, count)
@@ -259,4 +261,11 @@ func (r *Room) RegenerateItems() {
 			}
 		}
 	}
+}
+
+// куда телепортироваться при побеге
+func (r *Room) GetExitRoomID() string {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+	return r.ExitRoom
 }

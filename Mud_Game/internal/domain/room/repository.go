@@ -27,6 +27,8 @@ type RoomInterface interface { //интерфейс комнаты
 
 	GetPlayerOccupantID() string   //получение id игрока который в данже
 	SetPlayerOccupantID(id string) //установка id игрока для блокировки данжа
+
+	GetExitRoomID() string //получение комнаты на выход(при побеге)
 }
 
 // Repository = где комнаты лежат (как их найти/сохранить)

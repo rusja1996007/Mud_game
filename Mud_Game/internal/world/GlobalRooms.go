@@ -75,11 +75,10 @@ func InitGlobalTown(repo room.Repository) error {
 		ID:          "dungeon_goblin",
 		Name:        "Логово гоблинов",
 		Description: "Маленькая пещера. ",
-		Exits: map[string]string{
-			"up": "dungeon_entrance_goblins",
-		},
-		Items:   []*item.ItemStack{},
-		Monster: monster.NewGoblin("dungeon_goblin"),
+		Exits:       map[string]string{},
+		Items:       []*item.ItemStack{},
+		Monster:     monster.NewGoblin("dungeon_goblin"),
+		ExitRoom:    "dungeon_entrance_goblins",
 	}
 	if err := repo.Save(goblinRoom); err != nil {
 		return fmt.Errorf("Ошибка создания комнаты с гоблинами:%v", err)

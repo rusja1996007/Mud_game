@@ -25,6 +25,7 @@ type RoomModel struct {
 	Deleted_at  gorm.DeletedAt `gorm:"index"`
 
 	PlayerOccupantID string `gorm:"size:36"`
+	ExitRoomID       string `gorm:"size:36"`
 }
 
 func (m *RoomModel) ToEntity() (*Room, error) {
@@ -52,6 +53,7 @@ func (m *RoomModel) ToEntity() (*Room, error) {
 		Items:            items,
 		TownExits:        []TownExit{}, // пока пусто
 		playerOccupantID: m.PlayerOccupantID,
+		ExitRoom:         m.ExitRoomID,
 	}
 	//время когда появятся предметы в комнате
 	if m.ID == "dungeon_entrance_goblins" && room.NextSpawnTime.IsZero() {
@@ -114,6 +116,7 @@ func FromEntity(r *Room) (*RoomModel, error) {
 		Created_at:       time.Now(),
 		Updated_at:       time.Now(),
 		PlayerOccupantID: r.playerOccupantID,
+		ExitRoomID:       r.ExitRoom,
 	}
 
 	//сохраняем монстра
