@@ -13,13 +13,13 @@ import (
 func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 
 	//получаем текущую комнату
-	room, err := roomRepo.FindByID(p.CurrentRoom)
+	r, err := roomRepo.FindByID(p.CurrentRoom)
 	if err != nil {
 		fmt.Fprintf(conn, "Ошибка загрузки комнаты\n> ")
 		return
 	}
 
-	monster := room.GetMonster()
+	monster := r.GetMonster()
 
 	//есть ли в комнате монстр
 	if monster == nil {
@@ -56,24 +56,31 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 	//наносим урон
 	monster.Health -= finalDamageMonster
-	room.SetMonster(monster)
-	roomRepo.Save(room)
+	r.SetMonster(monster)
+	roomRepo.Save(r)
 
 	////////////////////////////////////если монстр умер/////////////////////////////////////
 	if monster.Health <= 0 {
 		monster.Health = 0
 		monster.IsAlive = false
+		p.StopDungeonTimer()
 		monster.TimeToLoot = time.Now().Add(40 * time.Second) ///////пока что время на осмотр лута  -
-		monster.RespawnTime = time.Now().Add(1 * time.Minute) ///////пока что через 30 сек.
-		room.SetMonster(monster)
-		roomRepo.Save(room)
+		monster.RespawnTime = time.Now().Add(1 * time.Minute) ///////пока что через 1 мин.
+
+		//добавляем выход из пещеры
+		concreteRoom, _ := r.(*room.Room)
+
+		// Добавляем выход
+		if concreteRoom.Exits == nil {
+			concreteRoom.Exits = make(map[string]string)
+		}
+		concreteRoom.Exits["up"] = "dungeon_entrance_goblins"
+
+		r.SetMonster(monster)
+		roomRepo.Save(r)
 
 		//+опыт
 		p.AddExperience(monster.Experience, conn)
-
-		//лут(пока монеты)
-		randCoins := 1 + rand.Intn(5)
-		player.AddItem(&p.Inventory, "coin", randCoins)
 
 		//предупреждение об обвале за 20 секунд
 		go func() {
@@ -89,20 +96,19 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			//проверяем что игрок еще в данже
 			if p.CurrentRoom == "dungeon_goblin" {
 				//телепортируем на вход и уничтожаем если не успели забрать предметы
-				room.ClearItems()
+				r.ClearItems()
 				p.CurrentRoom = "dungeon_entrance_goblins"
 				playerRepo.Save(p)
 				p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
 
 				//очищаем occupantID
-				room.SetPlayerOccupantID("")
-				roomRepo.Save(room)
+				r.SetPlayerOccupantID("")
+				roomRepo.Save(r)
 			}
 		}()
 
 		fmt.Fprintf(conn, "Ты нанес %d урона! %s повержен!\n", finalDamageMonster, monster.Name)
 		fmt.Fprintf(conn, "Получено %d опыта.\n", monster.Experience)
-		fmt.Fprintf(conn, "Найдено %d монет.\n> ", randCoins)
 		fmt.Fprintf(conn, "⚠️ Пещера начнёт разрушаться через 2 минуты. У тебя есть время на обыск!\n> ")
 		return
 	}
@@ -126,6 +132,12 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	//проверка смерти
 	if p.Stats.Health <= 0 {
 		fmt.Fprintf(conn, "💀 Ты погиб, персонаж удаляется...\n")
+
+		// ✅ Восстанавливаем монстра
+		monster.Health = monster.MaxHealth
+		r.SetMonster(monster)
+		roomRepo.Save(r)
+
 		//очищаем поле "окупанта"
 		currentRoom, _ := roomRepo.FindByID(p.CurrentRoom)
 		if currentRoom != nil && currentRoom.GetID() == "dungeon_goblin" {

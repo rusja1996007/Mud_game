@@ -37,6 +37,7 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	//проверка занятости данжа "гоблинов"
 	if nextRoomID == "dungeon_goblin" {
+
 		targetRoom, err := roomRepo.FindByID(nextRoomID)
 		if err == nil {
 			occupantID := targetRoom.GetPlayerOccupantID()
@@ -45,9 +46,25 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 				return
 			}
 
+			// Получаем монстра
+			monster := targetRoom.GetMonster()
+			// Проверяем, не идёт ли обвал
+			if monster != nil && !monster.IsAlive && time.Now().Before(monster.TimeToLoot) {
+				fmt.Fprintf(conn, "Подземелье разрушается! Вход заблокирован.\n> ")
+				return
+			}
+
 			//Если пусто то занимаем место "окупанта"
 			targetRoom.SetPlayerOccupantID(p.ID)
+
+			//засекли что вошли по времени
+			p.Stats.EnteredDungeonAt = time.Now()
+			p.Stats.IsInDungeon = true
+			playerRepo.Save(p)
 			roomRepo.Save(targetRoom)
+
+			//запускаем таймер после сохранения
+			go p.StartDungeonKickTimer(conn, playerRepo, roomRepo)
 		}
 	}
 
@@ -78,8 +95,11 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	//если выходим от "гоблинов" сбрасываем
 	if p.CurrentRoom == "dungeon_goblin" && nextRoomID != "dungeon_goblin" {
+
+		p.StopDungeonTimer()
 		currentRoom, _ := roomRepo.FindByID(p.CurrentRoom)
 		currentRoom.SetPlayerOccupantID("")
+		currentRoom.ClearItems()
 		roomRepo.Save(currentRoom)
 	}
 

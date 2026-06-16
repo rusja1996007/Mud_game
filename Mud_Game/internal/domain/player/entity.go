@@ -26,6 +26,7 @@ type Equipment struct {
 
 }
 
+// Управление (каналы, мьютексы, временные флаги)
 type Player struct {
 	connMutex sync.Mutex //для безопасной записи в conn
 
@@ -58,8 +59,13 @@ type Player struct {
 
 	//поиск
 	IsSearching bool //сейчас обыскивает?(лут)
+
+	//данж
+	stopDungeonTimer chan bool //остановка таймера
+
 }
 
+// Данные (состояния, характеристики)
 type Stats struct {
 	//БАЗОВЫЕ
 	MaxSlots int //слоты все в рюкзаке
@@ -92,8 +98,12 @@ type Stats struct {
 	TravelEndTime    time.Time //время когда закончится путешествие
 	TravelTargetRoom string    //Это поле хранит ID комнаты, куда игрок идёт:
 
-	//временные бонус к макс. здоровью
-	MaxHealthBonus int
+	//временные бонусы :
+	MaxHealthBonus int //к максимальному здоровью
+
+	//данжи
+	IsInDungeon      bool      //в данже?
+	EnteredDungeonAt time.Time //вошел в подземелье в ...
 }
 
 // SendMessage безопасно отправляет сообщение игроку
@@ -730,5 +740,46 @@ func (p *Player) StopAllTickers() {
 		p.stopThirst <- true
 		close(p.stopThirst)
 		p.stopThirst = nil
+	}
+}
+
+// кик игрока при долгом присутствии в данже
+func (p *Player) StartDungeonKickTimer(conn net.Conn, repo Repository, roomRepo room.Repository) {
+
+	if p.Stats.IsInDungeon {
+
+		p.stopDungeonTimer = make(chan bool)
+
+		select {
+		case <-p.stopDungeonTimer:
+			return //остановили
+		case <-time.After(1 * time.Minute): ///////////////////////для теста через это время сработает этот кик:
+
+			//текущая комната
+			room, _ := roomRepo.FindByID(p.CurrentRoom)
+
+			if room.GetExitRoomID() != "" {
+				p.CurrentRoom = room.GetExitRoomID()
+				room.SetPlayerOccupantID("")
+				p.Stats.IsInDungeon = false
+				p.Stats.EnteredDungeonAt = time.Time{}
+
+				roomRepo.Save(room)
+				repo.Save(p)
+
+				p.SendMessage(conn, "⏰Вы слишком долго были в подземелье, вас выкинуло.\n> ")
+
+			}
+
+		}
+	}
+}
+
+// StopDungeonTimer останавливает таймер кика из данжа
+func (p *Player) StopDungeonTimer() {
+	if p.stopDungeonTimer != nil {
+		p.stopDungeonTimer <- true
+		close(p.stopDungeonTimer)
+		p.stopDungeonTimer = nil
 	}
 }

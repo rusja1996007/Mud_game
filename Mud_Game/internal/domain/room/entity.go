@@ -210,7 +210,10 @@ func (r *Room) GetMonster() *monster.Monster {
 	defer r.mtx.RUnlock()
 
 	if r.Monster != nil {
-		r.Monster.CheckRespawn() ////проверяем респавн
+		if r.Monster.CheckRespawn() {
+			// Респавн произошёл — убираем выход
+			delete(r.Exits, "up")
+		}
 	}
 	return r.Monster
 }

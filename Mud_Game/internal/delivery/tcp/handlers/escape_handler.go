@@ -30,6 +30,7 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		//восстановление монстра
 		monster.Health = monster.MaxHealth
 
+		room.ClearItems()
 		room.SetPlayerOccupantID("")
 		playerRepo.Save(p)
 		roomRepo.Save(room)
@@ -63,6 +64,7 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 		newRoom, _ := roomRepo.FindByID(p.CurrentRoom)
 		monster.Health = monster.MaxHealth
+		room.ClearItems()
 		room.SetPlayerOccupantID("")
 		roomRepo.Save(room)
 		playerRepo.Save(p)

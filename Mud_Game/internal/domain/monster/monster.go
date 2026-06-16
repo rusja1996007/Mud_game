@@ -1,6 +1,8 @@
 package monster
 
-import "time"
+import (
+	"time"
+)
 
 type Monster struct {
 	ID          string
@@ -35,11 +37,13 @@ func NewGoblin(roomID string) *Monster {
 	}
 }
 
-// проверка нужно ли возродить монстра
-func (m *Monster) CheckRespawn() {
+// проверяем надо ли возрождать монстра
+func (m *Monster) CheckRespawn() bool {
 	if !m.IsAlive && time.Now().After(m.RespawnTime) {
 		m.IsAlive = true
 		m.Health = m.MaxHealth
-		m.RespawnTime = time.Time{} //сбрасываем время
+		m.RespawnTime = time.Time{}
+		return true // респавн произошёл
 	}
+	return false
 }
