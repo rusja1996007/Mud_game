@@ -71,12 +71,17 @@ func (r *PostgresRepository) FindByName(name string) (*player.Player, error) {
 	if model.Deleted_at.Valid {
 		return nil, nil //// игрок помечен как удалённый → считаем что его нет
 	}
+
 	return model.ToEntity()
 }
 
 func (r *PostgresRepository) Delete(id string) error {
-	//     Просто говорим "удали где id = ?"
-	// Если запись есть - удалит
-	// Если нет - ничего не сделает (и не ошибка)
-	return r.db.Unscoped().Delete(&player.PlayerModel{}, "id = ?", id).Error
+	if r.db == nil {
+
+		return errors.New("db is nil")
+	}
+
+	result := r.db.Exec("DELETE FROM player_models WHERE id = ?", id)
+
+	return result.Error
 }

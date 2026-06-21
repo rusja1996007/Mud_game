@@ -5,6 +5,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/combat"
 	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/loot"
+
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
 	"math/rand"
@@ -106,6 +107,11 @@ type Stats struct {
 	EnteredDungeonAt time.Time //вошел в подземелье в ...
 }
 
+// для сохранения игрока при отключении сервера без проблем с циклическим импортом
+type Saver interface {
+	Save(p *Player) error
+}
+
 // SendMessage безопасно отправляет сообщение игроку
 func (p *Player) SendMessage(conn net.Conn, msg string) {
 	p.connMutex.Lock()
@@ -115,7 +121,10 @@ func (p *Player) SendMessage(conn net.Conn, msg string) {
 
 // запускает таймер голода (каждые GetHUNGERInterval секунд )
 func (p *Player) StartHungerTicker(conn net.Conn, repo Repository) {
-
+	if p.Stats.Health <= 0 {
+		return
+	}
+	repo.Save(p)
 	//останавливаем тикеры если есть
 	if p.stopHunger != nil {
 		select {
@@ -153,7 +162,9 @@ func (p *Player) StartHungerTicker(conn net.Conn, repo Repository) {
 					conn.Close()
 					return
 				}
-				repo.Save(p) // сохраняем только живых
+				if p.Stats.Health > 0 {
+					repo.Save(p) // сохраняем только живых
+				}
 			}
 		}
 	}()
@@ -161,6 +172,10 @@ func (p *Player) StartHungerTicker(conn net.Conn, repo Repository) {
 
 // таймер жажды (каждые getthirstticker секунд -1)
 func (p *Player) StartThirstTicker(conn net.Conn, repo Repository) {
+	if p.Stats.Health <= 0 {
+		return
+	}
+	repo.Save(p)
 	if p.stopThirst != nil {
 		select {
 		case p.stopThirst <- true:
@@ -195,7 +210,9 @@ func (p *Player) StartThirstTicker(conn net.Conn, repo Repository) {
 					conn.Close()
 					return
 				}
-				repo.Save(p) // сохраняем только живых
+				if p.Stats.Health > 0 {
+					repo.Save(p) // сохраняем только живых
+				}
 			}
 		}
 	}()
@@ -637,6 +654,9 @@ func (p *Player) ProcessStatChoice(choice string, conn net.Conn) {
 
 // запуск бафа
 func (p *Player) StartBuffTicker(conn net.Conn, repo Repository) {
+	if p.Stats.Health <= 0 {
+		return
+	}
 
 	if p.stopBuffTicker != nil {
 		select {
@@ -664,6 +684,10 @@ func (p *Player) StartBuffTicker(conn net.Conn, repo Repository) {
 					}
 				}
 				p.processBuffs(repo)
+
+				if p.Stats.Health > 0 {
+					repo.Save(p)
+				}
 			}
 		}
 	}()
@@ -727,17 +751,26 @@ func (p *Player) ApplyBuffEffect(b *buff.Buff) {
 // StopAllTickers останавливает все тикеры игрока
 func (p *Player) StopAllTickers() {
 	if p.stopBuffTicker != nil {
-		p.stopBuffTicker <- true
+		select {
+		case p.stopBuffTicker <- true:
+		default:
+		}
 		close(p.stopBuffTicker)
 		p.stopBuffTicker = nil
 	}
 	if p.stopHunger != nil {
-		p.stopHunger <- true
+		select {
+		case p.stopHunger <- true:
+		default:
+		}
 		close(p.stopHunger)
 		p.stopHunger = nil
 	}
 	if p.stopThirst != nil {
-		p.stopThirst <- true
+		select {
+		case p.stopThirst <- true:
+		default:
+		}
 		close(p.stopThirst)
 		p.stopThirst = nil
 	}
@@ -757,7 +790,45 @@ func (p *Player) StartDungeonKickTimer(conn net.Conn, repo Repository, roomRepo 
 
 			//текущая комната
 			room, _ := roomRepo.FindByID(p.CurrentRoom)
+			monster := room.GetMonster()
 
+			//если монстр жив-автоматический побег с получением урона
+			if monster != nil && monster.IsAlive {
+				monsterDamage := monster.MinDamage + rand.Intn(monster.MaxDamage-monster.MinDamage+1)
+				defence := p.GetTotalDefence()
+				reduction := float64(defence) / (float64(defence) + 100)
+				finalDamage := int(float64(monsterDamage) * (1 - reduction))
+				if finalDamage <= 0 {
+					finalDamage = 1
+				}
+
+				p.Stats.Health -= finalDamage
+				monster.Health = monster.MaxHealth
+				if p.Stats.Health > 0 {
+					repo.Save(p)
+				}
+				msg := fmt.Sprintf("💨 Ты слишком долго был в бою и сбежал! Монстр нанёс %d урона вслед.\n> ", finalDamage)
+				p.SendMessage(conn, msg)
+
+				if p.Stats.Health <= 0 {
+					p.SendMessage(conn, "💀Ты погиб...\n")
+					repo.Delete(p.ID)
+					conn.Close()
+					return
+				}
+
+				// телепорт
+				p.CurrentRoom = room.GetExitRoomID()
+				room.SetPlayerOccupantID("")
+				p.Stats.IsInDungeon = false
+				p.Stats.EnteredDungeonAt = time.Time{}
+				roomRepo.Save(room)
+				if p.Stats.Health > 0 {
+					repo.Save(p)
+				}
+				return
+			}
+			// Если монстр мёртв — телепорт
 			if room.GetExitRoomID() != "" {
 				p.CurrentRoom = room.GetExitRoomID()
 				room.SetPlayerOccupantID("")
@@ -765,13 +836,15 @@ func (p *Player) StartDungeonKickTimer(conn net.Conn, repo Repository, roomRepo 
 				p.Stats.EnteredDungeonAt = time.Time{}
 
 				roomRepo.Save(room)
-				repo.Save(p)
+				if p.Stats.Health > 0 {
+					repo.Save(p)
+				}
 
 				p.SendMessage(conn, "⏰Вы слишком долго были в подземелье, вас выкинуло.\n> ")
 
 			}
-
 		}
+
 	}
 }
 
@@ -781,5 +854,24 @@ func (p *Player) StopDungeonTimer() {
 		p.stopDungeonTimer <- true
 		close(p.stopDungeonTimer)
 		p.stopDungeonTimer = nil
+	}
+}
+
+// побег из подземелья если "лег" сервер(безопасный)
+func (p *Player) HandleDisconnect(saver Saver, roomRepo room.Repository) {
+
+	if p.Stats.Health <= 0 {
+		return // ← должно быть, чтобы не сохранять мёртвого
+	}
+	if p.CurrentRoom == "dungeon_goblin" {
+		room, _ := roomRepo.FindByID(p.CurrentRoom)
+		//телепорт
+		p.CurrentRoom = room.GetExitRoomID()
+		room.SetPlayerOccupantID("")
+		p.Stats.IsInDungeon = false
+		p.Stats.EnteredDungeonAt = time.Time{}
+		roomRepo.Save(room)
+		saver.Save(p)
+
 	}
 }

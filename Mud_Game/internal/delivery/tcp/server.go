@@ -7,6 +7,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/room"
 	"Mud_game/Mud_Game/internal/pkg/logger"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -75,8 +76,13 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 
 	defer func() {
 		if currentPlayer != nil {
+
 			currentPlayer.StopAllTickers()
+			if currentPlayer.Stats.Health > 0 {
+				currentPlayer.HandleDisconnect(s.playerRepo, s.roomRepo)
+			}
 		}
+
 	}()
 	fmt.Printf("🔌 Новое подключение\n")
 
@@ -262,8 +268,55 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool {
 	//всегда можем выйти
 	if cmd == "quit" {
-		handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
-		return true
+
+		//если выход производится во время боя
+		if p.CurrentRoom == "dungeon_goblin" {
+			room, err := s.roomRepo.FindByID(p.CurrentRoom)
+			if err != nil {
+				fmt.Fprintf(conn, "Ошибка загрузки комнаты\n> ")
+				return false
+			}
+			monster := room.GetMonster()
+
+			//если монстр жив-автоматический побег с получением урона
+			if monster != nil && monster.IsAlive {
+				monsterDamage := monster.MinDamage + rand.Intn(monster.MaxDamage-monster.MinDamage+1)
+				defence := p.GetTotalDefence()
+				reduction := float64(defence) / (float64(defence) + 100)
+				finalDamage := int(float64(monsterDamage) * (1 - reduction))
+				if finalDamage <= 0 {
+					finalDamage = 1
+				}
+
+				p.Stats.Health -= finalDamage
+				monster.Health = monster.MaxHealth
+
+				msg := fmt.Sprintf("💨 Перед выходом ты сбегаешь и монстр нанёс %d урона вслед.\n> ", finalDamage)
+				p.SendMessage(conn, msg)
+
+				if p.Stats.Health <= 0 {
+					p.SendMessage(conn, "💀Ты погиб...\n")
+					monster.Health = monster.MaxHealth
+					room.SetPlayerOccupantID("")
+					s.roomRepo.Save(room)
+					p.StopAllTickers()
+					s.playerRepo.Delete(p.ID)
+					conn.Close()
+					return true
+
+				}
+				//телепорт
+				p.CurrentRoom = room.GetExitRoomID()
+				room.SetPlayerOccupantID("")
+				p.Stats.IsInDungeon = false
+				p.Stats.EnteredDungeonAt = time.Time{}
+				s.roomRepo.Save(room)
+				s.playerRepo.Save(p)
+
+				handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
+				return true
+			}
+		}
 	}
 	//путешествие
 	if p.PendingTravel {

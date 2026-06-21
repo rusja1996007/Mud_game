@@ -131,20 +131,13 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 	//проверка смерти
 	if p.Stats.Health <= 0 {
-		fmt.Fprintf(conn, "💀 Ты погиб, персонаж удаляется...\n")
-
-		// ✅ Восстанавливаем монстра
 		monster.Health = monster.MaxHealth
-		r.SetMonster(monster)
-		roomRepo.Save(r)
+		r.SetPlayerOccupantID("")
 
-		//очищаем поле "окупанта"
-		currentRoom, _ := roomRepo.FindByID(p.CurrentRoom)
-		if currentRoom != nil && currentRoom.GetID() == "dungeon_goblin" {
-			currentRoom.SetPlayerOccupantID("")
-			roomRepo.Save(currentRoom)
-		}
-		playerRepo.Delete(p.ID)
+		roomRepo.Save(r)
+		fmt.Fprintf(conn, "💀 Ты погиб, персонаж удаляется...\n")
+		p.StopAllTickers()
+		playerRepo.Delete(p.ID) //////////////////
 		conn.Close()
 		return
 	}
