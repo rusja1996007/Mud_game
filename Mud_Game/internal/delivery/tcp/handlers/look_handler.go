@@ -93,33 +93,49 @@ func printItemInfo(conn net.Conn, item *item.ItemStack) {
 	//для оружия
 	if item.ItemType == "weapon" {
 		fmt.Fprintf(conn, "Урон %d-%d\n", item.MinDamage, item.MaxDamage)
-		fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+
+		if item.Durability <= 0 {
+			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
+		} else {
+			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		}
 	}
 
 	//броня
 	if item.ItemType == "armor" {
 		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		if item.Durability <= 0 {
+			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
+		} else {
+			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		}
 	}
 
 	if item.ItemType == "helmet" {
 		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		if item.Durability <= 0 {
+			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
+		} else {
+			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		}
 	}
 
 	if item.ItemType == "shield" {
 		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		if item.Durability <= 0 {
+			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
+		} else {
+			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		}
 	}
 
 	if item.ItemType == "boots" {
 		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
-	}
-
-	if item.ItemType == "bag" {
-		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		if item.Durability <= 0 {
+			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
+		} else {
+			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		}
 	}
 
 	if item.ItemType == "ring" {
@@ -147,7 +163,11 @@ func printItemInfo(conn net.Conn, item *item.ItemStack) {
 	if item.ItemType == "bag" {
 		fmt.Fprintf(conn, "Слотов в инвентаре +%d\n", item.SlotBonus)
 		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		if item.Durability <= 0 {
+			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
+		} else {
+			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+		}
 		fmt.Fprintf(conn, "%s\n", item.Description)
 	}
 

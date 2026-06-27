@@ -26,8 +26,12 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 		fmt.Fprintf(&result, "\nПредметы в Инвентаре:\n")
 		for i, stack := range p.Inventory {
 			fmt.Fprintf(&result, " %d. %s", i+1, stack.Name)
+			if stack.Durability <= 0 {
+				fmt.Fprintf(&result, "⚠️ СЛОМАН\n")
+			}
 			if stack.Durability > 0 {
 				fmt.Fprintf(&result, " (прочность: %d)", stack.Durability)
+
 			}
 			if stack.Count > 1 {
 				fmt.Fprintf(&result, " x%d", stack.Count)

@@ -131,6 +131,38 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 	//проверка смерти
 	if p.Stats.Health <= 0 {
+		//шанс выжить:
+		if p.Stats.Tracking >= 6 {
+			chance := p.Stats.Tracking * 14 //////////////////////для теста
+			if rand.Intn(100) < chance {
+				//если выжил
+				p.Stats.Health = 1
+				p.CurrentRoom = r.GetExitRoomID()
+				p.BreakAllEquipment()
+				r.SetPlayerOccupantID("")
+				monster.Health = monster.MaxHealth
+				roomRepo.Save(r)
+				playerRepo.Save(p)
+				fmt.Fprintf(conn, "🔥 Ты чудом выжил! Инстинкты спасли тебя.\n")
+				fmt.Fprintf(conn, "Твоё снаряжение повреждено!\n")
+				fmt.Fprintf(conn, "Ты оказался на входе в подземелье.\n> ")
+
+				//шанс потерять чтото из инвентаря при побеге
+				if len(p.Inventory) > 0 {
+					//⚠️ Важно: Идём с конца, чтобы не сбивать индексы при удалении.
+					for i := len(p.Inventory) - 1; i >= 0; i-- {
+						if rand.Intn(100) < 30 {
+							lostItem := p.Inventory[i]
+							p.Inventory = append(p.Inventory[:i], p.Inventory[i+1:]...)
+							fmt.Fprintf(conn, "При побеге ты потерял %s\n", lostItem.Name)
+						}
+					}
+				}
+				return
+
+			}
+		}
+		//восстановление подземелья/удаление персонажа
 		monster.Health = monster.MaxHealth
 		r.SetPlayerOccupantID("")
 

@@ -179,7 +179,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 				Strength:   3,
 				Dexterity:  3,
 				Intelect:   2,
-				Tracking:   2,
+				Tracking:   6,
 				Level:      1,
 				Experience: 0},
 			Zone: zone,

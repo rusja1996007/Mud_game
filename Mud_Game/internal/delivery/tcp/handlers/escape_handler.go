@@ -23,6 +23,17 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 	chanceOfEscape := 50 + 5*p.Stats.Tracking
 
+	//шанс потерять чтото из инвентаря при побеге
+	if len(p.Inventory) > 0 {
+		//⚠️ Важно: Идём с конца, чтобы не сбивать индексы при удалении.
+		for i := len(p.Inventory) - 1; i >= 0; i-- {
+			if rand.Intn(100) < 30 {
+				lostItem := p.Inventory[i]
+				p.Inventory = append(p.Inventory[:i], p.Inventory[i+1:]...)
+				fmt.Fprintf(conn, "При побеге ты потерял %s\n", lostItem.Name)
+			}
+		}
+	}
 	/////////////////////////////////////если успех/////////////////////////////////
 	if rand.Intn(100) < chanceOfEscape {
 		p.CurrentRoom = room.GetExitRoomID()

@@ -35,11 +35,6 @@ func HandleHotel(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 
 	go func() {
 		time.Sleep(5 * time.Second) ///////////////////ВРЕМЕННО
-		p.Stats.Health += 60        //восстанавливает 60хп
-		maxHealth := 50 + p.Stats.Strength*5
-		if p.Stats.Health > maxHealth {
-			p.Stats.Health = maxHealth
-		}
 
 		p.Stats.Hunger = 100
 		p.Stats.Thirst = 100
@@ -48,9 +43,15 @@ func HandleHotel(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 			ID:            "hotel_health_boost",
 			Type:          buff.MaxHealthBoost,
 			Value:         50,
-			Duration:      20 * time.Second, //.......................ВРЕМЕННО
-			RemainingTime: 20 * time.Second, //....................ВРЕМЕННО
+			Duration:      100 * time.Second, //.......................ВРЕМЕННО
+			RemainingTime: 100 * time.Second, //....................ВРЕМЕННО
 			Description:   "+50 к максимальному здоровью",
+		}
+		maxHealth := 50 + p.Stats.Strength*5 + newBuff.Value
+		p.Stats.Health = maxHealth //восстанавливает 60хп
+
+		if p.Stats.Health > maxHealth {
+			p.Stats.Health = maxHealth
 		}
 
 		//добавление и применение бафа:
@@ -61,7 +62,7 @@ func HandleHotel(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		p.Stats.SleepStartTime = time.Time{}
 
 		playerRepo.Save(p)
-		p.SendMessage(conn, "\nТы хорошо отдохнул.\nВосстановил 60 HP\nГолод и жажда восстановлена\n+50 к макс HP на 1 час\n> ")
+		p.SendMessage(conn, "\nТы хорошо отдохнул.\nВосстановил  HP\nГолод и жажда восстановлена\n+50 к макс HP на 1 час\n> ")
 	}()
 
 }

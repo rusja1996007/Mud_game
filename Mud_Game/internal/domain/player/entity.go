@@ -404,22 +404,22 @@ func (p *Player) DecreaseWeaponDurability(amount int) bool {
 func (p *Player) GetTotalDefence() int {
 	total := 0
 
-	if p.Equipment.Armor != nil {
+	if p.Equipment.Armor != nil && p.Equipment.Armor.Durability > 0 {
 		total += p.Equipment.Armor.Defence
 	}
 
-	if p.Equipment.Bag != nil {
+	if p.Equipment.Bag != nil && p.Equipment.Bag.Durability > 0 {
 		total += p.Equipment.Bag.Defence
 	}
 
-	if p.Equipment.Boots != nil {
+	if p.Equipment.Boots != nil && p.Equipment.Boots.Durability > 0 {
 		total += p.Equipment.Boots.Defence
 	}
 
-	if p.Equipment.Shield != nil {
+	if p.Equipment.Shield != nil && p.Equipment.Shield.Durability > 0 {
 		total += p.Equipment.Shield.Defence
 	}
-	if p.Equipment.Helmet != nil {
+	if p.Equipment.Helmet != nil && p.Equipment.Helmet.Durability > 0 {
 		total += p.Equipment.Helmet.Defence
 	}
 
@@ -431,23 +431,23 @@ func (p *Player) GetTotalDefence() int {
 func (p *Player) GetTotalFireDefence() int {
 	total := 0
 
-	if p.Equipment.Helmet != nil {
+	if p.Equipment.Helmet != nil && p.Equipment.Helmet.Durability > 0 {
 		total += p.Equipment.Helmet.FireDefence
 	}
 
-	if p.Equipment.Armor != nil {
+	if p.Equipment.Armor != nil && p.Equipment.Armor.Durability > 0 {
 		total += p.Equipment.Armor.FireDefence
 	}
 
-	if p.Equipment.Bag != nil {
+	if p.Equipment.Bag != nil && p.Equipment.Bag.Durability > 0 {
 		total += p.Equipment.Bag.FireDefence
 	}
 
-	if p.Equipment.Shield != nil {
+	if p.Equipment.Shield != nil && p.Equipment.Shield.Durability > 0 {
 		total += p.Equipment.Shield.FireDefence
 	}
 
-	if p.Equipment.Boots != nil {
+	if p.Equipment.Boots != nil && p.Equipment.Boots.Durability > 0 {
 		total += p.Equipment.Boots.FireDefence
 	}
 
@@ -465,23 +465,23 @@ func (p *Player) GetTotalFireDefence() int {
 func (p *Player) GetTotalPoisonDefence() int {
 	total := 0
 
-	if p.Equipment.Helmet != nil {
+	if p.Equipment.Helmet != nil && p.Equipment.Helmet.Durability > 0 {
 		total += p.Equipment.Helmet.PoisonDefence
 	}
 
-	if p.Equipment.Armor != nil {
+	if p.Equipment.Armor != nil && p.Equipment.Armor.Durability > 0 {
 		total += p.Equipment.Armor.PoisonDefence
 	}
 
-	if p.Equipment.Bag != nil {
+	if p.Equipment.Bag != nil && p.Equipment.Bag.Durability > 0 {
 		total += p.Equipment.Bag.PoisonDefence
 	}
 
-	if p.Equipment.Shield != nil {
+	if p.Equipment.Shield != nil && p.Equipment.Shield.Durability > 0 {
 		total += p.Equipment.Shield.PoisonDefence
 	}
 
-	if p.Equipment.Boots != nil {
+	if p.Equipment.Boots != nil && p.Equipment.Boots.Durability > 0 {
 		total += p.Equipment.Boots.PoisonDefence
 	}
 
@@ -498,23 +498,23 @@ func (p *Player) GetTotalPoisonDefence() int {
 func (p *Player) GetTotalMagicDefence() int {
 	total := 0
 
-	if p.Equipment.Helmet != nil {
+	if p.Equipment.Helmet != nil && p.Equipment.Helmet.Durability > 0 {
 		total += p.Equipment.Helmet.MagicDefence
 	}
 
-	if p.Equipment.Armor != nil {
+	if p.Equipment.Armor != nil && p.Equipment.Armor.Durability > 0 {
 		total += p.Equipment.Armor.MagicDefence
 	}
 
-	if p.Equipment.Bag != nil {
+	if p.Equipment.Bag != nil && p.Equipment.Bag.Durability > 0 {
 		total += p.Equipment.Bag.MagicDefence
 	}
 
-	if p.Equipment.Shield != nil {
+	if p.Equipment.Shield != nil && p.Equipment.Shield.Durability > 0 {
 		total += p.Equipment.Shield.MagicDefence
 	}
 
-	if p.Equipment.Boots != nil {
+	if p.Equipment.Boots != nil && p.Equipment.Boots.Durability > 0 {
 		total += p.Equipment.Boots.MagicDefence
 	}
 
@@ -873,5 +873,26 @@ func (p *Player) HandleDisconnect(saver Saver, roomRepo room.Repository) {
 		roomRepo.Save(room)
 		saver.Save(p)
 
+	}
+}
+
+// шанс на поломку(при выживании)
+func (p *Player) BreakAllEquipment() {
+	slots := []**item.ItemStack{
+		&p.Equipment.Weapon,
+		&p.Equipment.Armor,
+		&p.Equipment.Helmet,
+		&p.Equipment.Shield,
+		&p.Equipment.Boots,
+		&p.Equipment.Bag,
+		&p.Equipment.Ring1,
+		&p.Equipment.Ring2,
+	}
+	for _, slot := range slots {
+		if rand.Intn(100) < 66 {
+			if *slot != nil {
+				(*slot).Durability = 0
+			}
+		}
 	}
 }

@@ -49,6 +49,12 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	//Получи предмет из инвентаря
 	item := p.Inventory[index]
 
+	// ✅ Проверка: не сломан ли предмет
+	if item.Durability <= 0 {
+		fmt.Fprintf(conn, "Этот предмет сломан, его нельзя надеть.\n> ")
+		return
+	}
+
 	switch item.ItemType {
 
 	//оружие
