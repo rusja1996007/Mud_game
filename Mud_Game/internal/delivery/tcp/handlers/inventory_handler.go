@@ -26,11 +26,15 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 		fmt.Fprintf(&result, "\nПредметы в Инвентаре:\n")
 		for i, stack := range p.Inventory {
 			fmt.Fprintf(&result, " %d. %s", i+1, stack.Name)
-			if stack.Durability <= 0 {
-				fmt.Fprintf(&result, "⚠️ СЛОМАН\n")
-			}
-			if stack.Durability > 0 {
-				fmt.Fprintf(&result, " (прочность: %d)", stack.Durability)
+
+			if stack.ItemType == "weapon" || stack.ItemType == "armor" ||
+				stack.ItemType == "helmet" || stack.ItemType == "shield" ||
+				stack.ItemType == "boots" || stack.ItemType == "bag" {
+				if stack.Durability <= 0 {
+					fmt.Fprintf(&result, "⚠️ СЛОМАН\n")
+				} else {
+					fmt.Fprintf(&result, " (прочность: %d/100)", stack.Durability)
+				}
 
 			}
 			if stack.Count > 1 {

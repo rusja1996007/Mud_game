@@ -89,7 +89,10 @@ func inspectItem(conn net.Conn, p *player.Player, roomRepo room.Repository, item
 func printItemInfo(conn net.Conn, item *item.ItemStack) {
 	fmt.Fprintf(conn, "📖 %s\n", item.Name)
 	fmt.Fprintf(conn, "Тип %s\n", item.ItemType)
-
+	//свитки
+	if item.ItemType == "scroll" {
+		fmt.Fprintf(conn, "%s\n", item.Description)
+	}
 	//для оружия
 	if item.ItemType == "weapon" {
 		fmt.Fprintf(conn, "Урон %d-%d\n", item.MinDamage, item.MaxDamage)
@@ -99,6 +102,7 @@ func printItemInfo(conn net.Conn, item *item.ItemStack) {
 		} else {
 			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
 		}
+		fmt.Fprintf(conn, "%s\n", item.Description)
 	}
 
 	//броня
@@ -179,7 +183,7 @@ func printItemInfo(conn net.Conn, item *item.ItemStack) {
 		fmt.Fprintf(conn, "%s\n", item.Description)
 	}
 
-	if item.ItemType == "coin" {
+	if item.ItemType == "currency" {
 		fmt.Fprintf(conn, "%s\n", item.Description)
 	}
 

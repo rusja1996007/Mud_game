@@ -102,15 +102,23 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	// ✅ СОЗДАЕМ СТОПКУ ДЛЯ БРОСКА
 	dropStack := &item.ItemStack{
-		Name:        originalStack.Name,
-		Count:       dropCount,
-		ItemType:    originalStack.ItemType,
-		SlotBonus:   originalStack.SlotBonus,
-		MinDamage:   originalStack.MinDamage,
-		MaxDamage:   originalStack.MaxDamage,
-		Durability:  originalStack.Durability,
-		Description: originalStack.Description,
-		ID:          originalStack.ID,
+		Name:          originalStack.Name,
+		Count:         dropCount,
+		ItemType:      originalStack.ItemType,
+		SlotBonus:     originalStack.SlotBonus,
+		MinDamage:     originalStack.MinDamage,
+		MaxDamage:     originalStack.MaxDamage,
+		Durability:    originalStack.Durability,
+		Description:   originalStack.Description,
+		ID:            originalStack.ID,
+		HungerRestore: originalStack.HungerRestore,
+		ThirstRestore: originalStack.ThirstRestore,
+		Defence:       originalStack.Defence,
+		MagicDefence:  originalStack.MagicDefence,
+		PoisonDefence: originalStack.PoisonDefence,
+		FireDefence:   originalStack.FireDefence,
+		HealMin:       originalStack.HealMin,
+		HealMax:       originalStack.HealMax,
 	}
 
 	//Добавить предметы в комнату

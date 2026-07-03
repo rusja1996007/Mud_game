@@ -17,6 +17,8 @@ type ItemStack struct {
 
 	MinDamage     int `json:"min_damage"`
 	MaxDamage     int `json:"max_damage"`
+	HealMax       int `json:"max_heal"`
+	HealMin       int `json:"min_heal"`
 	Durability    int `json:"durability"` //прочность
 	Defence       int `json:"defence"`    //защита
 	MagicDefence  int `json:"magic_defence"`

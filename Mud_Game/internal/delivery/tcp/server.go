@@ -555,6 +555,9 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case strings.HasPrefix(cmd, "craft "):
 		handlers.HandleCraft(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
+	case strings.HasPrefix(cmd, "use "):
+		handlers.HandleUse(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
 
 	case strings.HasPrefix(cmd, "look"):
 		handlers.HandleLook(conn, cmd, p, s.roomRepo, s.playerRepo)

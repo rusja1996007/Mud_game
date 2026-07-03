@@ -12,6 +12,7 @@ type Monster struct {
 	MinDamage   int
 	MaxDamage   int
 	Defence     int
+	FireDefence int
 	Experience  int
 	RoomID      string //в какой комнате находится
 	IsAlive     bool
@@ -30,6 +31,7 @@ func NewGoblin(roomID string) *Monster {
 		MinDamage:   5,
 		MaxDamage:   15,
 		Defence:     5,
+		FireDefence: 0,
 		Experience:  220,
 		RoomID:      roomID,
 		IsAlive:     true,

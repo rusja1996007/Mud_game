@@ -4,12 +4,16 @@ package item
 type ItemData struct {
 	Name          string
 	ItemType      string
-	HungerRestore int
-	ThirstRestore int
+	HungerRestore int //пополнение еды
+	ThirstRestore int //пополнение воды
 	SlotBonus     int
 
-	MinDamage int
-	MaxDamage int
+	MinDamage  int
+	MaxDamage  int
+	DamageType string
+
+	HealMin int
+	HealMax int
 
 	Durability    int //прочность
 	Defence       int //защита(физ)
@@ -23,6 +27,23 @@ type ItemData struct {
 
 // ItemsDB — база данных всех предметов в игре
 var ItemsDB = map[string]ItemData{
+
+	//////////////////////////////////////scroll/////////////////////////////////////////
+	"scroll fireball": {
+		Name:        "scroll fireball",
+		ItemType:    "scroll",
+		Description: "Одноразовый свиток, выпускающий огненный шар (42-85 урона).",
+		MinDamage:   40,
+		MaxDamage:   80,
+		DamageType:  "fire",
+	},
+	"scroll heal": {
+		Name:        "scroll heal",
+		ItemType:    "scroll",
+		Description: "Одноразовый свиток, восстанавливающий здоровье (40-50 HP)",
+		HealMin:     40,
+		HealMax:     50,
+	},
 	//////////////////////////////////////liquid container////////////////////////////////
 	"empty bottle": {
 		Name:        "empty bottle",
@@ -119,11 +140,12 @@ var ItemsDB = map[string]ItemData{
 	},
 
 	"knife": {
-		Name:       "knife",
-		ItemType:   "weapon",
-		MinDamage:  5,
-		MaxDamage:  10,
-		Durability: 100,
+		Name:        "knife",
+		ItemType:    "weapon",
+		MinDamage:   5,
+		MaxDamage:   10,
+		Durability:  100,
+		Description: "Обычный охотничий нож",
 	},
 
 	///////////////////////////////////helmet///////////////////////////////////////////////
@@ -267,5 +289,7 @@ func GetItem(name string, count int) *ItemStack {
 		MagicDefence:  data.MagicDefence,
 		PoisonDefence: data.PoisonDefence,
 		FireDefence:   data.FireDefence,
+		HealMin:       data.HealMin,
+		HealMax:       data.HealMax,
 	}
 }
