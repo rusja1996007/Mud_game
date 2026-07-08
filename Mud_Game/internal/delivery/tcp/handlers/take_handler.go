@@ -101,13 +101,14 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 				continue
 			}
 
-			if !p.AddItemToInventory(takenStack) {
+			if !p.CanAddItem() {
 				// Если нет места - кладем предмет обратно в комнату
 				r.AddItem(takenStack)
 				fmt.Fprintf(conn, "Нет места в инвентаре! Остановлено на %s\n", takenStack.Name)
 				stopped = true
 				break
 			}
+			p.AddItemToInventory(takenStack)
 			taken++
 
 		}

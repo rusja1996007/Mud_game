@@ -27,6 +27,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	switch slot {
 	case "weapon":
 		if p.Equipment.Weapon != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Weapon.Name
 			p.AddItemToInventory(p.Equipment.Weapon)
 			p.Equipment.Weapon = nil
@@ -36,6 +40,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	case "armor":
 		if p.Equipment.Armor != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Armor.Name
 			p.AddItemToInventory(p.Equipment.Armor)
 			p.Equipment.Armor = nil
@@ -45,6 +53,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	case "helmet":
 		if p.Equipment.Helmet != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Helmet.Name
 			p.AddItemToInventory(p.Equipment.Helmet)
 			p.Equipment.Helmet = nil
@@ -54,6 +66,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	case "bag":
 		if p.Equipment.Bag != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Bag.Name
 			p.AddItemToInventory(p.Equipment.Bag)
 			p.Equipment.Bag = nil
@@ -63,6 +79,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	case "shield":
 		if p.Equipment.Shield != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Shield.Name
 			p.AddItemToInventory(p.Equipment.Shield)
 			p.Equipment.Shield = nil
@@ -72,6 +92,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	case "boots":
 		if p.Equipment.Boots != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Boots.Name
 			p.AddItemToInventory(p.Equipment.Boots)
 			p.Equipment.Boots = nil
@@ -81,6 +105,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	case "ring1":
 		if p.Equipment.Ring1 != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Ring1.Name
 			p.AddItemToInventory(p.Equipment.Ring1)
 			p.Equipment.Ring1 = nil
@@ -90,6 +118,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	case "ring2":
 		if p.Equipment.Ring2 != nil {
+			if !p.CanAddItem() {
+				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
+				return
+			}
 			itemName := p.Equipment.Ring2.Name
 			p.AddItemToInventory(p.Equipment.Ring2)
 			p.Equipment.Ring2 = nil

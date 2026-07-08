@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -29,6 +30,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	//Найди предмет в инвентаре
 	var index int = -1
+	var inBag bool
 
 	if num, err := strconv.Atoi(itemName); err == nil {
 		target, idx := p.FindItemByNumber(num)
@@ -38,8 +40,14 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		}
 		index = idx
 		itemName = target.Name
+		//где лежит предмет:
+		if num <= len(p.Inventory) {
+			inBag = false
+		} else {
+			inBag = true
+		}
 	} else {
-		index = p.FindItemIndex(itemName)
+		index, inBag = p.FindItemGlobalByName(itemName)
 	}
 
 	if index == -1 {
@@ -47,7 +55,12 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 	//Получи предмет из инвентаря
-	item := p.Inventory[index]
+	var item *item.ItemStack
+	if inBag {
+		item = p.Equipment.BagItems[index]
+	} else {
+		item = p.Inventory[index]
+	}
 
 	// ✅ Проверка: не сломан ли предмет
 	if item.Durability <= 0 {
@@ -66,7 +79,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		//вооружаем
 		p.Equipment.Weapon = item
 		//удаляем из инвентаря
-		player.RemoveItem(&p.Inventory, itemName, 1)
+		p.RemoveItemFromStorage(itemName, inBag, index)
 		fmt.Fprintf(conn, "Ты надел %s в слот оружия\n> ", itemName)
 	//броня
 	case "armor":
@@ -77,7 +90,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		//вооружаем
 		p.Equipment.Armor = item
 		//удаляем из инвентаря
-		player.RemoveItem(&p.Inventory, itemName, 1)
+		p.RemoveItemFromStorage(itemName, inBag, index)
 		fmt.Fprintf(conn, "Ты надел %s в слот брони\n> ", itemName)
 	//шлем
 	case "helmet":
@@ -88,7 +101,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		//вооружаем
 		p.Equipment.Helmet = item
 		//удаляем из инвентаря
-		player.RemoveItem(&p.Inventory, itemName, 1)
+		p.RemoveItemFromStorage(itemName, inBag, index)
 		fmt.Fprintf(conn, "Ты надел %s в слот шлема\n> ", itemName)
 	//ботинки
 	case "boots":
@@ -99,7 +112,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		//вооружаем
 		p.Equipment.Boots = item
 		//удаляем из инвентаря
-		player.RemoveItem(&p.Inventory, itemName, 1)
+		p.RemoveItemFromStorage(itemName, inBag, index)
 		fmt.Fprintf(conn, "Ты надел %s в слот обуви\n> ", itemName)
 	//щит
 	case "shield":
@@ -110,7 +123,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		//вооружаем
 		p.Equipment.Shield = item
 		//удаляем из инвентаря
-		player.RemoveItem(&p.Inventory, itemName, 1)
+		p.RemoveItemFromStorage(itemName, inBag, index)
 		fmt.Fprintf(conn, "Ты надел %s в слот щита\n> ", itemName)
 	//сумка
 	case "bag":
@@ -121,7 +134,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		//вооружаем
 		p.Equipment.Bag = item
 		//удаляем из инвентаря
-		player.RemoveItem(&p.Inventory, itemName, 1)
+		p.RemoveItemFromStorage(itemName, inBag, index)
 		fmt.Fprintf(conn, "Ты надел %s в слот сумки\n> ", itemName)
 	//кольца
 	case "ring":
@@ -135,7 +148,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 			fmt.Fprintf(conn, "У тебя уже есть два кольца. Сними одно сначало\n> ")
 			return
 		}
-		player.RemoveItem(&p.Inventory, itemName, 1)
+		p.RemoveItemFromStorage(itemName, inBag, index)
 
 	//Еда, напитки, семена, материалы
 	case "food", "drink", "seed", "material", "container":

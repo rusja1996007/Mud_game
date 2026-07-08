@@ -16,14 +16,15 @@ import (
 
 // // Equipment - экипировка (не занимает слоты рюкзака)
 type Equipment struct {
-	Weapon *item.ItemStack
-	Armor  *item.ItemStack
-	Helmet *item.ItemStack
-	Bag    *item.ItemStack //мешок(сумка)
-	Shield *item.ItemStack //щит
-	Boots  *item.ItemStack //тапки
-	Ring1  *item.ItemStack //кольцо1
-	Ring2  *item.ItemStack //кольцо2
+	Weapon   *item.ItemStack
+	Armor    *item.ItemStack
+	Helmet   *item.ItemStack
+	Bag      *item.ItemStack   //мешок(сумка)
+	Shield   *item.ItemStack   //щит
+	Boots    *item.ItemStack   //тапки
+	Ring1    *item.ItemStack   //кольцо1
+	Ring2    *item.ItemStack   //кольцо2
+	BagItems []*item.ItemStack //мешок как отдельный контейнер
 
 }
 

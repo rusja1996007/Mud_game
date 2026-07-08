@@ -48,7 +48,7 @@ func HandleHotel(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 			Description:   "+50 к максимальному здоровью",
 		}
 		maxHealth := 50 + p.Stats.Strength*5 + newBuff.Value
-		p.Stats.Health = maxHealth //восстанавливает 60хп
+		p.Stats.Health = maxHealth
 
 		if p.Stats.Health > maxHealth {
 			p.Stats.Health = maxHealth

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -36,6 +37,7 @@ func HandleEat(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 	}
 
 	var index int = -1
+	var inBag bool
 
 	if num, err := strconv.Atoi(itemName); err == nil {
 		target, idx := p.FindItemByNumber(num)
@@ -45,8 +47,13 @@ func HandleEat(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 		}
 		index = idx
 		itemName = target.Name
+		if num <= len(p.Inventory) {
+			inBag = false
+		} else {
+			inBag = true
+		}
 	} else {
-		index = p.FindItemIndex(itemName)
+		index, inBag = p.FindItemGlobalByName(itemName)
 	}
 
 	if index == -1 {
@@ -54,7 +61,14 @@ func HandleEat(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 		return
 	}
 
-	item := p.Inventory[index]
+	//получаем сам предмет
+	var item *item.ItemStack
+	if inBag {
+		item = p.Equipment.BagItems[index]
+	} else {
+		item = p.Inventory[index]
+	}
+
 	if item.ItemType != "food" {
 		fmt.Fprintf(conn, "Это нельзя есть\n> ")
 		return
@@ -69,7 +83,7 @@ func HandleEat(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 	p.ApplyItemEffect(itemName, conn)
 
 	//удаляем 1 единицу самой еды
-	player.RemoveItem(&p.Inventory, itemName, 1)
+	p.RemoveOneItem(itemName, inBag, index)
 
 	//СОхраняем игрока
 	playerRepo.Save(p)

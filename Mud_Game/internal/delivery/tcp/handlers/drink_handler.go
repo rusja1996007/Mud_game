@@ -5,11 +5,9 @@ import (
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
-	"math/rand"
 	"net"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
@@ -39,6 +37,7 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 	}
 
 	var index int = -1
+	var inBag bool
 	if num, err := strconv.Atoi(itemName); err == nil {
 		target, idx := p.FindItemByNumber(num)
 		if target == nil {
@@ -47,8 +46,13 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		}
 		index = idx
 		itemName = target.Name
+		if num <= len(p.Inventory) {
+			inBag = false
+		} else {
+			inBag = true
+		}
 	} else {
-		index = p.FindItemIndex(itemName)
+		index, inBag = p.FindItemGlobalByName(itemName)
 	}
 
 	if index == -1 {
@@ -56,7 +60,12 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		return
 	}
 
-	thatItem := p.Inventory[index]
+	var thatItem *item.ItemStack
+	if inBag {
+		thatItem = p.Equipment.BagItems[index]
+	} else {
+		thatItem = p.Inventory[index]
+	}
 
 	if thatItem.ItemType != "drink" {
 		fmt.Fprintf(conn, "Это нельзя пить\n> ")
@@ -68,32 +77,25 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		p.Stats.Thirst = 100
 	}
 
+	// Если это вода — возвращаем пустую бутылку
 	if thatItem.Name == "water bottle" {
-
-		//генерация числа с 0 до 100
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		chance := rng.Intn(100) + 1
-
 		emptyBottle := item.GetItem("empty bottle", 1)
+		if !p.AddItemToInventory(emptyBottle) {
+			// Если нет места — кидаем на пол
+			room, err := roomRepo.FindByID(p.CurrentRoom)
+			if err == nil {
+				room.AddItem(emptyBottle)
+				roomRepo.Save(room)
+				fmt.Fprintf(conn, "Ты выпил %s, бутылка упала на пол. Жажда: %d/100\n> ", itemName, p.Stats.Thirst)
 
-		if chance <= 70 {
-			if !p.AddItemToInventory(emptyBottle) {
-				room, err := roomRepo.FindByID(p.CurrentRoom)
-				if err == nil {
-					room.AddItem(emptyBottle)
-					roomRepo.Save(room)
-					fmt.Fprintf(conn, "Ты выпил воду,бутылку скинул на пол. Жажда: %d/100\n> ", p.Stats.Thirst)
-				} else {
-					fmt.Fprintf(conn, "Ты выпил воду, но бутылку случайно уронил и разбил. Жажда: %d/100\n> ", p.Stats.Thirst)
-				}
-			} else {
-				fmt.Fprintf(conn, "Ты выпил воду, бутылка целая. Жажда:%d/100\n> ", p.Stats.Thirst)
 			}
+
 		} else {
-			fmt.Fprintf(conn, "Ты выпил воду, но бутылка износилась. Жажда:%d/100\n> ", p.Stats.Thirst)
+			fmt.Fprintf(conn, "Ты выпил %s, бутылку оставил. Жажда: %d/100\n> ", itemName, p.Stats.Thirst)
 		}
-		player.RemoveItem(&p.Inventory, itemName, 1)
+
+		// Удаляем 1 единицу напитка
+		p.RemoveOneItem(itemName, inBag, index)
 		playerRepo.Save(p)
-		return
 	}
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -53,21 +54,41 @@ func HandleDestroy(conn net.Conn, cmd string, p *player.Player, roomRepo room.Re
 		fmt.Fprintf(conn, "Что уничтожить?\n> ")
 		return
 	}
-	// Ищем нужную стопку в инвентаре
-	foundIndex := -1
-	for i, stack := range p.Inventory {
-		if stack.Name == itemName {
-			foundIndex = i
-			break
+	// Ищем предмет в инвентаре и мешке
+	var index int = -1
+	var inBag bool
+
+	if num, err := strconv.Atoi(itemName); err == nil {
+		target, idx := p.FindItemByNumber(num)
+		if target == nil {
+			fmt.Fprintf(conn, "Нет предмета с номером %d\n> ", num)
+			return
 		}
+		index = idx
+		itemName = target.Name
+		if num <= len(p.Inventory) {
+			inBag = false
+		} else {
+			inBag = true
+		}
+	} else {
+		index, inBag = p.FindItemGlobalByName(itemName)
 	}
-	if foundIndex == -1 {
+
+	if index == -1 {
 		fmt.Fprintf(conn, "У тебя нет такого предмета\n> ")
 		return
 	}
-	//в переменную ложим количество которое имеем
-	available := p.Inventory[foundIndex].Count
-	//Определить, сколько уничтожать
+
+	// Получаем предмет
+	var thatItem *item.ItemStack
+	if inBag {
+		thatItem = p.Equipment.BagItems[index]
+	} else {
+		thatItem = p.Inventory[index]
+	}
+
+	available := thatItem.Count
 	destroyCount := count
 	if count == -1 {
 		destroyCount = available
@@ -79,15 +100,18 @@ func HandleDestroy(conn net.Conn, cmd string, p *player.Player, roomRepo room.Re
 		fmt.Fprintf(conn, "Нечего уничтожать\n> ")
 		return
 	}
-	//    Уничтожить предметы (удалить из инвентаря)
-	if destroyCount == available {
-		// Удаляем всю стопку
-		p.Inventory = append(p.Inventory[:foundIndex], p.Inventory[foundIndex+1:]...)
-	} else {
-		// Уменьшаем количество
-		p.Inventory[foundIndex].Count -= destroyCount
-	}
-	playerRepo.Save(p)
-	fmt.Fprintf(conn, "Ты уничтожил %d %s\n> ", destroyCount, itemName) //fmt.Fprintf(conn, ...),Пишет напрямую в соединение(ненадо отделдьно преобразовывать в байты) короче и эффективнее
 
+	// Удаляем
+	if destroyCount == available {
+		p.RemoveItemFromStorage(itemName, inBag, index)
+	} else {
+		if inBag {
+			p.Equipment.BagItems[index].Count -= destroyCount
+		} else {
+			p.Inventory[index].Count -= destroyCount
+		}
+	}
+
+	playerRepo.Save(p)
+	fmt.Fprintf(conn, "Ты уничтожил %d %s\n> ", destroyCount, itemName)
 }

@@ -12,6 +12,7 @@ import (
 
 func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 	//DROP
+
 	if cmd == "drop" {
 		fmt.Fprintf(conn, "Что бросить?\n> ")
 		return
@@ -65,20 +66,19 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
-	if foundIndex == -1 {
-		for i, stack := range p.Inventory {
-			if stack.Name == itemName {
-				foundIndex = i
-				break
-			}
-		}
-	}
+	foundIndex, inBag := p.FindItemGlobalByName(itemName)
+
 	if foundIndex == -1 {
 		fmt.Fprintf(conn, "У вас нету такого предмета\n> ")
 		return
 	}
 	//сохраняем оригинальный предмет
-	originalStack := p.Inventory[foundIndex]
+	var originalStack *item.ItemStack
+	if inBag {
+		originalStack = p.Equipment.BagItems[foundIndex]
+	} else {
+		originalStack = p.Inventory[foundIndex]
+	}
 
 	available := originalStack.Count
 	dropCount := count //сколько выложить
@@ -93,11 +93,19 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
-	//удаляем из инвентаря игрока
+	// Удаляем из инвентаря или мешка
 	if dropCount == available {
-		p.Inventory = append(p.Inventory[:foundIndex], p.Inventory[foundIndex+1:]...)
+		if inBag {
+			p.Equipment.BagItems = append(p.Equipment.BagItems[:foundIndex], p.Equipment.BagItems[foundIndex+1:]...)
+		} else {
+			p.Inventory = append(p.Inventory[:foundIndex], p.Inventory[foundIndex+1:]...)
+		}
 	} else {
-		p.Inventory[foundIndex].Count -= dropCount
+		if inBag {
+			p.Equipment.BagItems[foundIndex].Count -= dropCount
+		} else {
+			p.Inventory[foundIndex].Count -= dropCount
+		}
 	}
 
 	// ✅ СОЗДАЕМ СТОПКУ ДЛЯ БРОСКА

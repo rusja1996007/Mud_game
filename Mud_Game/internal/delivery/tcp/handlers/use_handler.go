@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -32,6 +33,7 @@ func HandleUse(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 	}
 
 	var index int = -1
+	var inBag bool
 	if num, err := strconv.Atoi(itemName); err == nil {
 		target, idx := p.FindItemByNumber(num)
 		if target == nil {
@@ -40,15 +42,25 @@ func HandleUse(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 		}
 		index = idx
 		itemName = target.Name
+		if num <= len(p.Inventory) {
+			inBag = false
+		} else {
+			inBag = true
+		}
 	} else {
-		index = p.FindItemIndex(itemName)
+		index, inBag = p.FindItemGlobalByName(itemName)
 	}
 
 	if index == -1 {
 		fmt.Fprintf(conn, "Предмет не найден\n> ")
 		return
 	}
-	thatItem := p.Inventory[index]
+	var thatItem *item.ItemStack
+	if inBag {
+		thatItem = p.Equipment.BagItems[index]
+	} else {
+		thatItem = p.Inventory[index]
+	}
 
 	if thatItem.ItemType != "scroll" {
 		fmt.Fprintf(conn, "Это нельзя использовать\n> ")
@@ -99,7 +111,7 @@ func HandleUse(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 		} else {
 			fmt.Fprintf(conn, "Ты попытался использовать заклинание, но случайно сжег свиток.\n> ")
 		}
-		player.RemoveItem(&p.Inventory, thatItem.Name, 1)
+		p.RemoveOneItem(itemName, inBag, index)
 		playerRepo.Save(p)
 		return
 	}
@@ -127,7 +139,7 @@ func HandleUse(conn net.Conn, cmd string, p *player.Player, roomRepo room.Reposi
 		} else {
 			fmt.Fprintf(conn, "Ты попытался использовать заклинание, но случайно сжег свиток.\n> ")
 		}
-		player.RemoveItem(&p.Inventory, thatItem.Name, 1)
+		p.RemoveOneItem(itemName, inBag, index)
 		playerRepo.Save(p)
 		return
 

@@ -43,6 +43,38 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 			fmt.Fprintf(&result, "\n")
 		}
 	}
+
+	//мешок(если есть)
+	if p.Equipment.Bag != nil && len(p.Equipment.BagItems) > 0 {
+		startIndex := len(p.Inventory)
+		fmt.Fprintf(&result, "\n🎒 Предметы в мешке:\n")
+		for i, stack := range p.Equipment.BagItems {
+			globalIndex := startIndex + i + 1
+			fmt.Fprintf(&result, " %d. %s", globalIndex, stack.Name)
+
+			if stack.ItemType == "weapon" || stack.ItemType == "armor" ||
+				stack.ItemType == "helmet" || stack.ItemType == "shield" ||
+				stack.ItemType == "boots" || stack.ItemType == "bag" {
+				if stack.Durability <= 0 {
+					fmt.Fprintf(&result, "⚠️ СЛОМАН\n")
+				} else {
+					fmt.Fprintf(&result, " (прочность: %d/100)", stack.Durability)
+				}
+
+			}
+			if stack.Count > 1 {
+				fmt.Fprintf(&result, " x%d", stack.Count)
+			}
+			fmt.Fprintf(&result, "\n")
+		}
+
+		// Показываем свободное место в мешке
+		freeSlots := p.Equipment.Bag.SlotBonus - len(p.Equipment.BagItems)
+		fmt.Fprintf(&result, " (свободно: %d/%d)\n", freeSlots, p.Equipment.Bag.SlotBonus)
+	} else if p.Equipment.Bag != nil {
+		fmt.Fprintf(&result, "\n🎒 Мешок пуст\n")
+	}
+
 	//Экипировка
 	fmt.Fprintf(&result, "\n Экипировка:\n")
 	//проверяем каждый слот экипировки:
@@ -64,13 +96,6 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 		fmt.Fprintf(&result, " Шлем : %s\n", p.Equipment.Helmet.Name)
 	} else {
 		fmt.Fprintf(&result, " Шлем : не надето\n")
-	}
-
-	//мешок
-	if p.Equipment.Bag != nil {
-		fmt.Fprintf(&result, " Мешок : %s\n", p.Equipment.Bag.Name)
-	} else {
-		fmt.Fprintf(&result, " Мешок : не надето\n")
 	}
 
 	//Щит
