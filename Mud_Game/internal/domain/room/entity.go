@@ -25,8 +25,9 @@ type Room struct {
 	Exits       map[string]string //выходы: направление → ID комнаты
 	Items       []*item.ItemStack //[]item.ItemStack = много разных предметов с количеством
 	mtx         sync.RWMutex
-	TownExits   []TownExit       `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
-	Monster     *monster.Monster `json:"-"`
+	TownExits   []TownExit         `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
+	Monster     *monster.Monster   `json:"-"`
+	MonsterS    []*monster.Monster `json:"-"` //НЕСКОЛЬКО
 
 	playerOccupantID string    `json:"-"` //для блокировки данжа если там ктото есть
 	NextSpawnTime    time.Time //следующее время обновления предметов
@@ -58,19 +59,25 @@ func (r *Room) Look(playerID string) string {
 	builder.WriteString("\n")
 
 	//динамическое описание монстра
-	monster := r.GetMonster()
-	if monster != nil && monster.IsAlive {
-		builder.WriteString(monster.Description)
-		builder.WriteString("\n")
-	} else if monster != nil && !monster.IsAlive {
-		remaining := time.Until(r.Monster.TimeToLoot).Round(time.Second)
-		if remaining > 0 {
-			builder.WriteString(fmt.Sprintf("⚠️ Пещера обвалится через %v. У тебя есть время на обыск!\n", remaining))
-		} else {
-			builder.WriteString("Пещера обвалилась.\n")
+	aliveMonsters := r.GetAliveMonsters()
+	if len(aliveMonsters) > 0 {
+		for i, m := range aliveMonsters {
+			builder.WriteString(fmt.Sprintf(" %d. %s\n", i+1, m.Description))
+
 		}
-	} else if r.ID == "dungeon_goblin" {
-		builder.WriteString("Пещера пуста. Следы битвы видны повсюду.\n")
+	} else if len(aliveMonsters) == 0 && (r.ID == "dungeon_goblin" || r.ID == "dungeon_goblins_v2") {
+		// Проверяем таймер обвала, если монстры мертвы
+		monster := r.GetMonster()
+		if monster != nil && !monster.IsAlive {
+			remaining := time.Until(monster.TimeToLoot).Round(time.Second)
+			if remaining > 0 {
+				builder.WriteString(fmt.Sprintf("⚠️ Пещера обвалится через %v. У тебя есть время на обыск!\n", remaining))
+			} else {
+				builder.WriteString("Пещера обвалилась.\n")
+			}
+		} else {
+			builder.WriteString("Пещера пуста. Следы битвы видны повсюду.\n")
+		}
 	}
 
 	items := r.GetItems()
@@ -206,18 +213,32 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 
 }
 
-// проверка наличия монстра
+// проверка наличия монстра(или монстров)
 func (r *Room) GetMonster() *monster.Monster {
 	r.mtx.RLock()
 	defer r.mtx.RUnlock()
 
-	if r.Monster != nil {
-		if r.Monster.CheckRespawn() {
-			// Респавн произошёл — убираем выход
-			delete(r.Exits, "up")
+	// Сначала проверяем Monsters (новый данж)
+	if len(r.MonsterS) > 0 {
+		for _, m := range r.MonsterS {
+			if m.IsAlive {
+				if m.CheckRespawn() {
+					delete(r.Exits, "up")
+				}
+				return m
+			}
 		}
 	}
-	return r.Monster
+
+	// Потом проверяем Monster (старый данж)
+	if r.Monster != nil {
+		if r.Monster.CheckRespawn() {
+			delete(r.Exits, "up")
+		}
+		return r.Monster
+	}
+
+	return nil
 }
 
 // обновление монстра(после урона)
@@ -273,4 +294,40 @@ func (r *Room) GetExitRoomID() string {
 	r.mtx.RLock()
 	defer r.mtx.RUnlock()
 	return r.ExitRoom
+}
+
+func (r *Room) GetAliveMonsters() []*monster.Monster {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+
+	var alive []*monster.Monster
+
+	// Если есть поле Monsters (новый данж) — используем его
+	if len(r.MonsterS) > 0 {
+		for _, m := range r.MonsterS {
+			if m.IsAlive {
+				alive = append(alive, m)
+			}
+		}
+		return alive
+	}
+
+	// Если есть поле Monster (старый данж) — используем его
+	if r.Monster != nil && r.Monster.IsAlive {
+
+		alive = append(alive, r.Monster)
+	}
+
+	return alive
+}
+
+// GetMonsters возвращает всех монстров
+func (r *Room) GetMonsters() []*monster.Monster {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+
+	if r.Monster != nil {
+		return []*monster.Monster{r.Monster}
+	}
+	return r.MonsterS
 }

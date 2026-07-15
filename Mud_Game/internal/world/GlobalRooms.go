@@ -23,8 +23,9 @@ func InitGlobalTown(repo room.Repository) error {
 		Name:        "Городская площадь",
 		Description: "Центральная площадь города. Сюда ведут дороги от домов игроков.",
 		Exits: map[string]string{
-			"hotel":   "hotel",
-			"dungeon": "dungeon_entrance_goblins",
+			"hotel":    "hotel",
+			"dungeon":  "dungeon_entrance_goblins",
+			"dungeon2": "dungeon_entrance_goblins_v2",
 		},
 		Items: []*item.ItemStack{},
 	}
@@ -81,8 +82,42 @@ func InitGlobalTown(repo room.Repository) error {
 		ExitRoom:    "dungeon_entrance_goblins",
 	}
 	if err := repo.Save(goblinRoom); err != nil {
-		return fmt.Errorf("Ошибка создания комнаты с гоблинами:%v", err)
+		return fmt.Errorf("Ошибка создания комнаты с гоблином:%v", err)
+	}
+
+	//СОЗДАЕМ ВХОД В ПОДЗЕМЕЛЬЕ С ДВУМЯ ГОБЛИНАМИ(ГЛУБОКАЯ ПЕЩЕРА)
+	entrance2 := &room.Room{
+		ID:          "dungeon_entrance_goblins_v2",
+		Name:        "Вход в глубокую пещеру",
+		Description: "Темный проход, ведущий в глубины.",
+		Exits: map[string]string{
+			"town": "global_town",
+			"down": "dungeon_goblins_v2",
+		},
+		Items:         []*item.ItemStack{},
+		NextSpawnTime: time.Now(),
+	}
+	if err := repo.Save(entrance2); err != nil {
+		return fmt.Errorf("Ошибка создания комнаты входа в глубокую пещеру с гоблинами:%v", err)
+	}
+
+	//СОЗДАЕМ ПОДЗЕМЕЛЬЕ С ГОБЛинами
+	goblinRoom2 := &room.Room{
+		ID:          "dungeon_goblins_v2",
+		Name:        "Логово двух гоблинов",
+		Description: "Пещера, где два гоблина охраняют проход.",
+		Exits:       map[string]string{},
+		Items:       []*item.ItemStack{},
+		MonsterS: []*monster.Monster{
+			monster.NewGoblinWarrior("dungeon_goblins_v2"),
+			monster.NewGoblinShaman("dungeon_goblins_v2"),
+		},
+		ExitRoom: "dungeon_entrance_goblins_v2",
+	}
+	if err := repo.Save(goblinRoom2); err != nil {
+		return fmt.Errorf("Ошибка создания комнаты с двумя гоблинами:%v", err)
 	}
 
 	return nil
+
 }

@@ -12,9 +12,14 @@ import (
 func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 
 	//текущая комната
-	room, _ := roomRepo.FindByID(p.CurrentRoom)
+	roomInterface, _ := roomRepo.FindByID(p.CurrentRoom)
+	concreteRoom, ok := roomInterface.(*room.Room)
+	if !ok {
+		fmt.Fprintf(conn, "Ошибка приведения комнаты\n> ")
+		return
+	}
 
-	monster := room.GetMonster()
+	monster := concreteRoom.GetMonster()
 
 	if monster == nil || !monster.IsAlive {
 		fmt.Fprintf(conn, "Некого бояться, можно не убегать.\n> ")
@@ -36,15 +41,27 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	}
 	/////////////////////////////////////если успех/////////////////////////////////
 	if rand.Intn(100) < chanceOfEscape {
-		p.CurrentRoom = room.GetExitRoomID()
+		p.CurrentRoom = concreteRoom.GetExitRoomID()
 
-		//восстановление монстра
-		monster.Health = monster.MaxHealth
+		// ✅ ВОССТАНАВЛИВАЕМ ВСЕХ МОНСТРОВ
+		if len(concreteRoom.MonsterS) > 0 {
+			for _, m := range concreteRoom.MonsterS {
+				m.Health = m.MaxHealth
+				m.IsAlive = true
+				if m.ID == "goblin_shaman" {
+					m.CastTime = 0
+					m.IsCasting = true
+				}
+			}
+		} else if monster != nil {
+			monster.Health = monster.MaxHealth
+			monster.IsAlive = true
+		}
 
-		room.ClearItems()
-		room.SetPlayerOccupantID("")
+		concreteRoom.ClearItems()
+		concreteRoom.SetPlayerOccupantID("")
 		playerRepo.Save(p)
-		roomRepo.Save(room)
+		roomRepo.Save(concreteRoom)
 
 		newRoom, _ := roomRepo.FindByID(p.CurrentRoom)
 		fmt.Fprintf(conn, "Ты успешно сбежал!\n")
@@ -71,13 +88,28 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			return
 		}
 
-		p.CurrentRoom = room.GetExitRoomID()
+		p.CurrentRoom = concreteRoom.GetExitRoomID()
 
 		newRoom, _ := roomRepo.FindByID(p.CurrentRoom)
-		monster.Health = monster.MaxHealth
-		room.ClearItems()
-		room.SetPlayerOccupantID("")
-		roomRepo.Save(room)
+
+		// ✅ ВОССТАНАВЛИВАЕМ ВСЕХ МОНСТРОВ
+		if len(concreteRoom.MonsterS) > 0 {
+			for _, m := range concreteRoom.MonsterS {
+				m.Health = m.MaxHealth
+				m.IsAlive = true
+				if m.ID == "goblin_shaman" {
+					m.CastTime = 0
+					m.IsCasting = true
+				}
+			}
+		} else if monster != nil {
+			monster.Health = monster.MaxHealth
+			monster.IsAlive = true
+		}
+
+		concreteRoom.ClearItems()
+		concreteRoom.SetPlayerOccupantID("")
+		roomRepo.Save(concreteRoom)
 		playerRepo.Save(p)
 		fmt.Fprintf(conn, "Ты сбежал!\n")
 		fmt.Fprintf(conn, "%s\n> ", newRoom.Look(p.ID))

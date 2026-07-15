@@ -14,15 +14,16 @@ import (
 )
 
 type RoomModel struct {
-	ID          string `gorm:"primaryKey;size:36"`
-	Name        string `gorm:"size:100"`
-	Description string `gorm:"type:text"`
-	Exits       string `gorm:"type:text"`
-	Items       string `gorm:"type:text"`
-	MonsterData string `gorm:"type:text"`
-	Created_at  time.Time
-	Updated_at  time.Time
-	Deleted_at  gorm.DeletedAt `gorm:"index"`
+	ID           string `gorm:"primaryKey;size:36"`
+	Name         string `gorm:"size:100"`
+	Description  string `gorm:"type:text"`
+	Exits        string `gorm:"type:text"`
+	Items        string `gorm:"type:text"`
+	MonsterData  string `gorm:"type:text"`
+	MonsterSData string `gorm:"type:text"` // JSON для нескольких монстров
+	Created_at   time.Time
+	Updated_at   time.Time
+	Deleted_at   gorm.DeletedAt `gorm:"index"`
 
 	PlayerOccupantID string `gorm:"size:36"`
 	ExitRoomID       string `gorm:"size:36"`
@@ -54,19 +55,39 @@ func (m *RoomModel) ToEntity() (*Room, error) {
 		TownExits:        []TownExit{}, // пока пусто
 		playerOccupantID: m.PlayerOccupantID,
 		ExitRoom:         m.ExitRoomID,
+		// Monster и MonsterS загружаем ниже
 	}
+
+	// ✅ Загружаем старого монстра
+	monsterData, err := m.getMonster()
+	if err != nil {
+		log.Printf("Ошибка загрузки монстра: %v", err)
+	}
+	room.Monster = monsterData
+
+	// Загружаем нескольких монстров из БД
+	if m.MonsterSData != "" {
+		var monsters []*monster.Monster
+		err := json.Unmarshal([]byte(m.MonsterSData), &monsters)
+		if err == nil {
+			room.MonsterS = monsters
+		}
+	}
+
 	//время когда появятся предметы в комнате
 	if m.ID == "dungeon_entrance_goblins" && room.NextSpawnTime.IsZero() {
 		room.NextSpawnTime = time.Now()
 	}
 
-	monsterData, err := m.getMonster()
-	if err != nil {
-		log.Printf("Ошибка создания монстра: %v", err)
+	if room.ID == "dungeon_goblins_v2" && len(room.MonsterS) == 0 {
+		room.MonsterS = []*monster.Monster{
+			monster.NewGoblinWarrior(room.ID),
+			monster.NewGoblinShaman(room.ID),
+		}
 	}
 
-	room.Monster = monsterData
 	if room.ID == "dungeon_goblin" && room.Monster == nil {
+
 		room.Monster = monster.NewGoblin(room.ID)
 	}
 	if room.ID == "global_town" {
@@ -106,6 +127,12 @@ func FromEntity(r *Room) (*RoomModel, error) {
 		return nil, errors.New("Не удалось преобразовать предметы")
 	}
 
+	// ✅ СОХРАНЯЕМ НЕСКОЛЬКИХ МОНСТРОВ
+	monsterSData, err := json.Marshal(r.MonsterS)
+	if err != nil {
+		return nil, err
+	}
+
 	//создаем модель
 	model := &RoomModel{
 		ID:               r.ID,
@@ -117,6 +144,7 @@ func FromEntity(r *Room) (*RoomModel, error) {
 		Updated_at:       time.Now(),
 		PlayerOccupantID: r.playerOccupantID,
 		ExitRoomID:       r.ExitRoom,
+		MonsterSData:     string(monsterSData),
 	}
 
 	//сохраняем монстра
