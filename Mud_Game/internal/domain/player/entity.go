@@ -50,9 +50,10 @@ type Player struct {
 	PendingStatChoiсe       bool      //ожидает ли игрок выбор
 	PendingStatChoiсeExpiry time.Time //время на выбор характеристики
 
-	//бафы
-	ActiveBuffs    []*buff.Buff //список активных бафов
-	stopBuffTicker chan bool    //канал остановки тикера
+	//бафы+дебафы
+	ActiveBuffs      []*buff.Buff //список активных бафов
+	stopBuffTicker   chan bool    //канал остановки тикера
+	stopPoisonTicker chan bool    //канал остановки тикера
 
 	//путешествие
 	PendingTravel          bool
@@ -100,12 +101,16 @@ type Stats struct {
 	TravelEndTime    time.Time //время когда закончится путешествие
 	TravelTargetRoom string    //Это поле хранит ID комнаты, куда игрок идёт:
 
-	//временные бонусы :
-	MaxHealthBonus int //к максимальному здоровью
+	//временные бонусы+дебафы :
+	MaxHealthBonus int  //к максимальному здоровью
+	IsPoisoned     bool //отравлен?
+	PoisonTicks    int  //количество тиков яда (макс 6)
+	PoisonDamage   int  //
 
 	//данжи
 	IsInDungeon      bool      //в данже?
 	EnteredDungeonAt time.Time //вошел в подземелье в ...
+	IsInCombat       bool      //в подземельи?
 }
 
 // для сохранения игрока при отключении сервера без проблем с циклическим импортом
@@ -895,5 +900,52 @@ func (p *Player) BreakAllEquipment() {
 				(*slot).Durability = 0
 			}
 		}
+	}
+}
+
+// запуск эффект яда у персонажа после боя (1 минута)
+func (p *Player) StartPoisonTicker(conn net.Conn, repo Repository) {
+
+	if !p.Stats.IsPoisoned {
+		return
+	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		//если яд кончился:
+		if !p.Stats.IsPoisoned || p.Stats.PoisonTicks <= 0 {
+			p.Stats.IsPoisoned = false
+			p.Stats.PoisonTicks = 0
+			p.SendMessage(conn, "🌿 Действие яда закончилось.\n> ")
+			repo.Save(p)
+			return
+		}
+
+		//если нет:
+		p.Stats.Health -= p.Stats.PoisonDamage
+		p.Stats.PoisonTicks--
+		repo.Save(p)
+		msg := fmt.Sprintf("💀 Яд нанес тебе %d урона!\n> ", p.Stats.PoisonDamage)
+		p.SendMessage(conn, msg)
+
+		if p.Stats.Health <= 0 {
+			fmt.Fprintf(conn, "💀 Ты погиб от яда, персонаж удаляется!\n> ")
+			conn.Close()
+			repo.Delete(p.ID)
+			return
+		}
+
+	}
+
+}
+
+// останавливает тикер яда
+func (p *Player) StopPoisonTicker() {
+	if p.stopPoisonTicker != nil {
+		p.stopPoisonTicker <- true
+		close(p.stopPoisonTicker)
+		p.stopPoisonTicker = nil
 	}
 }

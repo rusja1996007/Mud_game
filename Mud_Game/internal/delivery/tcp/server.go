@@ -111,6 +111,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		//Игрок найден - загружаем
 		currentPlayer = existingPlayer
 		fmt.Fprintf(conn, "С возвращением, %s!\n> ", name)
+
 	} else {
 		// Новый игрок - создаём
 		//Геренириуем ID
@@ -224,6 +225,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		go currentPlayer.StartThirstTicker(conn, s.playerRepo)
 		go currentPlayer.StartBuffTicker(conn, s.playerRepo)
 
+		//Восстановление путешествия(передвижение)
 		if currentPlayer.Stats.IsTraveling {
 			if time.Now().After(currentPlayer.Stats.TravelEndTime) {
 				// Завершаем путешествие при входе
@@ -241,6 +243,17 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 
 			}
 		}
+
+		//Если есть яд - восстановить
+		if currentPlayer.Stats.IsPoisoned && currentPlayer.Stats.PoisonTicks > 0 {
+			fmt.Fprintf(conn, "⚠️ Ты всё ещё отравлен! Яд продолжает действовать.\n")
+			go currentPlayer.StartPoisonTicker(conn, s.playerRepo)
+		}
+
+		//Показ комнаты:
+		room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom)
+		fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
+
 		// Цикл обработки команд одного игрока
 		for {
 			// Читаем команду от игрока

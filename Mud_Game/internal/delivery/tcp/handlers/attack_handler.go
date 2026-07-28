@@ -55,6 +55,19 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	// ✅ РАБОТАЕМ НАПРЯМУЮ С allAliveMonster[targetIndex]
 	selectedMonster := allAliveMonster[targetIndex]
 
+	p.Stats.IsInCombat = true
+
+	//Проверка яда ПОСЛЕ выбора цели
+	if p.Stats.IsPoisoned {
+		p.Stats.Health -= selectedMonster.PoisonDamage
+		if p.Stats.Health <= 0 {
+			fmt.Fprintf(conn, "Ты погиб от яда..\n")
+			playerRepo.Delete(p.ID)
+			conn.Close()
+			return
+		}
+	}
+
 	// ... наносим урон monster ...
 
 	//рассчитываем урон игрока
@@ -78,14 +91,12 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		finalDamageMonster = 1
 	}
 
-	// Находим реальный индекс монстра в оригинальном списке
-	var monsterIndex int = -1
 	var targetMonster *monster.Monster
 
 	// Сначала ищем в MonsterS (новый данж)
 	for i, m := range concreteRoom.MonsterS {
-		if m.ID == allAliveMonster[targetIndex].ID {
-			monsterIndex = i
+		if m.ID == selectedMonster.ID {
+
 			targetMonster = concreteRoom.MonsterS[i]
 			break
 		}
@@ -93,14 +104,11 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 	// Если не нашли — ищем в Monster (старый данж)
 	if targetMonster == nil && concreteRoom.Monster != nil {
-		if concreteRoom.Monster.ID == allAliveMonster[targetIndex].ID {
+		if concreteRoom.Monster.ID == selectedMonster.ID {
 			targetMonster = concreteRoom.Monster
-			monsterIndex = 0 // фиктивный индекс, не используется для MonsterS
+
 		}
 	}
-	// monsterIndex не используется дальше, но он нужен для компиляции
-	// Можешь добавить в конце:
-	_ = monsterIndex // ← если компилятор ругается
 
 	if targetMonster == nil {
 
@@ -147,83 +155,143 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 		// Если есть ещё живые — обвал НЕ наступает
 		if !allDead {
-			fmt.Fprintf(conn, "Ты нанес %d урона! %s повержен!\n> ", finalDamageMonster, selectedMonster.Name)
+
+			fmt.Fprintf(conn, "====================\n> ")
+
+		} else {
+
+			// После того как все монстры убиты - обвал
+			if p.Stats.IsPoisoned {
+				go p.StartPoisonTicker(conn, playerRepo)
+			}
+
+			p.Stats.IsInCombat = false
+
+			// ✅ Только если все мертвы — запускаем обвал
+			p.StopDungeonTimer()
+			selectedMonster.TimeToLoot = time.Now().Add(40 * time.Second)
+			selectedMonster.RespawnTime = time.Now().Add(1 * time.Minute)
+
+			// Добавляем выход
+			if concreteRoom.Exits == nil {
+				concreteRoom.Exits = make(map[string]string)
+			}
+			concreteRoom.Exits["up"] = "dungeon_entrance_goblins"
+
+			concreteRoom.SetMonster(selectedMonster)
 			roomRepo.Save(concreteRoom)
+
+			//+опыт
+			p.AddExperience(selectedMonster.Experience, conn)
+
+			//предупреждение об обвале за 20 секунд
+			go func() {
+				time.Sleep(20 * time.Second)
+				if p.CurrentRoom == "dungeon_goblin" {
+					p.SendMessage(conn, "\n💥 Стены пещеры сильно трясутся! Камни падают с потолка! Пещера вот-вот обвалится!\n> ")
+				}
+			}()
+
+			//время на осмотр лута
+			go func() {
+				time.Sleep(40 * time.Second) //////пока что время на осмотр лута  (обратный отсчет)
+				//проверяем что игрок еще в данже
+				if p.CurrentRoom == "dungeon_goblin" {
+					//телепортируем на вход и уничтожаем если не успели забрать предметы
+					concreteRoom.ClearItems()
+					p.CurrentRoom = "dungeon_entrance_goblins"
+					playerRepo.Save(p)
+					p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
+
+					//очищаем occupantID
+					concreteRoom.SetPlayerOccupantID("")
+					roomRepo.Save(concreteRoom)
+				}
+			}()
+
+			fmt.Fprintf(conn, "Ты нанес %d урона %s\n", finalDamageMonster, selectedMonster.Name)
+			fmt.Fprintf(conn, "Получено %d опыта.\n", selectedMonster.Experience)
+			fmt.Fprintf(conn, "⚠️ Пещера начнёт разрушаться через 2 минуты. У тебя есть время на обыск!\n> ")
 			return
 		}
-		// ✅ Только если все мертвы — запускаем обвал
-		p.StopDungeonTimer()
-		selectedMonster.TimeToLoot = time.Now().Add(40 * time.Second)
-		selectedMonster.RespawnTime = time.Now().Add(1 * time.Minute)
-
-		// Добавляем выход
-		if concreteRoom.Exits == nil {
-			concreteRoom.Exits = make(map[string]string)
-		}
-		concreteRoom.Exits["up"] = "dungeon_entrance_goblins"
-
-		concreteRoom.SetMonster(selectedMonster)
-		roomRepo.Save(concreteRoom)
-
-		//+опыт
-		p.AddExperience(selectedMonster.Experience, conn)
-
-		//предупреждение об обвале за 20 секунд
-		go func() {
-			time.Sleep(20 * time.Second)
-			if p.CurrentRoom == "dungeon_goblin" {
-				p.SendMessage(conn, "\n💥 Стены пещеры сильно трясутся! Камни падают с потолка! Пещера вот-вот обвалится!\n> ")
-			}
-		}()
-
-		//время на осмотр лута
-		go func() {
-			time.Sleep(40 * time.Second) //////пока что время на осмотр лута  (обратный отсчет)
-			//проверяем что игрок еще в данже
-			if p.CurrentRoom == "dungeon_goblin" {
-				//телепортируем на вход и уничтожаем если не успели забрать предметы
-				concreteRoom.ClearItems()
-				p.CurrentRoom = "dungeon_entrance_goblins"
-				playerRepo.Save(p)
-				p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
-
-				//очищаем occupantID
-				concreteRoom.SetPlayerOccupantID("")
-				roomRepo.Save(concreteRoom)
-			}
-		}()
-
-		fmt.Fprintf(conn, "Ты нанес %d урона! %s повержен!\n", finalDamageMonster, selectedMonster.Name)
-		fmt.Fprintf(conn, "Получено %d опыта.\n", selectedMonster.Experience)
-		fmt.Fprintf(conn, "⚠️ Пещера начнёт разрушаться через 2 минуты. У тебя есть время на обыск!\n> ")
-		return
 	}
 
-	////////////////////////////////////если выжил,он атакует/////////////////////////////////////
+	////////////////////////////////////они атакуют/////////////////////////////////////
 
-	///////////////если шаман гоблин://///
-	if selectedMonster.ID == "goblin_shaman" {
-		if selectedMonster.CastTime < 2 {
-			selectedMonster.CastTime++
+	var actions []string
+	var statuses []string
 
-			fmt.Fprintf(conn, "🧙Гоблин шаман колдует! (%d/2)\n", selectedMonster.CastTime)
-			fmt.Fprintf(conn, "Ты нанес %d урона.\n", finalDamageMonster)
-			fmt.Fprintf(conn, "Здоровье гоблина шамана: %d\n", selectedMonster.Health)
-
-			//обновляем CastTime в оригинале монстра
-			for i, m := range concreteRoom.MonsterS {
-				if m.ID == selectedMonster.ID {
-					concreteRoom.MonsterS[i].CastTime = selectedMonster.CastTime
-					break
-				}
-			}
-			roomRepo.Save(concreteRoom)
-			fmt.Fprintf(conn, "> ")
-			return
+	//ОТВЕТНАЯ АТАКА ВСЕХ МОНСТРОВ//
+	for i, m := range allAliveMonster {
+		if m.IsAlive {
+			statuses = append(statuses, fmt.Sprintf("%d. %s %d/%d HP", i+1, m.Name, m.Health, m.MaxHealth))
 		} else {
-			//после двух ходов бьет посохом
-			selectedMonster.IsCasting = false
-			monsterDamage := selectedMonster.MinDamage + rand.Intn(selectedMonster.MaxDamage-selectedMonster.MinDamage+1)
+			statuses = append(statuses, fmt.Sprintf("%d. %s мертв💀", i+1, m.Name))
+		}
+
+		if !m.IsAlive {
+			continue
+		}
+
+		///////////////если шаман гоблин://///
+		if m.ID == "goblin_shaman" {
+			if m.CastTime < 2 {
+				//колдует - яда нет
+				m.CastTime++
+				//обновляем CastTime в оригинале монстра
+				for j, orig := range concreteRoom.MonsterS {
+					if orig.ID == m.ID {
+						concreteRoom.MonsterS[j].CastTime = m.CastTime
+						break
+					}
+				}
+
+				actions = append(actions, fmt.Sprintf("%d. %s колдует! (%d/2)", i+1, m.Name, m.CastTime))
+
+				continue
+			} else {
+				//после двух ходов бьет посохом и накладывает яд
+				//+яд:
+				m.IsCasting = false
+
+				if m.CastTime == 2 {
+					p.Stats.IsPoisoned = true
+					p.Stats.PoisonTicks = 6               //6 тиков
+					p.Stats.PoisonDamage = m.PoisonDamage //берем из данного монстра
+					m.CastTime = 3
+
+					//обновляем CastTime в оригинале монстра
+					for j, orig := range concreteRoom.MonsterS {
+						if orig.ID == m.ID {
+							concreteRoom.MonsterS[j].CastTime = m.CastTime
+							break
+						}
+					}
+					actions = append(actions, fmt.Sprintf("%d. %s отравил тебя! Яд будет наносить %d урона каждый ход.", i+1, m.Name, m.PoisonDamage))
+
+				}
+
+				//+урон посохом:
+
+				monsterDamage := m.MinDamage + rand.Intn(m.MaxDamage-m.MinDamage+1)
+
+				//учитываем защиту игрока
+				defence := p.GetTotalDefence()
+				reduction := float64(defence) / (float64(defence) + 100)
+				finalDamage := int(float64(monsterDamage) * (1 - reduction))
+				if finalDamage <= 0 {
+					finalDamage = 1
+				}
+
+				p.Stats.Health -= finalDamage
+
+				actions = append(actions, fmt.Sprintf("%d. %s нанес %d урона", i+1, m.Name, finalDamage))
+			}
+
+		} else {
+
+			///////////////если физик какой то://////////////////
+			monsterDamage := m.MinDamage + rand.Intn(m.MaxDamage-m.MinDamage+1)
 
 			//учитываем защиту игрока
 			defence := p.GetTotalDefence()
@@ -235,35 +303,30 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 			p.Stats.Health -= finalDamage
 
-			fmt.Fprintf(conn, "Ты нанес %d урона! %s нанес %d урона!\n", finalDamageMonster, selectedMonster.Name, finalDamage)
-			fmt.Fprintf(conn, "Здоровье гоблина шамана: %d\n", selectedMonster.Health)
-
+			actions = append(actions, fmt.Sprintf("%d. %s нанес %d урона", i+1, m.Name, finalDamage))
 		}
-
-	} else {
-
-		///////////////если физик какой то://////////////////
-		monsterDamage := selectedMonster.MinDamage + rand.Intn(selectedMonster.MaxDamage-selectedMonster.MinDamage+1)
-
-		//учитываем защиту игрока
-		defence := p.GetTotalDefence()
-		reduction := float64(defence) / (float64(defence) + 100)
-		finalDamage := int(float64(monsterDamage) * (1 - reduction))
-		if finalDamage <= 0 {
-			finalDamage = 1
-		}
-
-		p.Stats.Health -= finalDamage
-
-		fmt.Fprintf(conn, "Ты нанес %d урона! %s нанес %d урона!\n", finalDamageMonster, selectedMonster.Name, finalDamage)
-		fmt.Fprintf(conn, "Здоровье гоблина: %d\n", selectedMonster.Health)
 	}
+	// Выводим результат
+	fmt.Fprintf(conn, "Ты нанес %d урона %s\n", finalDamageMonster, selectedMonster.Name)
+	for _, status := range statuses {
+		fmt.Fprintf(conn, "%s\n", status)
+	}
+	fmt.Fprintf(conn, "================================\n")
+	for _, action := range actions {
+		fmt.Fprintf(conn, "%s\n", action)
+	}
+
+	if p.Stats.IsPoisoned {
+		fmt.Fprintf(conn, "💀 Яд нанес тебе %d урона!\n", p.Stats.PoisonDamage)
+	}
+
+	roomRepo.Save(concreteRoom)
 
 	//проверка смерти
 	if p.Stats.Health <= 0 {
 		//шанс выжить:
 		if p.Stats.Tracking >= 6 {
-			chance := p.Stats.Tracking * 14 //////////////////////для теста
+			chance := p.Stats.Tracking * 20 //////////////////////для теста
 			if rand.Intn(100) < chance {
 				//если выжил
 				p.Stats.Health = 1
@@ -283,9 +346,18 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				} else if concreteRoom.Monster != nil {
 					concreteRoom.Monster.Health = concreteRoom.Monster.MaxHealth
 					concreteRoom.Monster.IsAlive = true
+					concreteRoom.Monster.CastTime = 0
 				}
 
 				roomRepo.Save(concreteRoom)
+
+				// Яд все равно остается
+				if p.Stats.IsPoisoned {
+					go p.StartPoisonTicker(conn, playerRepo)
+				}
+
+				p.Stats.IsInCombat = false
+
 				playerRepo.Save(p)
 				fmt.Fprintf(conn, "🔥 Ты чудом выжил! Инстинкты спасли тебя.\n")
 				fmt.Fprintf(conn, "Твоё снаряжение повреждено!\n")
@@ -320,15 +392,17 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		} else if concreteRoom.Monster != nil {
 			concreteRoom.Monster.Health = concreteRoom.Monster.MaxHealth
 			concreteRoom.Monster.IsAlive = true
+			concreteRoom.Monster.CastTime = 0
 		}
-		concreteRoom.SetPlayerOccupantID("")
 
+		concreteRoom.SetPlayerOccupantID("")
 		roomRepo.Save(concreteRoom)
 		fmt.Fprintf(conn, "💀 Ты погиб, персонаж удаляется...\n")
-		p.StopAllTickers()
 		playerRepo.Delete(p.ID) //////////////////
 		conn.Close()
 		return
 	}
+
 	fmt.Fprintf(conn, "> ")
+
 }

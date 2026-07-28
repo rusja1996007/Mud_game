@@ -43,6 +43,10 @@ type PlayerModel struct {
 	TravelEndTime    time.Time      `gorm:"default:null"`
 	TravelTargetRoom string         `gorm:"size:36"`
 	MaxHealthBonus   int            `gorm:"default:0"`
+	IsPoisoned       bool           `gorm:"default:false"`
+	PoisonTicks      int            `gorm:"default:0"`
+	PoisonDamage     int            `gorm:"default:0"`
+	IsInCombat       bool           `gorm:"default:false"`
 }
 
 // структура для JSON экипировки:
@@ -155,6 +159,10 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 			Intelect:         m.Intelect,
 			Tracking:         m.Tracking,
 			PendingStatPoint: m.PendingStatPoint,
+			IsPoisoned:       m.IsPoisoned,
+			PoisonTicks:      m.PoisonTicks,
+			PoisonDamage:     m.PoisonDamage,
+			IsInCombat:       m.IsInCombat,
 		},
 	}
 
@@ -269,5 +277,9 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		TravelEndTime:    p.Stats.TravelEndTime,
 		TravelTargetRoom: p.Stats.TravelTargetRoom,
 		MaxHealthBonus:   p.Stats.MaxHealthBonus,
+		IsPoisoned:       p.Stats.IsPoisoned,
+		PoisonTicks:      p.Stats.PoisonTicks,
+		PoisonDamage:     p.Stats.PoisonDamage,
+		IsInCombat:       p.Stats.IsInCombat,
 	}, nil
 }

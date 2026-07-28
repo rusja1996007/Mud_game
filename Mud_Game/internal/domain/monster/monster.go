@@ -23,6 +23,7 @@ type Monster struct {
 	TimeToLoot    time.Time //до какова времени можно обыскивать лут
 	CastTime      int       //сколько ходов уже колдует(0-2)
 	IsCasting     bool      //костует ли в этом ходу
+	PoisonDamage  int       //урон от яда монстра
 }
 
 // создания гоблина в комнате
@@ -48,7 +49,7 @@ func NewGoblin(roomID string) *Monster {
 func NewGoblinWarrior(roomID string) *Monster {
 	return &Monster{
 		ID:            "goblin_warrior",
-		Name:          "Гоблин мечник",
+		Name:          "👹 Гоблин мечник",
 		Health:        130,
 		MaxHealth:     130,
 		MinDamage:     15,
@@ -67,9 +68,9 @@ func NewGoblinWarrior(roomID string) *Monster {
 func NewGoblinShaman(roomID string) *Monster {
 	return &Monster{
 		ID:            "goblin_shaman",
-		Name:          "Гоблин-шаман",
-		Health:        60,
-		MaxHealth:     60,
+		Name:          "🧙 Гоблин-шаман",
+		Health:        20,
+		MaxHealth:     20,
 		MinDamage:     4,
 		MaxDamage:     8,
 		Defence:       0,
@@ -82,6 +83,7 @@ func NewGoblinShaman(roomID string) *Monster {
 		Description:   "🧙 Гоблин-шаман с посохом",
 		CastTime:      0,
 		IsCasting:     true,
+		PoisonDamage:  2,
 	}
 }
 

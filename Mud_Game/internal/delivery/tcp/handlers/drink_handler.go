@@ -98,4 +98,22 @@ func HandleDrink(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 		p.RemoveOneItem(itemName, inBag, index)
 		playerRepo.Save(p)
 	}
+
+	if thatItem.Name == "antidote" {
+		if p.Stats.IsPoisoned {
+			p.Stats.IsPoisoned = false
+			p.Stats.PoisonTicks = 0
+			p.Stats.PoisonDamage = 0
+
+			p.StopPoisonTicker()
+
+			fmt.Fprintf(conn, "🧪 Ты выпил отвар! Яд снят.\n> ")
+		} else {
+			fmt.Fprintf(conn, "Ты не отравлен, отвар не нужен.\n> ")
+		}
+
+		p.RemoveOneItem(itemName, inBag, index)
+		playerRepo.Save(p)
+
+	}
 }

@@ -63,6 +63,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			item.GetItem("vegetable set", 2),
 			item.GetItem("scroll fireball", 3),
 			item.GetItem("scroll heal", 10),
+			item.GetItem("antidote", 3),
 		},
 	}
 

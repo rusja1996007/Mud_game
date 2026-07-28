@@ -59,6 +59,12 @@ var ItemsDB = map[string]ItemData{
 		Description:   "--",
 	},
 
+	"antidote": {
+		Name:        "antidote",
+		ItemType:    "drink",
+		Description: "Отвар, снимающий большинство ядов",
+	},
+
 	//////////////////////////////////////food////////////////////////////////////////////
 	"tomato": {
 		Name:          "tomato",

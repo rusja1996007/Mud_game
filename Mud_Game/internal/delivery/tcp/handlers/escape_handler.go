@@ -56,6 +56,7 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		} else if monster != nil {
 			monster.Health = monster.MaxHealth
 			monster.IsAlive = true
+			monster.CastTime = 0
 		}
 
 		concreteRoom.ClearItems()
@@ -66,6 +67,14 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		newRoom, _ := roomRepo.FindByID(p.CurrentRoom)
 		fmt.Fprintf(conn, "Ты успешно сбежал!\n")
 		fmt.Fprintf(conn, "%s\n> ", newRoom.Look(p.ID))
+
+		//если есть яд - начинает тикать
+		if p.Stats.IsPoisoned {
+			go p.StartPoisonTicker(conn, playerRepo)
+		}
+
+		p.Stats.IsInCombat = false
+
 		return
 	} else {
 		/////////////////////////////////если нет../////////////////////////////////
@@ -105,6 +114,7 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		} else if monster != nil {
 			monster.Health = monster.MaxHealth
 			monster.IsAlive = true
+			monster.CastTime = 0
 		}
 
 		concreteRoom.ClearItems()
@@ -114,5 +124,13 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		fmt.Fprintf(conn, "Ты сбежал!\n")
 		fmt.Fprintf(conn, "%s\n> ", newRoom.Look(p.ID))
 
+		//если есть яд - начинает тикать
+		if p.Stats.IsPoisoned {
+			go p.StartPoisonTicker(conn, playerRepo)
+		}
+
+		p.Stats.IsInCombat = false
+
 	}
+
 }

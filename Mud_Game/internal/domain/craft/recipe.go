@@ -24,4 +24,15 @@ var Recipes = []Recipe{
 		},
 		ExpReward: 5,
 	},
+	{
+		ID:     "antidote",
+		Result: "antidote",
+		Count:  1,
+		Ingredients: map[string]int{
+			"clover":       3,
+			"burdock":      3,
+			"empty bottle": 1,
+		},
+		ExpReward: 10,
+	},
 }

@@ -38,6 +38,19 @@ func HandleStats(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repo
 			seconds := int(b.RemainingTime.Seconds()) % 60
 			fmt.Fprintf(conn, "  • %s\n", b.Description)
 			fmt.Fprintf(conn, "    осталось: %dм %dс\n", minutes, seconds)
+			fmt.Fprintf(conn, "==========================\n")
+		}
+	}
+
+	if p.Stats.IsPoisoned {
+		fmt.Fprintf(conn, "🧪 Отравлен!\n")
+		if p.Stats.IsInCombat {
+			fmt.Fprintf(conn, "Урон при каждой атаке: %d\n", p.Stats.PoisonDamage)
+			fmt.Fprintf(conn, "==========================\n")
+		} else {
+			fmt.Fprintf(conn, "Урон за тик : %d раз в  10 сек.\n", p.Stats.PoisonDamage)
+			fmt.Fprintf(conn, "Осталось тиков :%d\n", p.Stats.PoisonTicks)
+			fmt.Fprintf(conn, "==========================\n")
 		}
 	}
 	fmt.Fprintf(conn, "> ")
