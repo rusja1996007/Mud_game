@@ -36,7 +36,7 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	}
 
 	//проверка занятости данжа "гоблинов"
-	if nextRoomID == "dungeon_goblin" {
+	if nextRoomID == "dungeon_goblin" || nextRoomID == "dungeon_goblins_v2" {
 
 		targetRoom, err := roomRepo.FindByID(nextRoomID)
 		if err == nil {

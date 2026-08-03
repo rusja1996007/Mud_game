@@ -30,7 +30,7 @@ type Monster struct {
 func NewGoblin(roomID string) *Monster {
 	return &Monster{
 		ID:            "goblin_1",
-		Name:          "Гоблин",
+		Name:          "👹 Гоблин",
 		Health:        100,
 		MaxHealth:     100,
 		MinDamage:     5,

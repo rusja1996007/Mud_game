@@ -15,18 +15,66 @@ import (
 // функция атаки на монстра
 func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 
+	// 1. Получение комнаты и монстров
+	concreteRoom, allAliveMonster := getRoomAndMonsters(conn, p, roomRepo)
+	if concreteRoom == nil {
+		return
+	}
+
+	// 2. Выбор цели
+	selectedMonster, _ := selectTarget(conn, cmd, allAliveMonster)
+	if selectedMonster == nil {
+		return
+	}
+
+	// 3. Проверка яда
+	if applyPoisonDamage(conn, p, selectedMonster, playerRepo) {
+		return
+	}
+
+	// 4. Урон игрока
+	damage := calculatePlayerDamage(p, selectedMonster)
+	// 5. Нанесение урона
+	targetMonster := allpyDamageToMonster(concreteRoom, selectedMonster, damage)
+	if targetMonster == nil {
+		fmt.Fprintf(conn, "Ошибка: монстр не найден\n> ")
+		return
+	}
+	selectedMonster = targetMonster
+	// 6. Проверка смерти монстра
+	if selectedMonster.Health <= 0 {
+		if handleMonsterDeath(conn, selectedMonster, concreteRoom, playerRepo, p, damage) {
+			roomRepo.Save(concreteRoom)
+			return //обвал
+		}
+	}
+	// 7. Ответная атака монстра если жив
+	actions, statuses := otvetAttakaMonstra(allAliveMonster, concreteRoom, p)
+
+	// 8. Вывод результата
+	printBattleResult(conn, damage, selectedMonster, statuses, actions, p)
+	roomRepo.Save(concreteRoom)
+	// 9. Проверка смерти игрока
+	proverkaSmerti(conn, concreteRoom, p, roomRepo, playerRepo)
+	fmt.Fprintf(conn, "> ")
+
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////////////////
+// получение комнаты и монстров
+func getRoomAndMonsters(conn net.Conn, p *player.Player, roomRepo room.Repository) (*room.Room, []*monster.Monster) {
 	//получаем текущую комнату
 	r, err := roomRepo.FindByID(p.CurrentRoom)
 	if err != nil {
 		fmt.Fprintf(conn, "Ошибка загрузки комнаты\n> ")
-		return
+		return nil, nil
 	}
 
 	//приведение комнаты в интерфейс
 	concreteRoom, ok := r.(*room.Room)
 	if !ok {
 		fmt.Fprintf(conn, "Ошибка приведения комнаты\n> ")
-		return
+		return nil, nil
 	}
 
 	// Получаем список живых монстров
@@ -35,9 +83,13 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	if len(allAliveMonster) == 0 {
 
 		fmt.Fprintf(conn, "В комнате нет монстров\n> ")
-		return
+		return nil, nil
 	}
+	return concreteRoom, allAliveMonster
+}
 
+// выбор цели
+func selectTarget(conn net.Conn, cmd string, allAliveMonster []*monster.Monster) (*monster.Monster, int) {
 	// Разбираем команду
 	args := strings.Fields(cmd)
 	var targetIndex int = 0
@@ -48,29 +100,30 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			targetIndex = idx - 1
 		} else {
 			fmt.Fprintf(conn, "Некорректный номер цели. Доступно: 1-%d\n> ", len(allAliveMonster))
-			return
+			return nil, -1
 		}
 	}
+	return allAliveMonster[targetIndex], targetIndex
+}
 
-	// ✅ РАБОТАЕМ НАПРЯМУЮ С allAliveMonster[targetIndex]
-	selectedMonster := allAliveMonster[targetIndex]
+// проверка яда
+func applyPoisonDamage(conn net.Conn, p *player.Player, selectedMonster *monster.Monster, playerRepo player.Repository) bool {
 
-	p.Stats.IsInCombat = true
-
-	//Проверка яда ПОСЛЕ выбора цели
 	if p.Stats.IsPoisoned {
 		p.Stats.Health -= selectedMonster.PoisonDamage
 		if p.Stats.Health <= 0 {
 			fmt.Fprintf(conn, "Ты погиб от яда..\n")
 			playerRepo.Delete(p.ID)
 			conn.Close()
-			return
+			return true
 		}
 	}
+	return false
+}
 
-	// ... наносим урон monster ...
+// расчитываем  урон игрока
+func calculatePlayerDamage(p *player.Player, monster *monster.Monster) int {
 
-	//рассчитываем урон игрока
 	weapon := p.Equipment.Weapon
 	minDamage := 1
 	maxDamage := 3
@@ -83,14 +136,22 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	//бонус к урону от силы +1 за каждые 3 очка силы
 	strengthBonus := p.Stats.Strength / 3
 
-	damage := minDamage + rand.Intn(maxDamage-minDamage+1) + strengthBonus //не учли броню?
+	defence := monster.Defence
+	reduction := float64(defence) / (float64(defence) + 100)
+
+	damage := minDamage + rand.Intn(maxDamage-minDamage+1) + strengthBonus
 
 	//учитываем броню монстра
-	finalDamageMonster := damage - selectedMonster.Defence
-	if finalDamageMonster <= 0 {
-		finalDamageMonster = 1
+	finalDamage := int(float64(damage) * (1 - reduction))
+	if finalDamage <= 0 {
+		finalDamage = 1
 	}
 
+	return finalDamage
+}
+
+// наносим урон монстру
+func allpyDamageToMonster(concreteRoom *room.Room, selectedMonster *monster.Monster, damage int) *monster.Monster {
 	var targetMonster *monster.Monster
 
 	// Сначала ищем в MonsterS (новый данж)
@@ -111,13 +172,11 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	}
 
 	if targetMonster == nil {
-
-		fmt.Fprintf(conn, "Ошибка: монстр не найден\n> ")
-		return
+		return nil
 	}
 
 	// Наносим урон
-	targetMonster.Health -= finalDamageMonster
+	targetMonster.Health -= damage
 	selectedMonster = targetMonster
 
 	if targetMonster.Health <= 0 {
@@ -137,12 +196,18 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			}
 		}
 	}
-	roomRepo.Save(concreteRoom)
 
-	////////////////////////////////////если монстр умер/////////////////////////////////////
+	return targetMonster
+}
+
+// проверка смерти монстра
+func handleMonsterDeath(conn net.Conn, selectedMonster *monster.Monster, concreteRoom *room.Room, playerRepo player.Repository, p *player.Player, damage int) bool {
 	if selectedMonster.Health <= 0 {
 		selectedMonster.Health = 0
 		selectedMonster.IsAlive = false
+
+		//+опыт
+		p.AddExperience(selectedMonster.Experience, conn)
 
 		// ✅ Проверяем, все ли монстры мертвы
 		allDead := true
@@ -157,6 +222,7 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		if !allDead {
 
 			fmt.Fprintf(conn, "====================\n> ")
+			return false
 
 		} else {
 
@@ -179,10 +245,6 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			concreteRoom.Exits["up"] = "dungeon_entrance_goblins"
 
 			concreteRoom.SetMonster(selectedMonster)
-			roomRepo.Save(concreteRoom)
-
-			//+опыт
-			p.AddExperience(selectedMonster.Experience, conn)
 
 			//предупреждение об обвале за 20 секунд
 			go func() {
@@ -205,19 +267,21 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 					//очищаем occupantID
 					concreteRoom.SetPlayerOccupantID("")
-					roomRepo.Save(concreteRoom)
+
 				}
 			}()
 
-			fmt.Fprintf(conn, "Ты нанес %d урона %s\n", finalDamageMonster, selectedMonster.Name)
+			fmt.Fprintf(conn, "Ты нанес %d урона %s\n", damage, selectedMonster.Name)
 			fmt.Fprintf(conn, "Получено %d опыта.\n", selectedMonster.Experience)
 			fmt.Fprintf(conn, "⚠️ Пещера начнёт разрушаться через 2 минуты. У тебя есть время на обыск!\n> ")
-			return
+			return true
 		}
 	}
+	return true
+}
 
-	////////////////////////////////////они атакуют/////////////////////////////////////
-
+// ответка от монстра если выжил
+func otvetAttakaMonstra(allAliveMonster []*monster.Monster, concreteRoom *room.Room, p *player.Player) ([]string, []string) {
 	var actions []string
 	var statuses []string
 
@@ -306,8 +370,14 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			actions = append(actions, fmt.Sprintf("%d. %s нанес %d урона", i+1, m.Name, finalDamage))
 		}
 	}
+	return actions, statuses
+
+}
+
+// вывод результата хода
+func printBattleResult(conn net.Conn, damage int, selectedMonster *monster.Monster, statuses []string, actions []string, p *player.Player) {
 	// Выводим результат
-	fmt.Fprintf(conn, "Ты нанес %d урона %s\n", finalDamageMonster, selectedMonster.Name)
+	fmt.Fprintf(conn, "Ты нанес %d урона %s\n", damage, selectedMonster.Name)
 	for _, status := range statuses {
 		fmt.Fprintf(conn, "%s\n", status)
 	}
@@ -320,9 +390,10 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		fmt.Fprintf(conn, "💀 Яд нанес тебе %d урона!\n", p.Stats.PoisonDamage)
 	}
 
-	roomRepo.Save(concreteRoom)
+}
 
-	//проверка смерти
+// проверка смерти
+func proverkaSmerti(conn net.Conn, concreteRoom *room.Room, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 	if p.Stats.Health <= 0 {
 		//шанс выжить:
 		if p.Stats.Tracking >= 6 {
@@ -402,7 +473,4 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		conn.Close()
 		return
 	}
-
-	fmt.Fprintf(conn, "> ")
-
 }

@@ -62,7 +62,7 @@ func (r *Room) Look(playerID string) string {
 	aliveMonsters := r.GetAliveMonsters()
 	if len(aliveMonsters) > 0 {
 		for i, m := range aliveMonsters {
-			builder.WriteString(fmt.Sprintf(" %d. %s\n", i+1, m.Description))
+			builder.WriteString(fmt.Sprintf(" %d. %s (%d/%d)\n", i+1, m.Description, m.Health, m.MaxHealth))
 
 		}
 	} else if len(aliveMonsters) == 0 && (r.ID == "dungeon_goblin" || r.ID == "dungeon_goblins_v2") {

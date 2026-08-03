@@ -25,6 +25,7 @@ type Config struct {
 // NewConnection создаёт подключение к PostgreSQL
 func NewConnection(cfg Config) (*gorm.DB, error) {
 	// Формируем строку подключения(Формирует адрес (dsn))
+
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
 

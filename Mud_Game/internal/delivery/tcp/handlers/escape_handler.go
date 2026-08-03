@@ -41,6 +41,7 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	}
 	/////////////////////////////////////если успех/////////////////////////////////
 	if rand.Intn(100) < chanceOfEscape {
+		p.StopDungeonTimer()
 		p.CurrentRoom = concreteRoom.GetExitRoomID()
 
 		// ✅ ВОССТАНАВЛИВАЕМ ВСЕХ МОНСТРОВ
@@ -97,6 +98,7 @@ func HandleEscape(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			return
 		}
 
+		p.StopDungeonTimer()
 		p.CurrentRoom = concreteRoom.GetExitRoomID()
 
 		newRoom, _ := roomRepo.FindByID(p.CurrentRoom)
