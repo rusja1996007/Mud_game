@@ -135,14 +135,34 @@ func calculatePlayerDamage(p *player.Player, monster *monster.Monster) int {
 
 	//бонус к урону от силы +1 за каждые 3 очка силы
 	strengthBonus := p.Stats.Strength / 3
+	baseDamage := minDamage + rand.Intn(maxDamage-minDamage+1) + strengthBonus //БАЗОВЫЙ урон оружия(или руки)
 
-	defence := monster.Defence
-	reduction := float64(defence) / (float64(defence) + 100)
+	// 🔥 Огненный урон
+	fireDamage := 0
+	if weapon != nil && weapon.FireDamage > 0 {
+		fireDamage = weapon.FireDamage
+		reduction := float64(monster.FireDefence) / (float64(monster.FireDefence) + 100)
+		fireDamage = int(float64(fireDamage) * (1 - reduction))
+	}
+	// 🧙 Магический урон
+	magicDamage := 0
+	if weapon != nil && weapon.MagicDamage > 0 {
+		magicDamage = weapon.MagicDamage
+		reduction := float64(monster.MagicDefence) / (float64(monster.MagicDefence) + 100)
+		magicDamage = int(float64(magicDamage) * (1 - reduction))
+	}
+	// ☠️ Ядовитый урон
+	poisonDamage := 0
+	if weapon != nil && weapon.PoisonDamage > 0 {
+		poisonDamage = weapon.PoisonDamage
+		reduction := float64(monster.PoisonDefence) / (float64(monster.PoisonDefence) + 100)
+		poisonDamage = int(float64(poisonDamage) * (1 - reduction))
+	}
+	//физ урон
+	reduction := float64(monster.Defence) / (float64(monster.Defence) + 100)
+	physicalDamage := int(float64(baseDamage) * (1 - reduction))
 
-	damage := minDamage + rand.Intn(maxDamage-minDamage+1) + strengthBonus
-
-	//учитываем броню монстра
-	finalDamage := int(float64(damage) * (1 - reduction))
+	finalDamage := physicalDamage + fireDamage + poisonDamage + magicDamage
 	if finalDamage <= 0 {
 		finalDamage = 1
 	}

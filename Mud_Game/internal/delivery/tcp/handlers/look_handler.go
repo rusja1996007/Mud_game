@@ -86,105 +86,125 @@ func inspectItem(conn net.Conn, p *player.Player, roomRepo room.Repository, item
 
 }
 
-func printItemInfo(conn net.Conn, item *item.ItemStack) {
-	fmt.Fprintf(conn, "📖 %s\n", item.Name)
-	fmt.Fprintf(conn, "Тип %s\n", item.ItemType)
+func printItemInfo(conn net.Conn, stack *item.ItemStack) {
+	color := item.GetItemColor(stack)
+	fmt.Fprintf(conn, "📖 %s%s%s\n", color, stack.Name, item.ColorReset)
+	fmt.Fprintf(conn, "Тип %s\n", stack.ItemType)
 	//свитки
-	if item.ItemType == "scroll" {
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "scroll" {
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 	//для оружия
-	if item.ItemType == "weapon" {
-		fmt.Fprintf(conn, "Урон %d-%d\n", item.MinDamage, item.MaxDamage)
+	if stack.ItemType == "weapon" {
+		fmt.Fprintf(conn, "Урон %d-%d\n", stack.MinDamage, stack.MaxDamage)
 
-		if item.Durability <= 0 {
+		if stack.Durability <= 0 {
 			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
 		} else {
-			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+			fmt.Fprintf(conn, "Прочность %d/%d\n", stack.Durability, 100)
 		}
-		fmt.Fprintf(conn, "%s\n", item.Description)
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
 	//броня
-	if item.ItemType == "armor" {
-		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		if item.Durability <= 0 {
+	if stack.ItemType == "armor" {
+		fmt.Fprintf(conn, "Защита %d\n", stack.Defence)
+		if stack.Durability <= 0 {
 			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
 		} else {
-			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+			fmt.Fprintf(conn, "Прочность %d/%d\n", stack.Durability, 100)
 		}
 	}
 
-	if item.ItemType == "helmet" {
-		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		if item.Durability <= 0 {
+	if stack.ItemType == "helmet" {
+		fmt.Fprintf(conn, "Защита %d\n", stack.Defence)
+		if stack.Durability <= 0 {
 			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
 		} else {
-			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+			fmt.Fprintf(conn, "Прочность %d/%d\n", stack.Durability, 100)
 		}
 	}
 
-	if item.ItemType == "shield" {
-		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		if item.Durability <= 0 {
+	if stack.ItemType == "shield" {
+		fmt.Fprintf(conn, "Защита %d\n", stack.Defence)
+		if stack.Durability <= 0 {
 			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
 		} else {
-			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+			fmt.Fprintf(conn, "Прочность %d/%d\n", stack.Durability, 100)
 		}
 	}
 
-	if item.ItemType == "boots" {
-		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		if item.Durability <= 0 {
+	if stack.ItemType == "boots" {
+		fmt.Fprintf(conn, "Защита %d\n", stack.Defence)
+		if stack.Durability <= 0 {
 			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
 		} else {
-			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+			fmt.Fprintf(conn, "Прочность %d/%d\n", stack.Durability, 100)
 		}
 	}
 
-	if item.ItemType == "ring" {
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "ring" {
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "liquid container" {
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "liquid container" {
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "drink" {
-		fmt.Fprintf(conn, "Восстанавливает жажду +%d\n", item.ThirstRestore)
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "drink" {
+		fmt.Fprintf(conn, "Восстанавливает жажду +%d\n", stack.ThirstRestore)
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "food" {
-		fmt.Fprintf(conn, "Восстанавливает голод +%d\n", item.HungerRestore)
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "food" {
+		fmt.Fprintf(conn, "Восстанавливает голод +%d\n", stack.HungerRestore)
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "container" {
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "container" {
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "bag" {
-		fmt.Fprintf(conn, "Слотов в инвентаре +%d\n", item.SlotBonus)
-		fmt.Fprintf(conn, "Защита %d\n", item.Defence)
-		if item.Durability <= 0 {
+	if stack.ItemType == "bag" {
+		fmt.Fprintf(conn, "Слотов в инвентаре +%d\n", stack.SlotBonus)
+		fmt.Fprintf(conn, "Защита %d\n", stack.Defence)
+		if stack.Durability <= 0 {
 			fmt.Fprintf(conn, "⚠️ СЛОМАН\n")
 		} else {
-			fmt.Fprintf(conn, "Прочность %d/%d\n", item.Durability, 100)
+			fmt.Fprintf(conn, "Прочность %d/%d\n", stack.Durability, 100)
 		}
-		fmt.Fprintf(conn, "%s\n", item.Description)
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "seed" {
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "seed" {
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "ingredients" {
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "ingredients" {
+		fmt.Fprintf(conn, "%s\n", stack.Description)
 	}
 
-	if item.ItemType == "currency" {
-		fmt.Fprintf(conn, "%s\n", item.Description)
+	if stack.ItemType == "currency" {
+		fmt.Fprintf(conn, "%s\n", stack.Description)
+	}
+	//бонусы
+	if stack.FireDamage > 0 {
+		fmt.Fprintf(conn, "🔥 Огненный урон: +%d\n", stack.FireDamage)
+	}
+	if stack.MagicDamage > 0 {
+		fmt.Fprintf(conn, "✨ Магический урон: +%d\n", stack.MagicDamage)
+	}
+	if stack.PoisonDamage > 0 {
+		fmt.Fprintf(conn, "☠️ Ядовитый урон: +%d\n", stack.PoisonDamage)
+	}
+	if stack.FireDefence > 0 {
+		fmt.Fprintf(conn, "🔥 Защита от огня: +%d\n", stack.FireDefence)
+	}
+	if stack.MagicDefence > 0 {
+		fmt.Fprintf(conn, "✨ Защита от магии: +%d\n", stack.MagicDefence)
+	}
+	if stack.PoisonDefence > 0 {
+		fmt.Fprintf(conn, "☠️ Защита от яда: +%d\n", stack.PoisonDefence)
 	}
 
 	fmt.Fprintf(conn, "> ")

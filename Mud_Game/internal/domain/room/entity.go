@@ -84,7 +84,9 @@ func (r *Room) Look(playerID string) string {
 	if len(items) > 0 {
 		builder.WriteString("Вы видите:\n")
 		for i, stack := range items {
-			fmt.Fprintf(&builder, "  %d. %s", i+1, stack.Name)
+			color := item.GetItemColor(stack)
+
+			fmt.Fprintf(&builder, "  %d. %s%s%s", i+1, color, stack.Name, item.ColorReset)
 			if stack.Durability > 0 {
 				fmt.Fprintf(&builder, "(прочность:%d)", stack.Durability)
 			}
@@ -184,6 +186,9 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 		FireDefence:   originalItem.FireDefence,
 		HealMin:       originalItem.HealMin,
 		HealMax:       originalItem.HealMax,
+		MagicDamage:   originalItem.MagicDamage,
+		FireDamage:    originalItem.FireDamage,
+		PoisonDamage:  originalItem.PoisonDamage,
 	}, nil
 }
 func (r *Room) AddItem(stack *item.ItemStack) error {

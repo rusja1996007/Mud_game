@@ -1,6 +1,6 @@
 package combat
 
-// тип урона
+// тип урона damage.go нужен для атак монстров!
 type DamageType string
 
 const (

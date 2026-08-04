@@ -24,6 +24,8 @@ type Monster struct {
 	CastTime      int       //сколько ходов уже колдует(0-2)
 	IsCasting     bool      //костует ли в этом ходу
 	PoisonDamage  int       //урон от яда монстра
+	FireDamage    int
+	MagicDamage   int
 }
 
 // создания гоблина в комнате

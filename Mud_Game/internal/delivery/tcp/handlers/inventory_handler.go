@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -25,7 +26,9 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 	} else {
 		fmt.Fprintf(&result, "\nПредметы в Инвентаре:\n")
 		for i, stack := range p.Inventory {
-			fmt.Fprintf(&result, " %d. %s", i+1, stack.Name)
+			color := item.GetItemColor(stack)
+
+			fmt.Fprintf(&result, " %d. %s%s%s", i+1, color, stack.Name, item.ColorReset)
 
 			if stack.ItemType == "weapon" || stack.ItemType == "armor" ||
 				stack.ItemType == "helmet" || stack.ItemType == "shield" ||
@@ -49,8 +52,10 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 		startIndex := len(p.Inventory)
 		fmt.Fprintf(&result, "\n🎒 Предметы в мешке:\n")
 		for i, stack := range p.Equipment.BagItems {
+			color := item.GetItemColor(stack)
+
 			globalIndex := startIndex + i + 1
-			fmt.Fprintf(&result, " %d. %s", globalIndex, stack.Name)
+			fmt.Fprintf(&result, " %d. %s%s%s", globalIndex, color, stack.Name, item.ColorReset)
 
 			if stack.ItemType == "weapon" || stack.ItemType == "armor" ||
 				stack.ItemType == "helmet" || stack.ItemType == "shield" ||

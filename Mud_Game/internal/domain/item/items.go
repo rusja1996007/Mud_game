@@ -1,5 +1,9 @@
 package item
 
+import (
+	"math/rand"
+)
+
 // ItemData хранит базовые характеристики предмета
 type ItemData struct {
 	Name          string
@@ -20,6 +24,10 @@ type ItemData struct {
 	MagicDefence  int
 	FireDefence   int
 	PoisonDefence int
+
+	MagicDamage  int //урон доп на оружии
+	FireDamage   int
+	PoisonDamage int
 
 	Description string
 	ID          string
@@ -138,11 +146,12 @@ var ItemsDB = map[string]ItemData{
 
 	////////////////////////////////////weapon//////////////////////////////////////////////
 	"iron sword": {
-		Name:       "iron sword",
-		ItemType:   "weapon",
-		MinDamage:  20,
-		MaxDamage:  30,
-		Durability: 100,
+		Name:        "iron sword",
+		ItemType:    "weapon",
+		MinDamage:   20,
+		MaxDamage:   30,
+		Durability:  100,
+		Description: "Обычный железный меч",
 	},
 
 	"knife": {
@@ -297,5 +306,49 @@ func GetItem(name string, count int) *ItemStack {
 		FireDefence:   data.FireDefence,
 		HealMin:       data.HealMin,
 		HealMax:       data.HealMax,
+		MagicDamage:   data.MagicDamage,
+		FireDamage:    data.FireDamage,
+		PoisonDamage:  data.PoisonDamage,
 	}
+}
+
+// создание + рандомный бонус для обычного меча
+func CreateRandomSword() *ItemStack {
+	type Bonus struct {
+		Name  string
+		Value int
+	}
+
+	//список бонусов (возможных)
+	bonuses := []Bonus{
+		{"FireDamage", 2 + rand.Intn(5)},
+		{"MagicDamage", 2 + rand.Intn(5)},
+		{"PoisonDamage", 2 + rand.Intn(5)},
+	}
+
+	//выбор случайного
+	bonus := bonuses[rand.Intn(len(bonuses))]
+
+	sword := &ItemStack{
+		ID:          GenerateItemID(),
+		Name:        "MIR",
+		Count:       1,
+		ItemType:    "weapon",
+		MinDamage:   20 + (rand.Intn(8) + 1),
+		MaxDamage:   30 + (rand.Intn(8) + 1),
+		Durability:  100,
+		Description: "Железный меч от которого исходит странная сила",
+	}
+
+	//применить бонус
+	switch bonus.Name {
+	case "FireDamage":
+		sword.FireDamage = bonus.Value
+	case "MagicDamage":
+		sword.MagicDamage = bonus.Value
+	case "PoisonDamage":
+		sword.PoisonDamage = bonus.Value
+	}
+
+	return sword
 }

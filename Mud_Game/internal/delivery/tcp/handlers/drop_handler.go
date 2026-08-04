@@ -127,6 +127,9 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		FireDefence:   originalStack.FireDefence,
 		HealMin:       originalStack.HealMin,
 		HealMax:       originalStack.HealMax,
+		MagicDamage:   originalStack.MagicDamage,
+		FireDamage:    originalStack.FireDamage,
+		PoisonDamage:  originalStack.PoisonDamage,
 	}
 
 	//Добавить предметы в комнату
