@@ -61,7 +61,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			item.GetItem("iron sword", 1),
 			item.GetItem("coin", 20),
 			item.GetItem("vegetable set", 2),
-			item.GetItem("scroll fireball", 3),
+			item.GetItem("scroll fireball", 10),
 			item.GetItem("scroll heal", 10),
 			item.GetItem("antidote", 3),
 			item.CreateRandomSword(),

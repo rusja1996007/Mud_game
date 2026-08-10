@@ -114,8 +114,24 @@ func InitGlobalTown(repo room.Repository) error {
 		},
 		ExitRoom: "dungeon_entrance_goblins_v2",
 	}
+
 	if err := repo.Save(goblinRoom2); err != nil {
 		return fmt.Errorf("Ошибка создания комнаты с двумя гоблинами:%v", err)
+	}
+
+	//СОЗДАЕМ ГЛУБИНЫ(после глубокой пещеры)
+	glubiniRoom := &room.Room{
+		ID:          "glubini_room",
+		Name:        "Глубины",
+		Description: "Тёмная бездна, где чувствуется присутствие могущественной силы.",
+		Exits:       map[string]string{},
+		Items:       []*item.ItemStack{},
+		Monster:     monster.NewGoblinHighShaman("glubini_room"),
+		ExitRoom:    "dungeon_entrance_goblins_v2",
+	}
+
+	if err := repo.Save(glubiniRoom); err != nil {
+		return fmt.Errorf("Ошибка создания комнаты с верховным гоблином:%v", err)
 	}
 
 	return nil

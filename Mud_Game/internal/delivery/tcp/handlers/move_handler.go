@@ -35,8 +35,10 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
-	//проверка занятости данжа "гоблинов"
-	if nextRoomID == "dungeon_goblin" || nextRoomID == "dungeon_goblins_v2" {
+	//проверка занятости данжа
+	if nextRoomID == "dungeon_goblin" ||
+		nextRoomID == "dungeon_goblins_v2" ||
+		nextRoomID == "glubini_room" {
 
 		targetRoom, err := roomRepo.FindByID(nextRoomID)
 		if err == nil {
@@ -93,7 +95,7 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	}
 
-	//если выходим от "гоблинов" сбрасываем
+	//если выходим от "гоблина" сбрасываем(в любую другую комнату)
 	if p.CurrentRoom == "dungeon_goblin" && nextRoomID != "dungeon_goblin" {
 
 		p.StopDungeonTimer()
@@ -101,6 +103,17 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		currentRoom.SetPlayerOccupantID("")
 		currentRoom.ClearItems()
 		roomRepo.Save(currentRoom)
+	}
+
+	//если выходим от "двух гоблинов" сбрасываем (в любую другую комнату)
+	if p.CurrentRoom == "dungeon_goblins_v2" && nextRoomID != "dungeon_goblins_v2" {
+
+		p.StopDungeonTimer()
+		currentRoom, _ := roomRepo.FindByID(p.CurrentRoom)
+		currentRoom.SetPlayerOccupantID("")
+		currentRoom.ClearItems()
+		roomRepo.Save(currentRoom)
+
 	}
 
 	//===========================Путешествие===============================

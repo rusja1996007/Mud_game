@@ -62,6 +62,12 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		item = p.Inventory[index]
 	}
 
+	//Еда, напитки, семена, материалы,свитки
+	if item.ItemType == "food" || item.ItemType == "drink" || item.ItemType == "seed" || item.ItemType == "material" || item.ItemType == "container" || item.ItemType == "scroll" {
+		fmt.Fprintf(conn, "Этот предмет нельзя надеть.\n> ")
+		return
+	}
+
 	// ✅ Проверка: не сломан ли предмет
 	if item.Durability <= 0 {
 		fmt.Fprintf(conn, "Этот предмет сломан, его нельзя надеть.\n> ")
@@ -149,11 +155,6 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 			return
 		}
 		p.RemoveItemFromStorage(itemName, inBag, index)
-
-	//Еда, напитки, семена, материалы
-	case "food", "drink", "seed", "material", "container":
-		fmt.Fprintf(conn, "Этот предмет нельзя надеть.\n> ")
-		return
 
 	default:
 		fmt.Fprintf(conn, "Этот предмет нельзя надеть. Тип : %s\n> ", item.ItemType)

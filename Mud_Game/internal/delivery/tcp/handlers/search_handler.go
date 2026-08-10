@@ -19,7 +19,7 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		return
 	}
 
-	if p.CurrentRoom != "dungeon_goblin" {
+	if p.CurrentRoom != "dungeon_goblin" && p.CurrentRoom != "dungeon_goblins_v2" && p.CurrentRoom != "glubini_room" {
 		fmt.Fprintf(conn, "Тебе тут нечего обыскивать.\n> ")
 		return
 	}
@@ -38,6 +38,17 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		return
 	}
 
+	// ✅ Выбор таблицы лута по комнате
+	var lootTable []loot.CaveLootItem
+	switch p.CurrentRoom {
+	case "dungeon_goblin":
+		lootTable = loot.CaveLootTable
+	case "dungeon_goblins_v2":
+		lootTable = loot.CaveV2LootTable
+	case "glubini_room":
+		lootTable = loot.GLubiniLootTable
+	}
+
 	p.IsSearching = true
 	fmt.Fprintf(conn, "Ты начинаешь обыскивать пещеру...\n")
 
@@ -47,7 +58,7 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}()
 		time.Sleep(10 * time.Second)
 
-		if p.CurrentRoom == "dungeon_goblin" && time.Now().Before(monster.TimeToLoot) {
+		if (p.CurrentRoom == "dungeon_goblin" || p.CurrentRoom == "glubini_room" || p.CurrentRoom == "dungeon_goblins_v2") && time.Now().Before(monster.TimeToLoot) {
 
 			var foundItems []*item.ItemStack
 
@@ -55,7 +66,7 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 
 			found := false
 
-			for _, lootItem := range loot.CaveLootTable {
+			for _, lootItem := range lootTable {
 
 				// шанс
 				chance := lootItem.BaseChance + 5*p.Stats.Tracking
@@ -88,7 +99,7 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 			} else {
 				p.SendMessage(conn, "Ты обыскал пещеру, но ничего не нашёл.\n> ")
 			}
-		} else if p.CurrentRoom == "dungeon_goblin" {
+		} else if p.CurrentRoom == "dungeon_goblin" || p.CurrentRoom == "glubini_room" || p.CurrentRoom == "dungeon_goblins_v2" {
 			p.SendMessage(conn, "Ты не успел закончить обыск — пещера обвалилась!\n> ")
 		}
 	}()

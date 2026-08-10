@@ -41,7 +41,7 @@ func NewGoblin(roomID string) *Monster {
 		FireDefence:   0,
 		MagicDefence:  0,
 		PoisonDefence: 0,
-		Experience:    220,
+		Experience:    5,
 		RoomID:        roomID,
 		IsAlive:       true,
 		Description:   "👹 Гоблин с кинжалом",
@@ -60,7 +60,7 @@ func NewGoblinWarrior(roomID string) *Monster {
 		FireDefence:   0,
 		MagicDefence:  0,
 		PoisonDefence: 5,
-		Experience:    400,
+		Experience:    10,
 		RoomID:        roomID,
 		IsAlive:       true,
 		Description:   "👹 Гоблин-воин с большим мечом",
@@ -79,13 +79,35 @@ func NewGoblinShaman(roomID string) *Monster {
 		FireDefence:   5,
 		MagicDefence:  15,
 		PoisonDefence: 10,
-		Experience:    100,
+		Experience:    8,
 		RoomID:        roomID,
 		IsAlive:       true,
 		Description:   "🧙 Гоблин-шаман с посохом",
 		CastTime:      0,
 		IsCasting:     true,
 		PoisonDamage:  2,
+	}
+}
+
+func NewGoblinHighShaman(roomID string) *Monster {
+	return &Monster{
+		ID:            "goblin_high_shaman",
+		Name:          "🧙‍♂️ Верховный гоблин-щаман",
+		Health:        130,
+		MaxHealth:     130,
+		MinDamage:     0,
+		MaxDamage:     0,
+		Defence:       5,
+		FireDefence:   5,
+		MagicDefence:  15,
+		PoisonDefence: 0,
+		Experience:    20,
+		RoomID:        roomID,
+		IsAlive:       true,
+		Description:   "🧙‍♂️ Верховный шаман с посохом, излучающий тёмную энергию",
+		CastTime:      0,
+		IsCasting:     true,
+		MagicDamage:   15,
 	}
 }
 

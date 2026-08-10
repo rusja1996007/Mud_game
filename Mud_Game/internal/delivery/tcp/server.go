@@ -176,13 +176,14 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 				MaxSlots:   8,
 				Hunger:     100,
 				Thirst:     100,
-				Health:     50 + 5*strength,
+				Health:     100 + 5*strength,
 				Strength:   3,
 				Dexterity:  3,
 				Intelect:   2,
 				Tracking:   6,
 				Level:      1,
-				Experience: 0},
+				Experience: 0,
+			},
 			Zone: zone,
 		}
 

@@ -262,14 +262,27 @@ func handleMonsterDeath(conn net.Conn, selectedMonster *monster.Monster, concret
 			if concreteRoom.Exits == nil {
 				concreteRoom.Exits = make(map[string]string)
 			}
-			concreteRoom.Exits["up"] = "dungeon_entrance_goblins"
 
+			if p.CurrentRoom == "dungeon_goblin" {
+				concreteRoom.Exits["up"] = "dungeon_entrance_goblins"
+			}
+
+			if p.CurrentRoom == "dungeon_goblins_v2" {
+				concreteRoom.Exits["up"] = "dungeon_entrance_goblins_v2"
+				concreteRoom.Exits["down"] = "glubini_room"
+			}
+
+			if p.CurrentRoom == "glubini_room" {
+				concreteRoom.Exits["up"] = "dungeon_entrance_goblins_v2"
+			}
 			concreteRoom.SetMonster(selectedMonster)
 
 			//предупреждение об обвале за 20 секунд
 			go func() {
 				time.Sleep(20 * time.Second)
-				if p.CurrentRoom == "dungeon_goblin" {
+				if p.CurrentRoom == "dungeon_goblin" ||
+					p.CurrentRoom == "dungeon_goblins_v2" ||
+					p.CurrentRoom == "glubini_room" {
 					p.SendMessage(conn, "\n💥 Стены пещеры сильно трясутся! Камни падают с потолка! Пещера вот-вот обвалится!\n> ")
 				}
 			}()
@@ -278,10 +291,37 @@ func handleMonsterDeath(conn net.Conn, selectedMonster *monster.Monster, concret
 			go func() {
 				time.Sleep(40 * time.Second) //////пока что время на осмотр лута  (обратный отсчет)
 				//проверяем что игрок еще в данже
+				//У ГОБЛИНА
 				if p.CurrentRoom == "dungeon_goblin" {
 					//телепортируем на вход и уничтожаем если не успели забрать предметы
 					concreteRoom.ClearItems()
 					p.CurrentRoom = "dungeon_entrance_goblins"
+					playerRepo.Save(p)
+					p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
+
+					//очищаем occupantID
+					concreteRoom.SetPlayerOccupantID("")
+
+				}
+
+				//У ДВУХ ГОБЛИНОВ
+				if p.CurrentRoom == "dungeon_goblins_v2" {
+					//телепортируем на вход и уничтожаем если не успели забрать предметы
+					concreteRoom.ClearItems()
+					p.CurrentRoom = "dungeon_entrance_goblins_v2"
+					playerRepo.Save(p)
+					p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
+
+					//очищаем occupantID
+					concreteRoom.SetPlayerOccupantID("")
+
+				}
+
+				//В ГЛУБИНАХ
+				if p.CurrentRoom == "glubini_room" {
+					//телепортируем на вход и уничтожаем если не успели забрать предметы
+					concreteRoom.ClearItems()
+					p.CurrentRoom = "dungeon_entrance_goblins_v2"
 					playerRepo.Save(p)
 					p.SendMessage(conn, "\n💥 Пещера обвалилась! Тебя выбросило наружу.\n>  ")
 
@@ -371,7 +411,19 @@ func otvetAttakaMonstra(allAliveMonster []*monster.Monster, concreteRoom *room.R
 
 				actions = append(actions, fmt.Sprintf("%d. %s нанес %d урона", i+1, m.Name, finalDamage))
 			}
+			/////////////////если  ВЕРХОВНЫЙ шаман гоблин://///////////////////////////////
+		} else if m.ID == "goblin_high_shaman" {
+			monsterDamage := m.MagicDamage + rand.Intn(4)
+			defence := p.GetTotalMagicDefence()
+			reduction := float64(defence) / (float64(defence) + 100)
+			finalDamage := int(float64(monsterDamage) * (1 - reduction))
+			if finalDamage <= 0 {
+				finalDamage = 1
+			}
+			p.Stats.Health -= finalDamage
 
+			actions = append(actions, fmt.Sprintf("%d. %s нанес %d магического урона", i+1, m.Name, finalDamage))
+			continue
 		} else {
 
 			///////////////если физик какой то://////////////////

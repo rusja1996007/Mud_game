@@ -213,9 +213,11 @@ var ItemsDB = map[string]ItemData{
 	},
 
 	"black ring": {
-		Name:        "black ring",
-		ItemType:    "ring",
-		Description: "черное титановое кольцо",
+		Name:         "black ring",
+		ItemType:     "ring",
+		Description:  "черное титановое кольцо",
+		MagicDefence: 20,
+		Durability:   100,
 	},
 
 	"cooper ring": { //медное
