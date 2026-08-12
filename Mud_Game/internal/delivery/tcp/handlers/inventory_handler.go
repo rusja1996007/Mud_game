@@ -52,10 +52,9 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 		startIndex := len(p.Inventory)
 		fmt.Fprintf(&result, "\n🎒 Предметы в мешке:\n")
 		for i, stack := range p.Equipment.BagItems {
-			color := item.GetItemColor(stack)
 
 			globalIndex := startIndex + i + 1
-			fmt.Fprintf(&result, " %d. %s%s%s", globalIndex, color, stack.Name, item.ColorReset)
+			fmt.Fprintf(&result, " %d. %s", globalIndex, item.GetColoredName(stack))
 
 			if stack.ItemType == "weapon" || stack.ItemType == "armor" ||
 				stack.ItemType == "helmet" || stack.ItemType == "shield" ||
@@ -85,48 +84,48 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 	//проверяем каждый слот экипировки:
 	//оружие
 	if p.Equipment.Weapon != nil {
-		fmt.Fprintf(&result, " Оружие : %s\n", p.Equipment.Weapon.Name)
+		fmt.Fprintf(&result, " Оружие : %s\n", item.GetColoredName(p.Equipment.Weapon))
 	} else {
 		fmt.Fprintf(&result, " Оружие : не надето\n")
 	}
 	//броня
 	if p.Equipment.Armor != nil {
-		fmt.Fprintf(&result, " Броня : %s\n", p.Equipment.Armor.Name)
+		fmt.Fprintf(&result, " Броня : %s\n", item.GetColoredName(p.Equipment.Armor))
 	} else {
 		fmt.Fprintf(&result, " Броня : не надето\n")
 	}
 
 	//шлем
 	if p.Equipment.Helmet != nil {
-		fmt.Fprintf(&result, " Шлем : %s\n", p.Equipment.Helmet.Name)
+		fmt.Fprintf(&result, " Шлем : %s\n", item.GetColoredName(p.Equipment.Helmet))
 	} else {
 		fmt.Fprintf(&result, " Шлем : не надето\n")
 	}
 
 	//Щит
 	if p.Equipment.Shield != nil {
-		fmt.Fprintf(&result, " Щит : %s\n", p.Equipment.Shield.Name)
+		fmt.Fprintf(&result, " Щит : %s\n", item.GetColoredName(p.Equipment.Shield))
 	} else {
 		fmt.Fprintf(&result, " Щит : не надето\n")
 	}
 
 	//обувь
 	if p.Equipment.Boots != nil {
-		fmt.Fprintf(&result, " Обувь : %s\n", p.Equipment.Boots.Name)
+		fmt.Fprintf(&result, " Обувь : %s\n", item.GetColoredName(p.Equipment.Boots))
 	} else {
 		fmt.Fprintf(&result, " Обувь : не надето\n")
 	}
 
 	//кольцо1
 	if p.Equipment.Ring1 != nil {
-		fmt.Fprintf(&result, " Кольцо_1 : %s\n", p.Equipment.Ring1.Name)
+		fmt.Fprintf(&result, " Кольцо_1 : %s\n", item.GetColoredName(p.Equipment.Ring1))
 	} else {
 		fmt.Fprintf(&result, " Кольцо_1 : не надето\n")
 	}
 
 	//кольцо2
 	if p.Equipment.Ring2 != nil {
-		fmt.Fprintf(&result, " Кольцо_2 : %s\n", p.Equipment.Ring2.Name)
+		fmt.Fprintf(&result, " Кольцо_2 : %s\n", item.GetColoredName(p.Equipment.Ring2))
 	} else {
 		fmt.Fprintf(&result, " Кольцо_2 : не надето\n")
 	}

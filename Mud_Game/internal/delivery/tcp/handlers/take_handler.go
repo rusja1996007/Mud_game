@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -193,7 +194,7 @@ takeItem:
 		playerRepo.Save(p)
 		roomRepo.Save(r)
 
-		fmt.Fprintf(conn, "Ты взял %d %s\n> ", takeCount, itemName)
+		fmt.Fprintf(conn, "Ты взял %d %s\n> ", takeCount, item.GetColoredName(takenStack))
 
 	}
 

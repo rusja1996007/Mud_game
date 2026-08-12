@@ -6,7 +6,7 @@ const (
 	ColorRed   = "\033[31m" //очень редкий
 )
 
-// возвращает цвет предмета в зависимости от редкости
+// (ИСПОЛЬЗУЙ GetColoredName)возвращает цвет предмета в зависимости от редкости
 func GetItemColor(stack *ItemStack) string {
 	if stack.FireDamage > 0 ||
 		stack.PoisonDamage > 0 ||
@@ -20,4 +20,12 @@ func GetItemColor(stack *ItemStack) string {
 	}
 	return ColorReset
 
+}
+
+// возвращает цветное имя
+func GetColoredName(stack *ItemStack) string {
+	if stack == nil {
+		return ""
+	}
+	return GetItemColor(stack) + stack.Name + ColorReset
 }

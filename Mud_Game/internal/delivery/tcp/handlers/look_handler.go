@@ -87,8 +87,7 @@ func inspectItem(conn net.Conn, p *player.Player, roomRepo room.Repository, item
 }
 
 func printItemInfo(conn net.Conn, stack *item.ItemStack) {
-	color := item.GetItemColor(stack)
-	fmt.Fprintf(conn, "📖 %s%s%s\n", color, stack.Name, item.ColorReset)
+	fmt.Fprintf(conn, "📖 %s\n", item.GetColoredName(stack))
 	fmt.Fprintf(conn, "Тип %s\n", stack.ItemType)
 	//свитки
 	if stack.ItemType == "scroll" {

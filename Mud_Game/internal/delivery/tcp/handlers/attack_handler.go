@@ -33,9 +33,9 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	}
 
 	// 4. Урон игрока
-	damage := calculatePlayerDamage(p, selectedMonster)
+	damage, fireDamage, magicDamage, poisonDamage, finalDamage := calculatePlayerDamage(p, selectedMonster)
 	// 5. Нанесение урона
-	targetMonster := allpyDamageToMonster(concreteRoom, selectedMonster, damage)
+	targetMonster := allpyDamageToMonster(concreteRoom, selectedMonster, finalDamage)
 	if targetMonster == nil {
 		fmt.Fprintf(conn, "Ошибка: монстр не найден\n> ")
 		return
@@ -52,7 +52,7 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 	actions, statuses := otvetAttakaMonstra(allAliveMonster, concreteRoom, p)
 
 	// 8. Вывод результата
-	printBattleResult(conn, damage, selectedMonster, statuses, actions, p)
+	printBattleResult(conn, damage, selectedMonster, statuses, actions, p, fireDamage, magicDamage, poisonDamage)
 	roomRepo.Save(concreteRoom)
 	// 9. Проверка смерти игрока
 	proverkaSmerti(conn, concreteRoom, p, roomRepo, playerRepo)
@@ -122,7 +122,7 @@ func applyPoisonDamage(conn net.Conn, p *player.Player, selectedMonster *monster
 }
 
 // расчитываем  урон игрока
-func calculatePlayerDamage(p *player.Player, monster *monster.Monster) int {
+func calculatePlayerDamage(p *player.Player, monster *monster.Monster) (int, int, int, int, int) {
 
 	weapon := p.Equipment.Weapon
 	minDamage := 1
@@ -167,7 +167,7 @@ func calculatePlayerDamage(p *player.Player, monster *monster.Monster) int {
 		finalDamage = 1
 	}
 
-	return finalDamage
+	return physicalDamage, fireDamage, magicDamage, poisonDamage, finalDamage
 }
 
 // наносим урон монстру
@@ -447,9 +447,26 @@ func otvetAttakaMonstra(allAliveMonster []*monster.Monster, concreteRoom *room.R
 }
 
 // вывод результата хода
-func printBattleResult(conn net.Conn, damage int, selectedMonster *monster.Monster, statuses []string, actions []string, p *player.Player) {
-	// Выводим результат
+func printBattleResult(conn net.Conn, damage int, selectedMonster *monster.Monster, statuses []string, actions []string, p *player.Player, fireDamage int, magicDamage int, poisonDamage int) {
+	// Основная строка урона
 	fmt.Fprintf(conn, "Ты нанес %d урона %s\n", damage, selectedMonster.Name)
+
+	// Бонусы на отдельной строке с отступом
+	var bonuses []string
+	if fireDamage > 0 {
+		bonuses = append(bonuses, fmt.Sprintf("+%d огненного урона", fireDamage))
+	}
+	if magicDamage > 0 {
+		bonuses = append(bonuses, fmt.Sprintf("+%d магического урона", magicDamage))
+	}
+	if poisonDamage > 0 {
+		bonuses = append(bonuses, fmt.Sprintf("+%d ядовитого урона", poisonDamage))
+	}
+
+	if len(bonuses) > 0 {
+		fmt.Fprintf(conn, "           (%s)\n", strings.Join(bonuses, ", "))
+	}
+
 	for _, status := range statuses {
 		fmt.Fprintf(conn, "%s\n", status)
 	}

@@ -784,21 +784,21 @@ func (p *Player) StopAllTickers() {
 
 // кик игрока при долгом присутствии в данже
 func (p *Player) StartDungeonKickTimer(conn net.Conn, repo Repository, roomRepo room.Repository) {
-
 	if p.Stats.IsInDungeon {
-
 		p.stopDungeonTimer = make(chan bool)
 
 		select {
 		case <-p.stopDungeonTimer:
-			return //остановили
-		case <-time.After(1 * time.Minute): ///////////////////////для теста через это время сработает этот кик:
+			return // остановили
+		case <-time.After(1 * time.Minute): // для теста
 
-			//текущая комната
-			room, _ := roomRepo.FindByID(p.CurrentRoom)
-			monster := room.GetMonster()
+			// текущая комната
+			roomInterface, _ := roomRepo.FindByID(p.CurrentRoom)
 
-			//если монстр жив-автоматический побег с получением урона
+			concreteRoom, _ := roomInterface.(*room.Room)
+			monster := concreteRoom.GetMonster()
+
+			// если монстр жив — автоматический побег с получением урона
 			if monster != nil && monster.IsAlive {
 				monsterDamage := monster.MinDamage + rand.Intn(monster.MaxDamage-monster.MinDamage+1)
 				defence := p.GetTotalDefence()
@@ -809,48 +809,66 @@ func (p *Player) StartDungeonKickTimer(conn net.Conn, repo Repository, roomRepo 
 				}
 
 				p.Stats.Health -= finalDamage
-				monster.Health = monster.MaxHealth
-				if p.Stats.Health > 0 {
-					repo.Save(p)
+
+				// ✅ ВОССТАНАВЛИВАЕМ ВСЕХ МОНСТРОВ
+				if len(concreteRoom.MonsterS) > 0 {
+					for _, m := range concreteRoom.MonsterS {
+						m.Health = m.MaxHealth
+						m.IsAlive = true
+						if m.ID == "goblin_shaman" {
+							m.CastTime = 0
+							m.IsCasting = true
+						}
+					}
+				} else if monster != nil {
+					monster.Health = monster.MaxHealth
+					monster.IsAlive = true
+					monster.CastTime = 0
 				}
+				roomRepo.Save(concreteRoom)
+
 				msg := fmt.Sprintf("💨 Ты слишком долго был в бою и сбежал! Монстр нанёс %d урона вслед.\n> ", finalDamage)
 				p.SendMessage(conn, msg)
 
 				if p.Stats.Health <= 0 {
-					p.SendMessage(conn, "💀Ты погиб...\n")
+					p.SendMessage(conn, "💀 Ты погиб...\n")
+
+					// ✅ ОЧИЩАЕМ occupantID
+					concreteRoom.SetPlayerOccupantID("")
+					roomRepo.Save(concreteRoom)
+
 					repo.Delete(p.ID)
 					conn.Close()
 					return
 				}
 
 				// телепорт
-				p.CurrentRoom = room.GetExitRoomID()
-				room.SetPlayerOccupantID("")
+				p.CurrentRoom = concreteRoom.GetExitRoomID()
+				concreteRoom.SetPlayerOccupantID("")
 				p.Stats.IsInDungeon = false
 				p.Stats.EnteredDungeonAt = time.Time{}
-				roomRepo.Save(room)
+				roomRepo.Save(concreteRoom)
 				if p.Stats.Health > 0 {
 					repo.Save(p)
 				}
 				return
 			}
+
 			// Если монстр мёртв — телепорт
-			if room.GetExitRoomID() != "" {
-				p.CurrentRoom = room.GetExitRoomID()
-				room.SetPlayerOccupantID("")
+			if concreteRoom.GetExitRoomID() != "" {
+				p.CurrentRoom = concreteRoom.GetExitRoomID()
+				concreteRoom.SetPlayerOccupantID("")
 				p.Stats.IsInDungeon = false
 				p.Stats.EnteredDungeonAt = time.Time{}
 
-				roomRepo.Save(room)
+				roomRepo.Save(concreteRoom)
 				if p.Stats.Health > 0 {
 					repo.Save(p)
 				}
 
-				p.SendMessage(conn, "⏰Вы слишком долго были в подземелье, вас выкинуло.\n> ")
-
+				p.SendMessage(conn, "⏰ Ты слишком долго был в подземелье, тебя выкинуло.\n> ")
 			}
 		}
-
 	}
 }
 

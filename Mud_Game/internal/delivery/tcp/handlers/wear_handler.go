@@ -55,101 +55,99 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 	//Получи предмет из инвентаря
-	var item *item.ItemStack
+	var it *item.ItemStack
 	if inBag {
-		item = p.Equipment.BagItems[index]
+		it = p.Equipment.BagItems[index]
 	} else {
-		item = p.Inventory[index]
+		it = p.Inventory[index]
 	}
 
 	//Еда, напитки, семена, материалы,свитки
-	if item.ItemType == "food" || item.ItemType == "drink" || item.ItemType == "seed" || item.ItemType == "material" || item.ItemType == "container" || item.ItemType == "scroll" {
+	if it.ItemType == "food" || it.ItemType == "drink" || it.ItemType == "seed" || it.ItemType == "material" || it.ItemType == "container" || it.ItemType == "scroll" {
 		fmt.Fprintf(conn, "Этот предмет нельзя надеть.\n> ")
 		return
 	}
 
 	// ✅ Проверка: не сломан ли предмет
-	if item.Durability <= 0 {
+	if it.Durability <= 0 {
 		fmt.Fprintf(conn, "Этот предмет сломан, его нельзя надеть.\n> ")
 		return
 	}
 
-	switch item.ItemType {
+	switch it.ItemType {
 
 	//оружие
 	case "weapon":
 		if p.Equipment.Weapon != nil {
 			p.AddItemToInventory(p.Equipment.Weapon)
-			fmt.Fprintf(conn, "Ты снял %s\n", p.Equipment.Weapon.Name)
+			fmt.Fprintf(conn, "Ты снял %s\n", item.GetColoredName(p.Equipment.Weapon))
 		}
-		//вооружаем
-		p.Equipment.Weapon = item
-		//удаляем из инвентаря
+		p.Equipment.Weapon = it // ← добавить!
 		p.RemoveItemFromStorage(itemName, inBag, index)
-		fmt.Fprintf(conn, "Ты надел %s в слот оружия\n> ", itemName)
+		fmt.Fprintf(conn, "Ты надел %s в слот оружия\n> ", item.GetColoredName(it))
 	//броня
 	case "armor":
 		if p.Equipment.Armor != nil {
 			p.AddItemToInventory(p.Equipment.Armor)
-			fmt.Fprintf(conn, "Ты снял %s\n", p.Equipment.Armor.Name)
+			fmt.Fprintf(conn, "Ты снял %s\n", item.GetColoredName(p.Equipment.Armor))
 		}
 		//вооружаем
-		p.Equipment.Armor = item
+		p.Equipment.Armor = it
 		//удаляем из инвентаря
 		p.RemoveItemFromStorage(itemName, inBag, index)
-		fmt.Fprintf(conn, "Ты надел %s в слот брони\n> ", itemName)
+		fmt.Fprintf(conn, "Ты надел %s в слот брони\n> ", item.GetColoredName(it))
 	//шлем
 	case "helmet":
 		if p.Equipment.Helmet != nil {
 			p.AddItemToInventory(p.Equipment.Helmet)
-			fmt.Fprintf(conn, "Ты снял %s\n", p.Equipment.Helmet.Name)
+			fmt.Fprintf(conn, "Ты снял %s\n", item.GetColoredName(p.Equipment.Helmet))
 		}
 		//вооружаем
-		p.Equipment.Helmet = item
+		p.Equipment.Helmet = it
 		//удаляем из инвентаря
 		p.RemoveItemFromStorage(itemName, inBag, index)
-		fmt.Fprintf(conn, "Ты надел %s в слот шлема\n> ", itemName)
+		fmt.Fprintf(conn, "Ты надел %s в слот шлема\n> ", item.GetColoredName(it))
 	//ботинки
 	case "boots":
 		if p.Equipment.Boots != nil {
 			p.AddItemToInventory(p.Equipment.Boots)
-			fmt.Fprintf(conn, "Ты снял %s\n", p.Equipment.Boots.Name)
+			fmt.Fprintf(conn, "Ты снял %s\n", item.GetColoredName(p.Equipment.Boots))
 		}
 		//вооружаем
-		p.Equipment.Boots = item
+		p.Equipment.Boots = it
 		//удаляем из инвентаря
 		p.RemoveItemFromStorage(itemName, inBag, index)
-		fmt.Fprintf(conn, "Ты надел %s в слот обуви\n> ", itemName)
+		fmt.Fprintf(conn, "Ты надел %s в слот обуви\n> ", item.GetColoredName(it))
 	//щит
 	case "shield":
 		if p.Equipment.Shield != nil {
 			p.AddItemToInventory(p.Equipment.Shield)
-			fmt.Fprintf(conn, "Ты снял %s\n", p.Equipment.Shield.Name)
+			fmt.Fprintf(conn, "Ты снял %s\n", item.GetColoredName(p.Equipment.Shield))
 		}
 		//вооружаем
-		p.Equipment.Shield = item
+		p.Equipment.Shield = it
 		//удаляем из инвентаря
 		p.RemoveItemFromStorage(itemName, inBag, index)
-		fmt.Fprintf(conn, "Ты надел %s в слот щита\n> ", itemName)
+		fmt.Fprintf(conn, "Ты надел %s в слот щита\n> ", item.GetColoredName(it))
 	//сумка
 	case "bag":
 		if p.Equipment.Bag != nil {
 			p.AddItemToInventory(p.Equipment.Bag)
-			fmt.Fprintf(conn, "Ты снял %s\n", p.Equipment.Bag.Name)
+			fmt.Fprintf(conn, "Ты снял %s\n", item.GetColoredName(p.Equipment.Bag))
 		}
 		//вооружаем
-		p.Equipment.Bag = item
+		p.Equipment.Bag = it
 		//удаляем из инвентаря
 		p.RemoveItemFromStorage(itemName, inBag, index)
-		fmt.Fprintf(conn, "Ты надел %s в слот сумки\n> ", itemName)
+		fmt.Fprintf(conn, "Ты надел %s в слот сумки\n> ", item.GetColoredName(it))
 	//кольца
 	case "ring":
 		if p.Equipment.Ring1 == nil {
-			p.Equipment.Ring1 = item
-			fmt.Fprintf(conn, "Ты надел %s на левую руку\n> ", itemName)
+			p.Equipment.Ring1 = it
+			fmt.Fprintf(conn, "Ты надел %s на левую руку\n> ", item.GetColoredName(it))
 		} else if p.Equipment.Ring2 == nil {
-			p.Equipment.Ring2 = item
-			fmt.Fprintf(conn, "Ты надел %s на правую руку\n> ", itemName)
+			p.Equipment.Ring2 = it
+			fmt.Fprintf(conn, "Ты надел %s на правую руку\n> ", item.GetColoredName(it))
 		} else {
 			fmt.Fprintf(conn, "У тебя уже есть два кольца. Сними одно сначало\n> ")
 			return
@@ -157,7 +155,7 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		p.RemoveItemFromStorage(itemName, inBag, index)
 
 	default:
-		fmt.Fprintf(conn, "Этот предмет нельзя надеть. Тип : %s\n> ", item.ItemType)
+		fmt.Fprintf(conn, "Этот предмет нельзя надеть. Тип : %s\n> ", it.ItemType)
 		return
 	}
 	playerRepo.Save(p)

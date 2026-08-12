@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -31,10 +32,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Weapon.Name
+			itemName := p.Equipment.Weapon
 			p.AddItemToInventory(p.Equipment.Weapon)
 			p.Equipment.Weapon = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надето оружие\n> ")
 		}
@@ -44,10 +45,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Armor.Name
+			itemName := p.Equipment.Armor
 			p.AddItemToInventory(p.Equipment.Armor)
 			p.Equipment.Armor = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надета броня\n> ")
 		}
@@ -57,10 +58,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Helmet.Name
+			itemName := p.Equipment.Helmet
 			p.AddItemToInventory(p.Equipment.Helmet)
 			p.Equipment.Helmet = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надет шлем\n> ")
 		}
@@ -70,10 +71,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Bag.Name
+			itemName := p.Equipment.Bag
 			p.AddItemToInventory(p.Equipment.Bag)
 			p.Equipment.Bag = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надета сумка\n> ")
 		}
@@ -83,10 +84,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Shield.Name
+			itemName := p.Equipment.Shield
 			p.AddItemToInventory(p.Equipment.Shield)
 			p.Equipment.Shield = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надет щит\n> ")
 		}
@@ -96,10 +97,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Boots.Name
+			itemName := p.Equipment.Boots
 			p.AddItemToInventory(p.Equipment.Boots)
 			p.Equipment.Boots = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надета обувь\n> ")
 		}
@@ -109,10 +110,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Ring1.Name
+			itemName := p.Equipment.Ring1
 			p.AddItemToInventory(p.Equipment.Ring1)
 			p.Equipment.Ring1 = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надето кольцо на первой руке\n> ")
 		}
@@ -122,10 +123,10 @@ func HandleRemove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				fmt.Fprintf(conn, "Нет места в инвентаре! Освободи место сначала.\n> ")
 				return
 			}
-			itemName := p.Equipment.Ring2.Name
+			itemName := p.Equipment.Ring2
 			p.AddItemToInventory(p.Equipment.Ring2)
 			p.Equipment.Ring2 = nil
-			fmt.Fprintf(conn, "Ты снял %s\n> ", itemName)
+			fmt.Fprintf(conn, "Ты снял %s\n> ", item.GetColoredName(itemName))
 		} else {
 			fmt.Fprintf(conn, "У тебя не надето кольцо на второй руке\n> ")
 		}
