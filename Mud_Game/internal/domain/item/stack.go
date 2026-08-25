@@ -24,7 +24,7 @@ type ItemStack struct {
 	MagicDefence  int `json:"magic_defence"`
 	FireDefence   int `json:"fire_defence"`
 	PoisonDefence int `json:"poison_defence"`
-	MagicDamage   int `json:"magic_damage"` //урон
+	MagicDamage   int `json:"magic_damage"` //урон доп на оружии
 	FireDamage    int `json:"fire_damage"`
 	PoisonDamage  int `json:"poison_damage"`
 

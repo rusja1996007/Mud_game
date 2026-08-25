@@ -84,9 +84,16 @@ func (r *Room) Look(playerID string) string {
 	if len(items) > 0 {
 		builder.WriteString("Вы видите:\n")
 		for i, stack := range items {
-			color := item.GetItemColor(stack)
+			if stack == nil {
+				continue
+			}
 
-			fmt.Fprintf(&builder, "  %d. %s%s%s", i+1, color, stack.Name, item.ColorReset)
+			color := item.GetColoredName(stack)
+			fmt.Fprintf(&builder, "%d. %s", i+1, color)
+
+			//color := item.GetItemColor(stack)
+
+			//fmt.Fprintf(&builder, "  %d. %s%s%s", i+1, color, stack.Name, item.ColorReset)
 			if stack.Durability > 0 {
 				fmt.Fprintf(&builder, "(прочность:%d)", stack.Durability)
 			}

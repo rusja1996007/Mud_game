@@ -37,6 +37,7 @@ type ItemData struct {
 var ItemsDB = map[string]ItemData{
 
 	//////////////////////////////////////scroll/////////////////////////////////////////
+
 	"scroll fireball": {
 		Name:        "scroll fireball",
 		ItemType:    "scroll",
@@ -162,6 +163,14 @@ var ItemsDB = map[string]ItemData{
 		Durability:  100,
 		Description: "Обычный охотничий нож",
 	},
+	"wooden spear": {
+		Name:        "wooden spear",
+		ItemType:    "weapon",
+		MinDamage:   7,
+		MaxDamage:   31,
+		Durability:  100,
+		Description: "Обычное копье. При правильном использовании наносит хороший урон",
+	},
 
 	///////////////////////////////////helmet///////////////////////////////////////////////
 	"leather hood": {
@@ -198,6 +207,13 @@ var ItemsDB = map[string]ItemData{
 		Defence:     20,
 		Description: "Лёгкий, дешёвый, шумит мало. Горит — быстро.",
 	},
+	"iron shield": {
+		Name:        "iron shield",
+		ItemType:    "shield",
+		Durability:  100,
+		Defence:     40,
+		Description: "Боевой железный щит",
+	},
 
 	/////////////////////////////////ring///////////////////////////////////////////////////
 	"silver ring": {
@@ -227,10 +243,15 @@ var ItemsDB = map[string]ItemData{
 	},
 
 	/////////////////////////////////ingredients////////////////////////////////////////////
+	"scroll blank": {
+		Name:        "scroll blank",
+		ItemType:    "ingredients",
+		Description: "пустой свиток",
+	},
 	"burdock": { //лопух
 		Name:        "burdock",
 		ItemType:    "ingredients",
-		Description: "--",
+		Description: "Лопух, встречаешь почти на каждом шагу",
 	},
 
 	"clover": { //клевер
@@ -272,6 +293,16 @@ var ItemsDB = map[string]ItemData{
 		Name:        "broken sword",
 		ItemType:    "ingredients",
 		Description: "--",
+	},
+	"black opal": {
+		Name:        "black opal",
+		ItemType:    "ingredients",
+		Description: "Черный опал, невероятно редкий камень, обладающий магическими свойствами",
+	},
+	"white opal": {
+		Name:        "white opal",
+		ItemType:    "ingredients",
+		Description: "Черный опал, невероятно редкий камень, обладающий магическими свойствами",
 	},
 
 	////////////////////////////////валюта//////////////////////////////////////////////

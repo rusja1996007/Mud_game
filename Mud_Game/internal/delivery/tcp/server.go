@@ -436,6 +436,8 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 			fmt.Fprintf(conn, "Ты на охоте, вернешься через %v\n> ",
 				time.Until(p.Stats.HuntingEndTime).Round(time.Second))
 
+		} else if cmd == "quit" {
+			handlers.HandleQuit(conn, cmd, p, s.roomRepo, s.playerRepo)
 		} else {
 			fmt.Fprintf(conn, "Ты на охоте! Нельзя использовать команды кроме hunt и quit\n> ")
 		}
