@@ -10,7 +10,7 @@ import (
 func NewJunkTrader() *NPC {
 	return &NPC{
 		ID:          "junk_trader",
-		Name:        "🧔 jtr",
+		Name:        "jtr",
 		Description: " Торговец путешественник, не знаешь что найдешь у него в продаже",
 		RoomID:      "global_town",
 		Inventory:   GenerateJunkItems(),
@@ -23,7 +23,7 @@ func NewJunkTrader() *NPC {
 func NewWeaponTrader() *NPC {
 	return &NPC{
 		ID:          "weapon_trader",
-		Name:        "🧔 wtr",
+		Name:        "wtr",
 		Description: " Мастер своего дела, продающий качественное снаряжение",
 		RoomID:      "global_town",
 		Inventory:   GenerateWeaponItems(),

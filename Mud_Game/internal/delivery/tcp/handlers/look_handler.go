@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// осмотр предметов
 func HandleLook(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
 	args := strings.Fields(cmd)
 

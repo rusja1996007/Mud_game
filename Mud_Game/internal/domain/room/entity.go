@@ -122,7 +122,7 @@ func (r *Room) Look(playerID string) string {
 
 		for _, exit := range r.TownExits { // 2. Проходим по ВСЕМ выходам города
 			if exit.OwnerID == playerID { // 3. Сравниваем владельца с текущим игроком
-				builder.WriteString(exit.Name + " ")
+				builder.WriteString(exit.Name)
 			}
 		}
 	} else {

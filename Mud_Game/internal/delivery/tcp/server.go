@@ -634,16 +634,15 @@ func (s *Server) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
 		fmt.Fprintf(conn, "Ошибка загрузки комнаты\n> ")
 		return
 	}
-	// Показываем комнату (без лишнего \n)
 
 	fmt.Fprintf(conn, "%s", room.Look(p.ID))
 
 	//показ npc
 	npcs, err := s.npcRepo.FindByRoom(p.CurrentRoom)
 	if err == nil && len(npcs) > 0 {
-		fmt.Fprintf(conn, "👥 Ты видишь:\n")
+		fmt.Fprintf(conn, "\n👥 Ты видишь:")
 		for _, npc := range npcs {
-			fmt.Fprintf(conn, " %s\n", npc.Name)
+			fmt.Fprintf(conn, "\n🧔 %s", npc.Name)
 		}
 
 	}
