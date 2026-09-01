@@ -47,7 +47,7 @@
    //go run cmd/server/main.go - запуск самого сервера
    SELECT * FROM player_models; - вытащить всю таблицу
    DELETE FROM player_models; - удалить всю таблицу, при повторном запуске опять создасться сама
-
+   DELETE FROM npc_models - таблица с npc
 
 
 /////////////////////КОМАНДЫ///////////////////

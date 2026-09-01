@@ -5,8 +5,8 @@ import (
 	"Mud_game/Mud_Game/internal/domain/combat"
 	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/loot"
-
 	"Mud_game/Mud_Game/internal/domain/room"
+
 	"fmt"
 	"math/rand"
 	"net"
@@ -66,6 +66,10 @@ type Player struct {
 	//данж
 	stopDungeonTimer chan bool //остановка таймера
 
+	//разговаривает?
+	IsTalkin   bool
+	TalkToID   string //ID NPC с которым говорит
+	TalkToName string //имя npc
 }
 
 // Данные (состояния, характеристики)

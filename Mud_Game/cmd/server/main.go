@@ -8,6 +8,7 @@ import (
 	"Mud_game/Mud_Game/internal/pkg/db"
 	"Mud_game/Mud_Game/internal/pkg/logger"
 	"Mud_game/Mud_Game/internal/repository/memoryrepo"
+	"Mud_game/Mud_Game/internal/repository/npc_repo"
 	playerRepo "Mud_game/Mud_Game/internal/repository/player" // ← алиас! чтобы не было конфликта имён
 	roomRepo "Mud_game/Mud_Game/internal/repository/room"     // ← алиас!
 	"Mud_game/Mud_Game/internal/world"
@@ -35,7 +36,7 @@ func main() {
 
 	var pRepo player.Repository
 	var rRepo room.Repository
-
+	var npcRepo *npc_repo.PostgresNPCRepository
 	var database *gorm.DB
 	// Создаём конфиг для БД из данных, которые загрузили
 	// ВЫБИРАЕМ, КАКОЙ РЕПОЗИТОРИЙ ИСПОЛЬЗОВАТЬ
@@ -64,6 +65,14 @@ func main() {
 			log.Error("Ошибка создания репозитория: " + err.Error())
 			return
 		}
+		// Создаем NPC репозиторий
+		npcRepo, err = npc_repo.NewPostgresNPCRepository(database)
+		if err != nil {
+			log.Error("Ошибка создания репозитория NPC: " + err.Error())
+			return
+		}
+		log.Info("✅ Репозиторий NPC создан")
+
 	} else {
 		// ========== ВЕТКА IN-MEMORY ==========
 		pRepo = memoryrepo.NewMemoryRepository()
@@ -95,7 +104,7 @@ func main() {
 	log.Info(fmt.Sprintf("Порт: %d", cfg.Port))
 
 	//создание сервера
-	server := tcp.NewServer(strconv.Itoa(cfg.Port), log, pRepo, rRepo)
+	server := tcp.NewServer(strconv.Itoa(cfg.Port), log, pRepo, rRepo, npcRepo)
 	go func() {
 		//Запускаем сервер в отдельной горутине
 		err := server.Start()

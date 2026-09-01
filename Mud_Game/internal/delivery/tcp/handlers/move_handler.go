@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	interfaces "Mud_game/Mud_Game/internal"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 	"net"
 )
 
-func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository) {
+func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repository, playerRepo player.Repository, shower interfaces.RoomShower) {
 	if cmd == "move" {
 		fmt.Fprintf(conn, "Куда идти?\n> ")
 		return
@@ -30,7 +31,6 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 	nextRoomID, ok := exits[direction] //Проверить, есть ли такое направление(direction)
 	if !ok {
-		fmt.Printf("DEBUG: Выход '%s' не найден!\n", direction)
 		fmt.Fprintf(conn, "Туда нельзя идти\n> ")
 		return
 	}
@@ -180,7 +180,9 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	p.CurrentRoom = nextRoomID //Обновить позицию игрока и сохранить
 	playerRepo.Save(p)
 
-	nextRoom, _ := roomRepo.FindByID(nextRoomID) //Показываем новую комнату
-	fmt.Fprintf(conn, "%s\n> ", nextRoom.Look(p.ID))
+	//nextRoom, _ := roomRepo.FindByID(nextRoomID) //Показываем новую комнату
+	//fmt.Fprintf(conn, "%s\n> ", nextRoom.Look(p.ID))
+	shower.ShowRoomWithNPC(conn, p)
+	// Показываем NPC в комнате
 
 }

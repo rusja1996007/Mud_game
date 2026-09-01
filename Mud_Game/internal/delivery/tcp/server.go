@@ -6,6 +6,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
 	"Mud_game/Mud_Game/internal/pkg/logger"
+	"Mud_game/Mud_Game/internal/repository/npc_repo"
 	"fmt"
 	"math/rand"
 	"net"
@@ -16,18 +17,20 @@ import (
 type Server struct {
 	port       string
 	logger     logger.Logger
-	listener   net.Listener      //"слушатель"- обьект который принимает пподключение
-	playerRepo player.Repository //Чтобы сервер имел доступ к методам сохранения и поиска игроков
-	roomRepo   room.Repository   //все комнаты
+	listener   net.Listener                    //"слушатель"- обьект который принимает пподключение
+	playerRepo player.Repository               //Чтобы сервер имел доступ к методам сохранения и поиска игроков
+	roomRepo   room.Repository                 //все комнаты
+	npcRepo    *npc_repo.PostgresNPCRepository //npc
 }
 
 // конструктор
-func NewServer(port string, log logger.Logger, repo player.Repository, roomRepo room.Repository) *Server {
+func NewServer(port string, log logger.Logger, repo player.Repository, roomRepo room.Repository, npcRepo *npc_repo.PostgresNPCRepository) *Server {
 	return &Server{
 		port:       port,
 		logger:     log,
 		playerRepo: repo,
 		roomRepo:   roomRepo,
+		npcRepo:    npcRepo,
 		//listenet - nill, создастся позже
 	}
 
@@ -252,8 +255,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 		}
 
 		//Показ комнаты:
-		room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom)
-		fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
+		s.ShowRoomWithNPC(conn, currentPlayer)
 
 		// Цикл обработки команд одного игрока
 		for {
@@ -376,8 +378,9 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 				p.Stats.TravelTargetRoom = ""
 				s.playerRepo.Save(p)
 
-				room, _ := s.roomRepo.FindByID(p.CurrentRoom)
-				p.SendMessage(conn, room.Look(p.ID)+"\n> ")
+				//room, _ := s.roomRepo.FindByID(p.CurrentRoom)
+				//p.SendMessage(conn, room.Look(p.ID)+"\n> ")
+				s.ShowRoomWithNPC(conn, p)
 
 			}()
 
@@ -401,14 +404,15 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 			p.Stats.TravelTargetRoom = ""
 			s.playerRepo.Save(p)
 
-			room, err := s.roomRepo.FindByID(p.CurrentRoom)
-			if err != nil {
-				fmt.Fprintf(conn, "Ошибка загрузки комнаты.\n> ")
-				return false
-			}
+			//room, err := s.roomRepo.FindByID(p.CurrentRoom)
+			//if err != nil {
+			//	fmt.Fprintf(conn, "Ошибка загрузки комнаты.\n> ")
+			//	return false
+			//}
 
 			fmt.Fprintf(conn, "Ты прибыл!\n")
-			fmt.Fprintf(conn, "%s\n> ", room.Look(p.ID))
+			//fmt.Fprintf(conn, "%s\n> ", room.Look(p.ID))
+			s.ShowRoomWithNPC(conn, p)
 			return false
 
 		} else {
@@ -441,6 +445,12 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		} else {
 			fmt.Fprintf(conn, "Ты на охоте! Нельзя использовать команды кроме hunt и quit\n> ")
 		}
+		return false
+	}
+
+	//Если разговаривает - блокирует все кроме stop talk и quit
+	if p.IsTalkin && cmd != "stop talk" && cmd != "buy" && !strings.HasPrefix(cmd, "buy ") && cmd != "quit" {
+		fmt.Fprintf(conn, "Ты не можешь использовать команды во время разговора! Используй 'stop talk'.\n> ")
 		return false
 	}
 
@@ -502,7 +512,6 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		return true // сигнал на выход
 
 	case cmd == "inventory":
-
 		handlers.HandleInventory(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 
@@ -512,10 +521,24 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case cmd == "statpoints":
 		handlers.HandleStatPoints(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
+	case cmd == "all npc":
+		handlers.HandleAllNPC(conn, s.npcRepo, p)
+		return false
+	case cmd == "stop talk":
+		handlers.HandleStopTalk(conn, p)
+		s.ShowRoomWithNPC(conn, p)
+		return false
+	case cmd == "look":
+		handlers.HandleLook(conn, cmd, p, s.roomRepo, s.playerRepo)
+		s.ShowRoomWithNPC(conn, p)
+		return false
 
-	case strings.HasPrefix(cmd, "move "): //после move идет еще чтото. аналогично ниже
+	case strings.HasPrefix(cmd, "look "):
+		handlers.HandleLook(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
 
-		handlers.HandleMove(conn, cmd, p, s.roomRepo, s.playerRepo)
+	case cmd == "move", strings.HasPrefix(cmd, "move "): //после move идет еще чтото. аналогично ниже
+		handlers.HandleMove(conn, cmd, p, s.roomRepo, s.playerRepo, s)
 		return false
 
 	case strings.HasPrefix(cmd, "take "):
@@ -574,13 +597,9 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case strings.HasPrefix(cmd, "use "):
 		handlers.HandleUse(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
-
-	case strings.HasPrefix(cmd, "look"):
-		handlers.HandleLook(conn, cmd, p, s.roomRepo, s.playerRepo)
-		return false
-
 	case strings.HasPrefix(cmd, "pay 20"):
 		handlers.HandleHotel(conn, cmd, p, s.roomRepo, s.playerRepo)
+		s.ShowRoomWithNPC(conn, p)
 		return false
 
 	case strings.HasPrefix(cmd, "attack"):
@@ -594,9 +613,40 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case strings.HasPrefix(cmd, "escape"):
 		handlers.HandleEscape(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
+	case cmd == "talk", strings.HasPrefix(cmd, "talk "):
+		handlers.HandleTalk(conn, cmd, p, s.npcRepo)
+		return false
+	case cmd == "buy", strings.HasPrefix(cmd, "buy "):
+		handlers.HandleBuy(cmd, conn, p, s.npcRepo)
+		return false
 	default:
 		fmt.Fprintf(conn, "Неизвестная команда\n> ")
 		return false
 	}
+
+}
+
+// показ комнаты и npc
+func (s *Server) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
+	//показ комнату
+	room, err := s.roomRepo.FindByID(p.CurrentRoom)
+	if err != nil {
+		fmt.Fprintf(conn, "Ошибка загрузки комнаты\n> ")
+		return
+	}
+	// Показываем комнату (без лишнего \n)
+
+	fmt.Fprintf(conn, "%s", room.Look(p.ID))
+
+	//показ npc
+	npcs, err := s.npcRepo.FindByRoom(p.CurrentRoom)
+	if err == nil && len(npcs) > 0 {
+		fmt.Fprintf(conn, "👥 Ты видишь:\n")
+		for _, npc := range npcs {
+			fmt.Fprintf(conn, " %s\n", npc.Name)
+		}
+
+	}
+	fmt.Fprintf(conn, "\n> ")
 
 }

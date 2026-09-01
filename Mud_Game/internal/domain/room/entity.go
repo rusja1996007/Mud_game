@@ -131,6 +131,7 @@ func (r *Room) Look(playerID string) string {
 			builder.WriteString(" ")
 		}
 	}
+
 	return builder.String() //Строитель отдаёт всё, что мы насобирали, одной строкой.
 }
 

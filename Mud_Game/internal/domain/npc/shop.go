@@ -6,49 +6,29 @@ import (
 	"time"
 )
 
-// торговец
-type Trader struct {
-	ID              string
-	Name            string //имя торговца
-	Description     string //описание торговца
-	RoomID          string
-	InventoryTrader []*ItemForSale //список товаров
-	RefreshTime     time.Duration  //как часто обновляется ассортимент
-	LastRefresh     time.Time      //время последнего обновления
-
-}
-
-// структура предметов для продажи
-type ItemForSale struct {
-	ItemData   item.ItemData //сам предмет
-	Price      int           //цена
-	Count      int           //кол-во
-	BaseChance int
-}
-
 // СОздание торговца хламом
-func NewJunkTrader() *Trader {
-	return &Trader{
-		ID:              "junk_trader",
-		Name:            "Торговец хламом",
-		Description:     "Торговец путешественник, не знаешь что найдешь у него в продаже",
-		RoomID:          "global_town",
-		InventoryTrader: GenerateJunkItems(),
-		RefreshTime:     30 * time.Second, ////////////для теста
-		LastRefresh:     time.Now(),
+func NewJunkTrader() *NPC {
+	return &NPC{
+		ID:          "junk_trader",
+		Name:        "🧔 jtr",
+		Description: " Торговец путешественник, не знаешь что найдешь у него в продаже",
+		RoomID:      "global_town",
+		Inventory:   GenerateJunkItems(),
+		RefreshTime: 30 * time.Second, ////////////для теста
+		LastRefresh: time.Now(),
 	}
 }
 
 // СОздание торговца оружием и броней
-func NewWeaponTrader() *Trader {
-	return &Trader{
-		ID:              "weapon_trader",
-		Name:            "Оружейник",
-		Description:     "Мастер своего дела, продающий качественное снаряжение",
-		RoomID:          "global_town",
-		InventoryTrader: GenerateWeaponItems(),
-		RefreshTime:     30 * time.Second, /////////////тест
-		LastRefresh:     time.Now(),
+func NewWeaponTrader() *NPC {
+	return &NPC{
+		ID:          "weapon_trader",
+		Name:        "🧔 wtr",
+		Description: " Мастер своего дела, продающий качественное снаряжение",
+		RoomID:      "global_town",
+		Inventory:   GenerateWeaponItems(),
+		RefreshTime: 30 * time.Second, /////////////тест
+		LastRefresh: time.Now(),
 	}
 }
 
