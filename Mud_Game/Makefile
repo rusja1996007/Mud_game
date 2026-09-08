@@ -4,7 +4,7 @@ help:
 	@echo "make clean-db        -очистка БД(с подтверждением)"
 	@echo "make clean-db-force  -очистка БД(без подтверждения)"
 	@echo "make run             -запустить сервер"
-
+	@echo "make git             -отправить изменения в GitHub"
 clean-db:
 	@echo "🧹 Очистка БД..."
 	@read -p "Точно удалить все данные?(y/n) " confirm; \
@@ -25,4 +25,12 @@ clean-db-force:
 
 run:
 	-go run cmd/server/main.go || true
+
+git:
+	@echo "📦 Отправка на GitHub..."
+	git add .
+	@read -p "Введите сообщение коммита: " msg; \
+	git commit -m "msg"; \
+	git push
+	@echo "✅ Готово!"
 
