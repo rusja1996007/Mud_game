@@ -28,7 +28,7 @@ run:
 
 git:
 	@echo "📦 Отправка на GitHub..."
-	git add .
+	@git add .
 	@read -p "Введите сообщение коммита: " msg; \
 	git commit -m "msg"; \
 	git push
