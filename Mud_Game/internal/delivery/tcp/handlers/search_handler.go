@@ -24,8 +24,14 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		return
 	}
 
-	//находим комнату и монстра
-	room, _ := roomRepo.FindByID(p.CurrentRoom)
+	//находим комнату
+	room, err := roomRepo.FindByID(p.CurrentRoom)
+	if err != nil {
+		fmt.Fprintf(conn, "Ошибка загрузки комнаты\n> ")
+		return
+	}
+
+	//находим монстра
 	monster := room.GetMonster()
 
 	if monster == nil || monster.IsAlive {

@@ -69,6 +69,7 @@ func CreatePlayerZone(playerID string, PlayerName string) *PLayerZone {
 			item.GetItem("black opal", 2),
 			item.GetItem("white opal", 3),
 			item.GetItem("scroll blank", 5),
+			item.GetItem("wife ring", 1),
 		},
 	}
 

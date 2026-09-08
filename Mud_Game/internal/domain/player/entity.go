@@ -6,6 +6,7 @@ import (
 	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/loot"
 	"Mud_game/Mud_Game/internal/domain/room"
+	"slices"
 
 	"fmt"
 	"math/rand"
@@ -70,6 +71,12 @@ type Player struct {
 	IsTalkin   bool
 	TalkToID   string //ID NPC с которым говорит
 	TalkToName string //имя npc
+
+	//Квесты
+	ActiveQuests    []string //ID активных
+	CompletedQuests []string //ID завершенных
+	PendingQuest    bool     //ожидает ли игрок ответ на предлоение кваста
+	PendingQuestID  string   //id квеста который предлагают
 }
 
 // Данные (состояния, характеристики)
@@ -970,4 +977,29 @@ func (p *Player) StopPoisonTicker() {
 		close(p.stopPoisonTicker)
 		p.stopPoisonTicker = nil
 	}
+}
+
+// проверяет есть ли активный квест
+func (p *Player) HasActiveQuest(questId string) bool {
+	/*for _, id := range p.ActiveQuests {
+		if id == questId {
+			return true
+		}
+	}
+	return false*/
+
+	//аналогично циклу только со слайсами
+	return slices.Contains(p.ActiveQuests, questId)
+}
+
+// завершение квеста
+func (p *Player) CompleteQuest(questID string) {
+	for i, id := range p.ActiveQuests {
+		if id == questID {
+			p.ActiveQuests = append(p.ActiveQuests[:i], p.ActiveQuests[i+1:]...)
+			break
+		}
+	}
+	//добавляем в завершенные
+	p.CompletedQuests = append(p.CompletedQuests, questID)
 }

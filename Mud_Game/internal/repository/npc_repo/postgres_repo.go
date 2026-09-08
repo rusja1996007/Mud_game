@@ -110,8 +110,14 @@ func (r *PostgresNPCRepository) initNPCs() error {
 	//создаем npc
 	junkTrader := npc.NewJunkTrader()
 	weaponTrader := npc.NewWeaponTrader()
+	sadOldMan := npc.NewSadOldMan()
 
 	//Сохраняем их ВСЕХ
+
+	if err := r.Save(sadOldMan); err != nil {
+		return err
+	}
+
 	if err := r.Save(junkTrader); err != nil {
 		return err
 	}

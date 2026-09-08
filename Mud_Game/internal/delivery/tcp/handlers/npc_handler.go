@@ -77,39 +77,51 @@ func HandleTalk(conn net.Conn, cmd string, p *player.Player, npcRepo *npc_repo.P
 		fmt.Fprintf(conn, "NPC %s не найден в комнате\n> ", thatNPC)
 		return
 	}
-
-	if len(target.Inventory) == 0 {
-		fmt.Fprintf(conn, "%s не продает товары\n> ", target.Name)
+	///////////////////////////////////квесты///////////////////////////////////////////
+	if target.ID == "sad_old_man" {
+		if QUESTRingQuest(conn, p, target) {
+			return // квест обработан
+		}
 		return
 	}
+	///////////////////////////////////////////////////////////////////////////////////
+	if target.Type == "trader" || target.Type == "trader_quest" {
 
-	//если прошло время - обновить товар?
-	if time.Since(target.LastRefresh) >= target.RefreshTime {
-		switch target.ID {
-		case "junk_trader":
-			target.Inventory = npc.GenerateJunkItems()
-		case "weapon_trader":
-			target.Inventory = npc.GenerateWeaponItems()
-		default:
+		if len(target.Inventory) == 0 {
+			fmt.Fprintf(conn, "%s не продает товары\n> ", target.Name)
+			return
 		}
 
-		target.LastRefresh = time.Now()
-		npcRepo.Save(target)
-	}
-	//показ товаров и установка флага диалога
-	p.IsTalkin = true
-	p.TalkToID = target.ID
-	p.TalkToName = target.Name
-	fmt.Fprintf(conn, "🧙 %s:\n", target.Name)
-	fmt.Fprintf(conn, "%s\n", target.Description)
-	fmt.Fprintf(conn, "📦 Товары:\n")
+		//если прошло время - обновить товар?
+		if time.Since(target.LastRefresh) >= target.RefreshTime {
+			switch target.ID {
+			case "junk_trader":
+				target.Inventory = npc.GenerateJunkItems()
+			case "weapon_trader":
+				target.Inventory = npc.GenerateWeaponItems()
+			default:
+			}
 
-	for i, item := range target.Inventory {
-		fmt.Fprintf(conn, "%d. %s - %d монет (в наличии: %d)\n", i+1, item.ItemData.Name, item.Price, item.Count)
-	}
-	fmt.Fprintf(conn, "\nИспользуй 'buy <номер>' чтобы купить\n")
-	fmt.Fprintf(conn, "Используй 'stop talk' чтобы закончить разговор\n> ")
+			target.LastRefresh = time.Now()
+			npcRepo.Save(target)
+		}
+		//показ товаров и установка флага диалога
+		p.IsTalkin = true
+		p.TalkToID = target.ID
+		p.TalkToName = target.Name
+		fmt.Fprintf(conn, "🧙 %s:\n", target.Name)
+		fmt.Fprintf(conn, "%s\n", target.Description)
+		fmt.Fprintf(conn, "📦 Товары:\n")
 
+		for i, item := range target.Inventory {
+			fmt.Fprintf(conn, "%d. %s - %d монет (в наличии: %d)\n", i+1, item.ItemData.Name, item.Price, item.Count)
+		}
+		fmt.Fprintf(conn, "\nИспользуй 'buy <номер>' чтобы купить\n")
+		fmt.Fprintf(conn, "Используй 'stop talk' чтобы закончить разговор\n> ")
+		return
+	}
+	/////////////////////////////////////////другие NPC//////////////////////////////
+	fmt.Fprintf(conn, "Ты смотришь на %s\n %s\n> ", target.Name, target.Description)
 }
 
 // купить (cmd buy ...)

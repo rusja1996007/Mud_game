@@ -42,17 +42,29 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 		targetRoom, err := roomRepo.FindByID(nextRoomID)
 		if err == nil {
+			// Получаем монстра
+			monster := targetRoom.GetMonster()
+
+			if monster != nil && !monster.IsAlive {
+				if time.Now().Before(monster.TimeToLoot) {
+					fmt.Fprintf(conn, "Подземелье разрушается! Вход заблокирован.\n> ")
+					return
+				}
+
+				if time.Now().Before(monster.RespawnTime) {
+					fmt.Fprintf(conn, "Пещера обвалилась\n> ")
+					return
+				}
+
+				if time.Now().After(monster.RespawnTime) {
+					monster.CheckRespawn()
+					roomRepo.Save(targetRoom)
+
+				}
+			}
 			occupantID := targetRoom.GetPlayerOccupantID()
 			if occupantID != "" && occupantID != p.ID {
 				fmt.Fprintf(conn, "В подземелье уже ктото есть.\n> ")
-				return
-			}
-
-			// Получаем монстра
-			monster := targetRoom.GetMonster()
-			// Проверяем, не идёт ли обвал
-			if monster != nil && !monster.IsAlive && time.Now().Before(monster.TimeToLoot) {
-				fmt.Fprintf(conn, "Подземелье разрушается! Вход заблокирован.\n> ")
 				return
 			}
 
@@ -180,9 +192,6 @@ func HandleMove(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	p.CurrentRoom = nextRoomID //Обновить позицию игрока и сохранить
 	playerRepo.Save(p)
 
-	//nextRoom, _ := roomRepo.FindByID(nextRoomID) //Показываем новую комнату
-	//fmt.Fprintf(conn, "%s\n> ", nextRoom.Look(p.ID))
 	shower.ShowRoomWithNPC(conn, p)
-	// Показываем NPC в комнате
 
 }

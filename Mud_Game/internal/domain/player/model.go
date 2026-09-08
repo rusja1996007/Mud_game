@@ -47,6 +47,8 @@ type PlayerModel struct {
 	PoisonTicks      int            `gorm:"default:0"`
 	PoisonDamage     int            `gorm:"default:0"`
 	IsInCombat       bool           `gorm:"default:false"`
+	ActiveQuests     string         `gorm:"type:text"`
+	CompletedQuests  string         `gorm:"type:text"`
 }
 
 // структура для JSON экипировки:
@@ -138,6 +140,17 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 		}
 	}
 
+	//парсим активные квесты
+	var activeQuest []string
+	if m.ActiveQuests != "" {
+		json.Unmarshal([]byte(m.ActiveQuests), &activeQuest)
+	}
+	//парсим завершенные квесты
+	var completedQuests []string
+	if m.CompletedQuests != "" {
+		json.Unmarshal([]byte(m.CompletedQuests), &completedQuests)
+	}
+
 	// Создаем и возвращаем игрока
 	playerEntity := &Player{
 		ID:          fmt.Sprint(m.ID), //m.ID из БД превращаем в строку (fmt.Sprint)
@@ -164,6 +177,8 @@ func (m *PlayerModel) ToEntity() (*Player, error) {
 			PoisonDamage:     m.PoisonDamage,
 			IsInCombat:       m.IsInCombat,
 		},
+		ActiveQuests:    activeQuest,
+		CompletedQuests: completedQuests,
 	}
 
 	//добавляем статус(в путешествии или нет)
@@ -246,6 +261,9 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		equipmentJSON, _ = json.Marshal(eqData)
 	}
 
+	//квесты в json
+	activeQuests, _ := json.Marshal(p.ActiveQuests)
+	completedQuests, _ := json.Marshal(p.CompletedQuests)
 	// Создаем модель БД из данных игрока
 	return &PlayerModel{
 		ID:               p.ID,
@@ -281,5 +299,7 @@ func FromEntity(p *Player) (*PlayerModel, error) {
 		PoisonTicks:      p.Stats.PoisonTicks,
 		PoisonDamage:     p.Stats.PoisonDamage,
 		IsInCombat:       p.Stats.IsInCombat,
+		ActiveQuests:     string(activeQuests),
+		CompletedQuests:  string(completedQuests),
 	}, nil
 }

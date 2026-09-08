@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/monster"
 	"Mud_game/Mud_Game/internal/domain/player"
 	"Mud_game/Mud_Game/internal/domain/room"
@@ -225,6 +226,12 @@ func handleMonsterDeath(conn net.Conn, selectedMonster *monster.Monster, concret
 	if selectedMonster.Health <= 0 {
 		selectedMonster.Health = 0
 		selectedMonster.IsAlive = false
+
+		if p.CurrentRoom == "dungeon_goblin" && p.HasActiveQuest("ring_quest") {
+			ring := item.GetItem("wife ring", 1)
+			fmt.Fprintf(conn, "С гоблина выпало какое то кольцо\n> ")
+			concreteRoom.AddItem(ring)
+		}
 
 		//+опыт
 		p.AddExperience(selectedMonster.Experience, conn)

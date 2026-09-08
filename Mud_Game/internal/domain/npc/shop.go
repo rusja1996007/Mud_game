@@ -13,6 +13,7 @@ func NewJunkTrader() *NPC {
 		Name:        "jtr",
 		Description: " Торговец путешественник, не знаешь что найдешь у него в продаже",
 		RoomID:      "global_town",
+		Type:        "trader",
 		Inventory:   GenerateJunkItems(),
 		RefreshTime: 30 * time.Second, ////////////для теста
 		LastRefresh: time.Now(),
@@ -26,6 +27,7 @@ func NewWeaponTrader() *NPC {
 		Name:        "wtr",
 		Description: " Мастер своего дела, продающий качественное снаряжение",
 		RoomID:      "global_town",
+		Type:        "trader",
 		Inventory:   GenerateWeaponItems(),
 		RefreshTime: 30 * time.Second, /////////////тест
 		LastRefresh: time.Now(),
@@ -102,4 +104,20 @@ func GenerateWeaponItems() []*ItemForSale {
 
 	}
 	return result
+}
+
+///////////////////////////////////////////////КВестовые NPC/////////////////////////////////
+
+func NewSadOldMan() *NPC {
+	return &NPC{
+		ID:          "sad_old_man",
+		Name:        "old",
+		Description: "Старик сидит в углу гостиницы и грустно смотрит в пол",
+		RoomID:      "hotel",
+		Type:        "quest_giver",
+		Inventory:   []*ItemForSale{}, //пусто - ничего не продает
+		Quests:      []string{"ring_quest"},
+		RefreshTime: 0, //
+		LastRefresh: time.Now(),
+	}
 }

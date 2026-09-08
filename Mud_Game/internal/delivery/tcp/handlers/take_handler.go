@@ -38,13 +38,18 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		return
 	}
 
+	//нужно привести к конкретному типу, чтобы использовать Mtx:
+	rr, _ := r.(*room.Room)
+	rr.Mtx.Lock()
+	defer rr.Mtx.Unlock()
+
 	var count int = 1 //по умолчанию
 	var itemName string
 
 	// Проверка на номер предмета
 	if len(parts) == 1 {
 		if num, err := strconv.Atoi(parts[0]); err == nil {
-			items := r.GetItems()
+			items := rr.GetItems()
 			if num < 1 || num > len(items) {
 				fmt.Fprintf(conn, "Нет предмета с номером %d\n> ", num)
 				return
@@ -89,14 +94,14 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		stopped := false // флаг, что остановились из-за нехватки места
 
 		for {
-			items := r.GetItems()
+			items := rr.GetItems()
 			if len(items) == 0 {
 				break
 			}
 
 			// Берем первый предмет из списка
 			stack := items[0]
-			takenStack, err := r.TakeItem(stack.Name, stack.Count)
+			takenStack, err := rr.TakeItem(stack.Name, stack.Count)
 			if err != nil {
 				fmt.Fprintf(conn, "Ошибка при взятии предмета: %s", err.Error())
 				continue
@@ -104,7 +109,7 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 
 			if !p.CanAddItem() {
 				// Если нет места - кладем предмет обратно в комнату
-				r.AddItem(takenStack)
+				rr.AddItem(takenStack)
 				fmt.Fprintf(conn, "Нет места в инвентаре! Остановлено на %s\n", takenStack.Name)
 				stopped = true
 				break
@@ -115,7 +120,7 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 		}
 		if taken > 0 {
 			playerRepo.Save(p)
-			roomRepo.Save(r)
+			roomRepo.Save(rr)
 			if !stopped {
 				fmt.Fprintf(conn, "Вы взяли все из комнаты\n> ")
 			} else {
@@ -153,7 +158,7 @@ func HandleTake(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 takeItem:
 	//  Если это не "take all", обрабатываем обычный take
 	if itemName != "" {
-		items := r.GetItems()
+		items := rr.GetItems()
 		foundIndex := -1
 		for i, stack := range items {
 			if stack.Name == itemName {
@@ -181,18 +186,18 @@ takeItem:
 		}
 
 		//берем предметы
-		takenStack, err := r.TakeItem(itemName, takeCount)
+		takenStack, err := rr.TakeItem(itemName, takeCount)
 		if err != nil {
 			fmt.Fprintf(conn, "Не получилось взять предметы\n> ")
 			return
 		}
 		if !p.AddItemToInventory(takenStack) {
-			r.AddItem(takenStack)
+			rr.AddItem(takenStack)
 			fmt.Fprintf(conn, "Нет места в инвентаре!\n> ")
 			return
 		}
 		playerRepo.Save(p)
-		roomRepo.Save(r)
+		roomRepo.Save(rr)
 
 		fmt.Fprintf(conn, "Ты взял %d %s\n> ", takeCount, item.GetColoredName(takenStack))
 

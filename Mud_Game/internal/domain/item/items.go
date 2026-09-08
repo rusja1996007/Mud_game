@@ -304,6 +304,11 @@ var ItemsDB = map[string]ItemData{
 		ItemType:    "ingredients",
 		Description: "Черный опал, невероятно редкий камень, обладающий магическими свойствами",
 	},
+	"wife ring": {
+		Name:        "wife ring",
+		ItemType:    "ingredients",
+		Description: "Потёртое старое кольцо",
+	},
 
 	////////////////////////////////валюта//////////////////////////////////////////////
 	"coin": { //монета

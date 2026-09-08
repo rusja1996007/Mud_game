@@ -24,7 +24,7 @@ type Room struct {
 	Description string
 	Exits       map[string]string //выходы: направление → ID комнаты
 	Items       []*item.ItemStack //[]item.ItemStack = много разных предметов с количеством
-	mtx         sync.RWMutex
+	Mtx         sync.RWMutex
 	TownExits   []TownExit         `json:"-"` //Этот тег говорит GORM не сохранять это поле в БД.
 	Monster     *monster.Monster   `json:"-"`
 	MonsterS    []*monster.Monster `json:"-"` //НЕСКОЛЬКО
@@ -210,8 +210,8 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 		return errors.New("Количество должно быть положительным")
 	}
 
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+	r.Mtx.Lock()
+	defer r.Mtx.Unlock()
 
 	// Ищем существующую стопку с таким же названием
 	for i := range r.Items {
@@ -228,8 +228,8 @@ func (r *Room) AddItem(stack *item.ItemStack) error {
 
 // проверка наличия монстра(или монстров)
 func (r *Room) GetMonster() *monster.Monster {
-	r.mtx.RLock()
-	defer r.mtx.RUnlock()
+	r.Mtx.RLock()
+	defer r.Mtx.RUnlock()
 
 	// Сначала проверяем Monsters (новый данж)
 	if len(r.MonsterS) > 0 {
@@ -256,29 +256,29 @@ func (r *Room) GetMonster() *monster.Monster {
 
 // обновление монстра(после урона)
 func (r *Room) SetMonster(m *monster.Monster) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+	r.Mtx.Lock()
+	defer r.Mtx.Unlock()
 	r.Monster = m
 }
 
 // получение ID игрока который в комнате
 func (r *Room) GetPlayerOccupantID() string {
-	r.mtx.RLock()
-	defer r.mtx.RUnlock()
+	r.Mtx.RLock()
+	defer r.Mtx.RUnlock()
 	return r.playerOccupantID
 }
 
 // установка ID игрока в комнате
 func (r *Room) SetPlayerOccupantID(id string) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+	r.Mtx.Lock()
+	defer r.Mtx.Unlock()
 	r.playerOccupantID = id
 }
 
 // очищение от предметов комнаты
 func (r *Room) ClearItems() {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+	r.Mtx.Lock()
+	defer r.Mtx.Unlock()
 	r.Items = []*item.ItemStack{}
 }
 
@@ -304,14 +304,14 @@ func (r *Room) RegenerateItems() {
 
 // куда телепортироваться при побеге
 func (r *Room) GetExitRoomID() string {
-	r.mtx.RLock()
-	defer r.mtx.RUnlock()
+	r.Mtx.RLock()
+	defer r.Mtx.RUnlock()
 	return r.ExitRoom
 }
 
 func (r *Room) GetAliveMonsters() []*monster.Monster {
-	r.mtx.RLock()
-	defer r.mtx.RUnlock()
+	r.Mtx.RLock()
+	defer r.Mtx.RUnlock()
 
 	var alive []*monster.Monster
 
@@ -336,8 +336,8 @@ func (r *Room) GetAliveMonsters() []*monster.Monster {
 
 // GetMonsters возвращает всех монстров
 func (r *Room) GetMonsters() []*monster.Monster {
-	r.mtx.RLock()
-	defer r.mtx.RUnlock()
+	r.Mtx.RLock()
+	defer r.Mtx.RUnlock()
 
 	if r.Monster != nil {
 		return []*monster.Monster{r.Monster}

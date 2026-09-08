@@ -1,9 +1,10 @@
 package item
 
 const (
-	ColorReset = "\033[0m"  //стандартный
-	ColorGreen = "\033[32m" //редкий
-	ColorRed   = "\033[31m" //очень редкий
+	ColorReset  = "\033[0m"  //стандартный
+	ColorGreen  = "\033[32m" //редкий
+	ColorRed    = "\033[31m" //очень редкий
+	ColorYellow = "\033[33m" //для квестовых предметов
 )
 
 // (ИСПОЛЬЗУЙ GetColoredName)возвращает цвет предмета в зависимости от редкости
@@ -11,6 +12,11 @@ func GetItemColor(stack *ItemStack) string {
 	if stack == nil {
 		return ""
 	}
+	///////////////////////////////////квестовые//////////////////////////////
+	if stack.Name == "wife ring" {
+		return ColorYellow
+	}
+
 	///////////////////////////////ОЧЕНЬ редкие/////////////////////////
 	if stack.Name == "black ring" ||
 		stack.Name == "black opal" {

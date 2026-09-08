@@ -14,8 +14,8 @@ type NPC struct {
 	Description string
 	RoomID      string
 	Type        string         //("trader", "quest_giver", "trader_quest")//тип npc
-	RefreshTime time.Duration  //время обновления
-	LastRefresh time.Time      //последнее обновление
+	RefreshTime time.Duration  //время обновления предметов
+	LastRefresh time.Time      //последнее обновление предметов
 	Inventory   []*ItemForSale //товары если есть
 	Quests      []string       // ID квеста если есть
 	Mu          sync.RWMutex

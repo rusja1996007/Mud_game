@@ -179,7 +179,7 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 				MaxSlots:   8,
 				Hunger:     100,
 				Thirst:     100,
-				Health:     100 + 5*strength,
+				Health:     50 + 5*strength,
 				Strength:   3,
 				Dexterity:  3,
 				Intelect:   2,
@@ -334,6 +334,12 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 			}
 		}
 	}
+	//ответ на квест(yes/no)
+	if p.PendingQuest {
+		handlers.HandleQuestAnswer(conn, cmd, p)
+		return false
+	}
+
 	//путешествие
 	if p.PendingTravel {
 		if cmd == "yes" {
@@ -481,6 +487,7 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		handlers.HandleEmpty(conn, cmd, p, s.roomRepo, s.playerRepo)
 		return false
 	}
+
 	switch {
 	///////////////////////////////////////////////////////////////////////////////////
 	case cmd == "damage":
@@ -619,6 +626,9 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	case cmd == "buy", strings.HasPrefix(cmd, "buy "):
 		handlers.HandleBuy(cmd, conn, p, s.npcRepo)
 		return false
+	case cmd == "quest", strings.HasPrefix(cmd, "quest "):
+		handlers.HandleQuestList(conn, p)
+		return false
 	default:
 		fmt.Fprintf(conn, "Неизвестная команда\n> ")
 		return false
@@ -628,6 +638,30 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 
 // показ комнаты и npc
 func (s *Server) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
+
+	// Проверка на респавн монстра в данже
+	if strings.HasPrefix(p.CurrentRoom, "dungeon_") || p.CurrentRoom == "glubini_room" {
+		room, _ := s.roomRepo.FindByID(p.CurrentRoom)
+		monster := room.GetMonster()
+
+		if monster != nil && !monster.IsAlive && time.Now().After(monster.RespawnTime) {
+
+			//проверяем не появился ли монстр
+			if monster.CheckRespawn() {
+
+				s.roomRepo.Save(room)
+
+				p.CurrentRoom = room.GetExitRoomID()
+				s.playerRepo.Save(p)
+				// Показываем вход
+				room, _ = s.roomRepo.FindByID(p.CurrentRoom)
+				fmt.Fprintf(conn, "%s", room.Look(p.ID))
+				fmt.Fprintf(conn, "\n> ")
+				return
+			}
+
+		}
+	}
 	//показ комнату
 	room, err := s.roomRepo.FindByID(p.CurrentRoom)
 	if err != nil {
