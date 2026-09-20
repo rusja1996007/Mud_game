@@ -1,6 +1,8 @@
 package loot
 
-import "Mud_game/Mud_Game/internal/domain/item"
+import (
+	"Mud_game/Mud_Game/internal/domain/item"
+)
 
 // лут из ....
 type CaveLootItem struct {
@@ -9,15 +11,19 @@ type CaveLootItem struct {
 	MaxCount      int
 	BaseChance    int
 	TrackingBonus int //бонус от следопытства
+	MinDurability int
+	MaxDurability int
 }
 
 // лут из пещеры c 1 гоблином
 var CaveLootTable = []CaveLootItem{
 	{
-		ItemData:   item.ItemsDB["knife"],
-		MinCount:   1,
-		MaxCount:   1,
-		BaseChance: 30,
+		ItemData:      item.ItemsDB["knife"],
+		MinCount:      1,
+		MaxCount:      1,
+		BaseChance:    30,
+		MinDurability: 10,
+		MaxDurability: 100,
 	},
 	{
 		ItemData:   item.ItemsDB["coin"],
@@ -26,10 +32,12 @@ var CaveLootTable = []CaveLootItem{
 		BaseChance: 100,
 	},
 	{
-		ItemData:   item.ItemsDB["cooper ring"],
-		MinCount:   1,
-		MaxCount:   1,
-		BaseChance: 5,
+		ItemData:      item.ItemsDB["cooper ring"],
+		MinCount:      1,
+		MaxCount:      1,
+		BaseChance:    90,
+		MinDurability: 100,
+		MaxDurability: 100,
 	},
 }
 
@@ -49,7 +57,7 @@ var CaveV2LootTable = []CaveLootItem{
 	},
 }
 
-// лут из глубин(после пешеры с 2 гоблинами)
+// лут из глубин(после пешеры с 2 гоблинами)(верховный шаман)
 var GLubiniLootTable = []CaveLootItem{
 	{
 		ItemData:   item.ItemsDB["coin"],

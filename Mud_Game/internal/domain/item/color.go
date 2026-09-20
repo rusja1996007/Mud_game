@@ -7,34 +7,22 @@ const (
 	ColorYellow = "\033[33m" //для квестовых предметов
 )
 
-// (ИСПОЛЬЗУЙ GetColoredName)возвращает цвет предмета в зависимости от редкости
+// ИСПОЛЬЗУЙ(GetColoredName)возвращает цвет предмета в зависимости от редкости
 func GetItemColor(stack *ItemStack) string {
 	if stack == nil {
 		return ""
 	}
-	///////////////////////////////////квестовые//////////////////////////////
-	if stack.Name == "wife ring" {
-		return ColorYellow
-	}
 
-	///////////////////////////////ОЧЕНЬ редкие/////////////////////////
-	if stack.Name == "black ring" ||
-		stack.Name == "black opal" {
+	switch stack.Rarity {
+	case "quest":
+		return ColorYellow
+	case "epic":
 		return ColorRed
-	}
-	////////////////////////////////редкие:///////////////////////////////
-	if stack.FireDamage > 0 ||
-		stack.PoisonDamage > 0 ||
-		stack.MagicDamage > 0 ||
-		stack.FireDefence > 0 ||
-		stack.PoisonDefence > 0 ||
-		stack.MagicDefence > 0 ||
-		stack.Name == "vegetable set" ||
-		stack.Name == "white opal" ||
-		stack.Name == "inonotus obliquus" {
+	case "rare":
 		return ColorGreen
+	default:
+		return ColorReset
 	}
-	return ColorReset
 }
 
 // возвращает цветное имя

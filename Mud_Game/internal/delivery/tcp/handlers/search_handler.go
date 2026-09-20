@@ -81,13 +81,16 @@ func HandleSearch(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 				if rand.Intn(100) < chance {
 					//расчет кол-ва
 					count := lootItem.MinCount
+					//ранд. прочность
+					durability := lootItem.MinDurability + rand.Intn(lootItem.MaxDurability-lootItem.MinDurability+1)
 					if lootItem.MaxCount > lootItem.MinCount {
 						count += rand.Intn(lootItem.MaxCount - lootItem.MinCount + 1)
 					}
 					itemStack := &item.ItemStack{
-						Name:     lootItem.ItemData.Name,
-						Count:    count,
-						ItemType: lootItem.ItemData.ItemType,
+						Name:       lootItem.ItemData.Name,
+						Count:      count,
+						ItemType:   lootItem.ItemData.ItemType,
+						Durability: durability,
 					}
 					room.AddItem(itemStack)
 					roomRepo.Save(room)

@@ -32,7 +32,8 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 
 			if stack.ItemType == "weapon" || stack.ItemType == "armor" ||
 				stack.ItemType == "helmet" || stack.ItemType == "shield" ||
-				stack.ItemType == "boots" || stack.ItemType == "bag" {
+				stack.ItemType == "boots" || stack.ItemType == "bag" ||
+				stack.ItemType == "ring" {
 				if stack.Durability <= 0 {
 					fmt.Fprintf(&result, "⚠️ СЛОМАН\n")
 				} else {
@@ -58,7 +59,8 @@ func HandleInventory(conn net.Conn, cmd string, p *player.Player, roomRepo room.
 
 			if stack.ItemType == "weapon" || stack.ItemType == "armor" ||
 				stack.ItemType == "helmet" || stack.ItemType == "shield" ||
-				stack.ItemType == "boots" || stack.ItemType == "bag" {
+				stack.ItemType == "boots" || stack.ItemType == "bag" ||
+				stack.ItemType == "ring" {
 				if stack.Durability <= 0 {
 					fmt.Fprintf(&result, "⚠️ СЛОМАН\n")
 				} else {

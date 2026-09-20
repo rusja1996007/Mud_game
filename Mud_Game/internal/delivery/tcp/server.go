@@ -455,7 +455,7 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 	}
 
 	//Если разговаривает - блокирует все кроме stop talk и quit
-	if p.IsTalkin && cmd != "stop talk" && cmd != "buy" && !strings.HasPrefix(cmd, "buy ") && cmd != "quit" {
+	if p.IsTalkin && s.isCommandBlockedInDialog(cmd, p) {
 		fmt.Fprintf(conn, "Ты не можешь использовать команды во время разговора! Используй 'stop talk'.\n> ")
 		return false
 	}
@@ -549,8 +549,17 @@ func (s *Server) routeCommand(conn net.Conn, cmd string, p *player.Player) bool 
 		return false
 
 	case strings.HasPrefix(cmd, "take "):
-
+		//если игрок разговаривает с кузнецом -take для кузнеца
+		if p.IsTalkin && p.TalkToID == "blacksmith" {
+			handlers.HandleTakeRepaired(cmd, conn, p, s.npcRepo)
+			return false
+		}
+		//иначе - обычный take
 		handlers.HandleTake(conn, cmd, p, s.roomRepo, s.playerRepo)
+		return false
+
+	case strings.HasPrefix(cmd, "repair "):
+		handlers.HandleRepair(conn, cmd, p, s.npcRepo)
 		return false
 
 	case strings.HasPrefix(cmd, "drop "):
@@ -682,4 +691,26 @@ func (s *Server) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
 	}
 	fmt.Fprintf(conn, "\n> ")
 
+}
+
+// помошник  Разрешённые команды во время диалога с ....
+func (s *Server) isCommandBlockedInDialog(cmd string, p *player.Player) bool {
+	// Разрешённые команды во время диалога
+	if cmd == "stop talk" || cmd == "quit" {
+		return false
+	}
+
+	// Для торговца
+	if cmd == "buy" || strings.HasPrefix(cmd, "buy ") {
+		return false
+	}
+
+	// Для кузнеца
+	if p.TalkToID == "blacksmith" {
+		if strings.HasPrefix(cmd, "repair ") || strings.HasPrefix(cmd, "take ") {
+			return false
+		}
+	}
+
+	return true // всё остальное — блокируем
 }

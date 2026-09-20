@@ -120,6 +120,12 @@ func HandleTalk(conn net.Conn, cmd string, p *player.Player, npcRepo *npc_repo.P
 		fmt.Fprintf(conn, "Используй 'stop talk' чтобы закончить разговор\n> ")
 		return
 	}
+
+	//////////////////////////////////////кузнецы///////////////////////////////////////
+	if target.Type == "blacksmith" {
+		HandleBlacksmith(conn, p, target, npcRepo)
+		return
+	}
 	/////////////////////////////////////////другие NPC//////////////////////////////
 	fmt.Fprintf(conn, "Ты смотришь на %s\n %s\n> ", target.Name, target.Description)
 }

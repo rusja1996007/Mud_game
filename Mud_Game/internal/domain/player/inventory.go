@@ -15,7 +15,7 @@ func HasItem(inventory []*item.ItemStack, name string, count int) bool {
 	return false
 }
 
-// Remove - удаляет предметы из инвентаря
+// Remove - удаляет предметы из инвентаря (можно несколько например монеты)
 func RemoveItem(inventory *[]*item.ItemStack, name string, count int) bool {
 	for i, stack := range *inventory {
 		if stack.Name == name {
@@ -167,7 +167,7 @@ func (p *Player) FindItemGlobalByName(name string) (int, bool) {
 	return -1, false
 }
 
-// RemoveItemFromStorage удаляет предмет из инвентаря или мешка
+// RemoveItemFromStorage удаляет предмет из инвентаря или мешка(всю стопку по индексу)
 func (p *Player) RemoveItemFromStorage(name string, inBag bool, index int) {
 	if inBag {
 		p.Equipment.BagItems = append(p.Equipment.BagItems[:index], p.Equipment.BagItems[index+1:]...)
@@ -176,7 +176,7 @@ func (p *Player) RemoveItemFromStorage(name string, inBag bool, index int) {
 	}
 }
 
-// RemoveOneItem удаляет 1 единицу предмета из инвентаря или мешка
+// RemoveOneItem удаляет 1 единицу предмета из инвентаря или мешка(удаление 1 вещи например из стопки)
 func (p *Player) RemoveOneItem(name string, inBag bool, index int) {
 	var stack *item.ItemStack
 	if inBag {
@@ -195,4 +195,30 @@ func (p *Player) RemoveOneItem(name string, inBag bool, index int) {
 			p.Inventory = append(p.Inventory[:index], p.Inventory[index+1:]...)
 		}
 	}
+}
+
+// RemoveItemGlobal пытается списать предмет из инвентаря, потом из мешка
+func (p *Player) RemoveItemGlobal(name string, count int) bool {
+	// Сначала пробуем в инвентаре
+	if RemoveItem(&p.Inventory, name, count) {
+		return true
+	}
+	// Потом в мешке (если он есть)
+	if p.Equipment.Bag != nil {
+		if RemoveItem(&p.Equipment.BagItems, name, count) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasItemGlobal проверяет наличие предмета в инвентаре ИЛИ мешке
+func (p *Player) HasItemGlobal(name string, count int) bool {
+	if HasItem(p.Inventory, name, count) {
+		return true
+	}
+	if p.Equipment.Bag != nil && HasItem(p.Equipment.BagItems, name, count) {
+		return true
+	}
+	return false
 }

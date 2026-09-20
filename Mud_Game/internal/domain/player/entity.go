@@ -546,7 +546,7 @@ func (p *Player) GetTotalMagicDefence() int {
 }
 
 // наносит урон игроку с учетом защиты
-func (p *Player) TakeDamage(damage int, dmgType combat.DamageType, conn net.Conn) {
+func (p *Player) TakeDamage(damage int, dmgType combat.DamageType, conn net.Conn) int {
 	defence := 0
 
 	switch dmgType {
@@ -569,43 +569,76 @@ func (p *Player) TakeDamage(damage int, dmgType combat.DamageType, conn net.Conn
 
 	p.Stats.Health -= finalDamage
 
-	fmt.Fprintf(conn, "Ты получил %d урона!\n", finalDamage)
-
 	p.DecreaseArmorDurability()
+
+	return finalDamage
 }
 
-// снижаем прочность брони, 20% шанс износа при каждом ударе
+// (TakeDamage!)снижаем прочность брони, 50% шанс износа при каждом ударе
 func (p *Player) DecreaseArmorDurability() {
-	if rand.Intn(100) >= 50 { ///////////////////////////////////
-		return //не изнашивается
-	}
 
 	//износ...
+
+	if p.Equipment.Weapon != nil {
+		if rand.Intn(100) < 50 {
+			if p.Equipment.Weapon.Decrease(5) {
+				fmt.Println("Твое оружие сломалось!")
+				p.Equipment.Weapon = nil
+			}
+		}
+	}
+
 	if p.Equipment.Helmet != nil {
-		if p.Equipment.Helmet.Decrease(2) {
-			fmt.Println("Твой шлем сломался!")
-			p.Equipment.Helmet = nil
+		if rand.Intn(100) < 50 {
+			if p.Equipment.Helmet.Decrease(2) {
+				fmt.Println("Твой шлем сломался!")
+				p.Equipment.Helmet = nil
+			}
 		}
 	}
 
 	if p.Equipment.Armor != nil {
-		if p.Equipment.Armor.Decrease(4) {
-			fmt.Println("Твоя броня сломалась!")
-			p.Equipment.Armor = nil
+		if rand.Intn(100) < 50 {
+			if p.Equipment.Armor.Decrease(4) {
+				fmt.Println("Твоя броня сломалась!")
+				p.Equipment.Armor = nil
+			}
 		}
 	}
 
 	if p.Equipment.Shield != nil {
-		if p.Equipment.Shield.Decrease(8) {
-			fmt.Println("Твой щит сломался!")
-			p.Equipment.Shield = nil
+		if rand.Intn(100) < 50 {
+			if p.Equipment.Shield.Decrease(8) {
+				fmt.Println("Твой щит сломался!")
+				p.Equipment.Shield = nil
+			}
+		}
+	}
+
+	if p.Equipment.Ring1 != nil {
+		if rand.Intn(100) < 10 {
+			if p.Equipment.Ring1.Decrease(10) {
+				fmt.Println("Твое кольцо сломалось!")
+				p.Equipment.Ring1 = nil
+			}
+		}
+	}
+
+	if p.Equipment.Ring2 != nil {
+		if rand.Intn(100) < 10 {
+			if p.Equipment.Ring2.Decrease(10) {
+				fmt.Println("Твое кольцо сломалось!")
+				p.Equipment.Ring2 = nil
+			}
 		}
 	}
 
 	if p.Equipment.Boots != nil {
-		if p.Equipment.Boots.Decrease(2) {
-			fmt.Println("Твои ботинки уничтожены!")
-			p.Equipment.Boots = nil
+		if rand.Intn(100) < 50 {
+			if p.Equipment.Boots.Decrease(2) {
+				fmt.Println("Твои ботинки уничтожены!")
+				p.Equipment.Boots = nil
+			}
 		}
 	}
 
@@ -812,15 +845,7 @@ func (p *Player) StartDungeonKickTimer(conn net.Conn, repo Repository, roomRepo 
 			// если монстр жив — автоматический побег с получением урона
 			if monster != nil && monster.IsAlive {
 				monsterDamage := monster.MinDamage + rand.Intn(monster.MaxDamage-monster.MinDamage+1)
-				defence := p.GetTotalDefence()
-				reduction := float64(defence) / (float64(defence) + 100)
-				finalDamage := int(float64(monsterDamage) * (1 - reduction))
-				if finalDamage <= 0 {
-					finalDamage = 1
-				}
-
-				p.Stats.Health -= finalDamage
-
+				finalDamage := p.TakeDamage(monsterDamage, combat.DamagePhysical, conn)
 				// ✅ ВОССТАНАВЛИВАЕМ ВСЕХ МОНСТРОВ
 				if len(concreteRoom.MonsterS) > 0 {
 					for _, m := range concreteRoom.MonsterS {

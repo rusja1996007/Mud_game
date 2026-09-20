@@ -121,3 +121,20 @@ func NewSadOldMan() *NPC {
 		LastRefresh: time.Now(),
 	}
 }
+
+//////////////////////////////////////////////Ремонтные/////////////////////////////////////////
+
+func NewBlacksmith() *NPC {
+	return &NPC{
+		ID:           "blacksmith",
+		Name:         "bm",
+		Description:  "Опытный кузнец, занимающийся ремонтом снаряжений",
+		RoomID:       "global_town",
+		Type:         "blacksmith",
+		Inventory:    []*ItemForSale{}, //пусто - ничего не продает
+		RepairOrders: []*RepairOrder{}, //пока пусто, добавляются после починки
+		Quests:       []string{},       //пусто квестов нету
+		RefreshTime:  0,
+		LastRefresh:  time.Now(),
+	}
+}

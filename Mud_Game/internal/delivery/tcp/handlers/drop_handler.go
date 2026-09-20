@@ -112,6 +112,7 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	dropStack := &item.ItemStack{
 		Name:          originalStack.Name,
 		Count:         dropCount,
+		Rarity:        originalStack.Rarity,
 		ItemType:      originalStack.ItemType,
 		SlotBonus:     originalStack.SlotBonus,
 		MinDamage:     originalStack.MinDamage,
@@ -147,6 +148,6 @@ func HandleDrop(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	playerRepo.Save(p)
 	roomRepo.Save(room)
 
-	fmt.Fprintf(conn, "Ты бросил %d %s\n> ", dropCount, itemName)
+	fmt.Fprintf(conn, "Ты бросил %d %s\n> ", dropCount, item.GetColoredName(dropStack))
 
 }

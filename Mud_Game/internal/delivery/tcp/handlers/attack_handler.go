@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"Mud_game/Mud_Game/internal/domain/combat"
 	"Mud_game/Mud_Game/internal/domain/item"
 	"Mud_game/Mud_Game/internal/domain/monster"
 	"Mud_game/Mud_Game/internal/domain/player"
@@ -50,7 +51,7 @@ func HandleAttack(conn net.Conn, cmd string, p *player.Player, roomRepo room.Rep
 		}
 	}
 	// 7. Ответная атака монстра если жив
-	actions, statuses := otvetAttakaMonstra(allAliveMonster, concreteRoom, p)
+	actions, statuses := otvetAttakaMonstra(allAliveMonster, concreteRoom, p, conn)
 
 	// 8. Вывод результата
 	printBattleResult(conn, damage, selectedMonster, statuses, actions, p, fireDamage, magicDamage, poisonDamage)
@@ -348,7 +349,7 @@ func handleMonsterDeath(conn net.Conn, selectedMonster *monster.Monster, concret
 }
 
 // ответка от монстра если выжил
-func otvetAttakaMonstra(allAliveMonster []*monster.Monster, concreteRoom *room.Room, p *player.Player) ([]string, []string) {
+func otvetAttakaMonstra(allAliveMonster []*monster.Monster, concreteRoom *room.Room, p *player.Player, conn net.Conn) ([]string, []string) {
 	var actions []string
 	var statuses []string
 
@@ -407,44 +408,21 @@ func otvetAttakaMonstra(allAliveMonster []*monster.Monster, concreteRoom *room.R
 				monsterDamage := m.MinDamage + rand.Intn(m.MaxDamage-m.MinDamage+1)
 
 				//учитываем защиту игрока
-				defence := p.GetTotalDefence()
-				reduction := float64(defence) / (float64(defence) + 100)
-				finalDamage := int(float64(monsterDamage) * (1 - reduction))
-				if finalDamage <= 0 {
-					finalDamage = 1
-				}
-
-				p.Stats.Health -= finalDamage
+				finalDamage := p.TakeDamage(monsterDamage, combat.DamagePhysical, conn)
 
 				actions = append(actions, fmt.Sprintf("%d. %s нанес %d урона", i+1, m.Name, finalDamage))
 			}
 			/////////////////если  ВЕРХОВНЫЙ шаман гоблин://///////////////////////////////
 		} else if m.ID == "goblin_high_shaman" {
 			monsterDamage := m.MagicDamage + rand.Intn(4)
-			defence := p.GetTotalMagicDefence()
-			reduction := float64(defence) / (float64(defence) + 100)
-			finalDamage := int(float64(monsterDamage) * (1 - reduction))
-			if finalDamage <= 0 {
-				finalDamage = 1
-			}
-			p.Stats.Health -= finalDamage
-
+			finalDamage := p.TakeDamage(monsterDamage, combat.DamageMagic, conn)
 			actions = append(actions, fmt.Sprintf("%d. %s нанес %d магического урона", i+1, m.Name, finalDamage))
 			continue
 		} else {
 
 			///////////////если физик какой то://////////////////
 			monsterDamage := m.MinDamage + rand.Intn(m.MaxDamage-m.MinDamage+1)
-
-			//учитываем защиту игрока
-			defence := p.GetTotalDefence()
-			reduction := float64(defence) / (float64(defence) + 100)
-			finalDamage := int(float64(monsterDamage) * (1 - reduction))
-			if finalDamage <= 0 {
-				finalDamage = 1
-			}
-
-			p.Stats.Health -= finalDamage
+			finalDamage := p.TakeDamage(monsterDamage, combat.DamagePhysical, conn)
 
 			actions = append(actions, fmt.Sprintf("%d. %s нанес %d урона", i+1, m.Name, finalDamage))
 		}

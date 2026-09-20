@@ -9,28 +9,30 @@ import (
 )
 
 type NPC struct {
-	ID          string
-	Name        string
-	Description string
-	RoomID      string
-	Type        string         //("trader", "quest_giver", "trader_quest")//тип npc
-	RefreshTime time.Duration  //время обновления предметов
-	LastRefresh time.Time      //последнее обновление предметов
-	Inventory   []*ItemForSale //товары если есть
-	Quests      []string       // ID квеста если есть
-	Mu          sync.RWMutex
+	ID           string
+	Name         string
+	Description  string
+	RoomID       string
+	Type         string         //("trader", "quest_giver", "trader_quest", "blacksmith(кузнецы)")//тип npc
+	RefreshTime  time.Duration  //время обновления предметов
+	LastRefresh  time.Time      //последнее обновление предметов
+	Inventory    []*ItemForSale //товары если есть
+	Quests       []string       // ID квеста если есть
+	RepairOrders []*RepairOrder //Хранение итемов после ремонта
+	Mu           sync.RWMutex
 }
 
 type NPCModel struct {
-	ID          string `gorm:"primaryKey;size:36"`
-	Name        string `gorm:"type:text"`
-	Description string `gorm:"type:text"`
-	RoomID      string `gorm:"type:text"`
-	Type        string `gorm:"type:text"`
-	RefreshTime int    `gorm:"default:0"`
-	LastRefresh int    `gorm:"default:0"`
-	Inventory   string `gorm:"type:text"`
-	Quests      string `gorm:"type:text"`
+	ID           string `gorm:"primaryKey;size:36"`
+	Name         string `gorm:"type:text"`
+	Description  string `gorm:"type:text"`
+	RoomID       string `gorm:"type:text"`
+	Type         string `gorm:"type:text"`
+	RefreshTime  int    `gorm:"default:0"`
+	LastRefresh  int    `gorm:"default:0"`
+	Inventory    string `gorm:"type:text"`
+	Quests       string `gorm:"type:text"`
+	RepairOrders string `gorm:"type:text"`
 }
 
 // структура предметов для продажи
@@ -61,21 +63,32 @@ func (m *NPCModel) ToEntity() (*NPC, error) {
 			return nil, errors.New("Не удалось преобразовать квесты")
 		}
 	}
+
+	//парс предметов после ремонта
+	var repairOrd []*RepairOrder
+	if m.RepairOrders != "" {
+		err := json.Unmarshal([]byte(m.RepairOrders), &repairOrd)
+		if err != nil {
+			return nil, errors.New("Не удалось преобразовать предметы после ремонта")
+		}
+	}
+
 	//Преобразовать RefreshTime
 	rD := time.Duration(m.RefreshTime) * time.Second
 	//Преобразовать LastRefresh
 	lR := time.Unix(int64(m.LastRefresh), 0)
 	//парсим торговца
 	npc := &NPC{
-		ID:          m.ID,
-		Name:        m.Name,
-		Description: m.Description,
-		RoomID:      m.RoomID,
-		Type:        m.Type,
-		Inventory:   inventory,
-		RefreshTime: rD,
-		LastRefresh: lR,
-		Quests:      quests,
+		ID:           m.ID,
+		Name:         m.Name,
+		Description:  m.Description,
+		RoomID:       m.RoomID,
+		Type:         m.Type,
+		Inventory:    inventory,
+		RefreshTime:  rD,
+		LastRefresh:  lR,
+		Quests:       quests,
+		RepairOrders: repairOrd,
 	}
 	return npc, nil
 }
@@ -93,21 +106,29 @@ func FromEntity(n *NPC) (*NPCModel, error) {
 	if err != nil {
 		return nil, errors.New("Не удалось преобразовать в JSON квесты")
 	}
+
+	//преобразовать предметы для ремонта
+	repairOrd, err := json.Marshal(n.RepairOrders)
+	if err != nil {
+		return nil, errors.New("Не удалось преобразовать в JSON отремонтир. предметы")
+	}
+
 	//Преобразовать RefreshTime в int
 	rTime := int(n.RefreshTime.Seconds())
 	//Преобразовать LastRefresh в int
 	lRefresh := n.LastRefresh.Unix()
 	//возвращаем торговца
 	traderModel := &NPCModel{
-		ID:          n.ID,
-		Name:        n.Name,
-		Description: n.Description,
-		RoomID:      n.RoomID,
-		Type:        n.Type,
-		Inventory:   string(inventJSON),
-		RefreshTime: rTime,
-		LastRefresh: int(lRefresh),
-		Quests:      string(questJSON),
+		ID:           n.ID,
+		Name:         n.Name,
+		Description:  n.Description,
+		RoomID:       n.RoomID,
+		Type:         n.Type,
+		Inventory:    string(inventJSON),
+		RefreshTime:  rTime,
+		LastRefresh:  int(lRefresh),
+		Quests:       string(questJSON),
+		RepairOrders: string(repairOrd),
 	}
 	return traderModel, nil
 }

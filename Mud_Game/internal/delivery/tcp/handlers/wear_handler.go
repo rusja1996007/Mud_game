@@ -63,8 +63,13 @@ func HandleWear(conn net.Conn, cmd string, p *player.Player, roomRepo room.Repos
 	}
 
 	//Еда, напитки, семена, материалы,свитки
-	if it.ItemType == "food" || it.ItemType == "drink" || it.ItemType == "seed" || it.ItemType == "material" || it.ItemType == "container" || it.ItemType == "scroll" {
+	if it.ItemType == "food" || it.ItemType == "drink" || it.ItemType == "seed" || it.ItemType == "material" || it.ItemType == "container" || it.ItemType == "scroll" || it.ItemType == "currency" {
 		fmt.Fprintf(conn, "Этот предмет нельзя надеть.\n> ")
+		return
+	}
+
+	if it.Rarity == "quest" {
+		fmt.Fprintf(conn, "Это квестовый предмет он не одевается.\n> ")
 		return
 	}
 

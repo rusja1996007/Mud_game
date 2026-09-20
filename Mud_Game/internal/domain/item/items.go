@@ -8,8 +8,9 @@ import (
 type ItemData struct {
 	Name          string
 	ItemType      string
-	HungerRestore int //пополнение еды
-	ThirstRestore int //пополнение воды
+	Rarity        string //редкость
+	HungerRestore int    //пополнение еды
+	ThirstRestore int    //пополнение воды
 	SlotBonus     int
 
 	MinDamage  int
@@ -45,6 +46,7 @@ var ItemsDB = map[string]ItemData{
 		MinDamage:   40,
 		MaxDamage:   80,
 		DamageType:  "fire",
+		Rarity:      "epic",
 	},
 	"scroll heal": {
 		Name:        "scroll heal",
@@ -52,6 +54,7 @@ var ItemsDB = map[string]ItemData{
 		Description: "Одноразовый свиток, восстанавливающий здоровье (40-50 HP)",
 		HealMin:     40,
 		HealMax:     50,
+		Rarity:      "epic",
 	},
 	//////////////////////////////////////liquid container////////////////////////////////
 	"empty bottle": {
@@ -101,6 +104,7 @@ var ItemsDB = map[string]ItemData{
 		ItemType:      "food",
 		HungerRestore: 30,
 		Description:   "+5 HP\n+1 HP /30 сек\nПростенький овощной набор",
+		Rarity:        "rare",
 	},
 
 	/////////////////////////////////////container////////////////////////////////////////
@@ -220,12 +224,14 @@ var ItemsDB = map[string]ItemData{
 		Name:        "silver ring",
 		ItemType:    "ring",
 		Description: "обычное серебряное кольцо",
+		Durability:  100,
 	},
 
 	"gold ring": {
 		Name:        "gold ring",
 		ItemType:    "ring",
 		Description: "обычное золотое кольцо",
+		Durability:  100,
 	},
 
 	"black ring": {
@@ -234,12 +240,14 @@ var ItemsDB = map[string]ItemData{
 		Description:  "черное титановое кольцо",
 		MagicDefence: 20,
 		Durability:   100,
+		Rarity:       "epic",
 	},
 
 	"cooper ring": { //медное
 		Name:        "cooper ring",
 		ItemType:    "ring",
 		Description: "обычное медное кольцо",
+		Durability:  100,
 	},
 
 	/////////////////////////////////ingredients////////////////////////////////////////////
@@ -263,11 +271,13 @@ var ItemsDB = map[string]ItemData{
 		Name:        "inonotus obliquus",
 		ItemType:    "ingredients",
 		Description: "--",
+		Rarity:      "rare",
 	},
 	"rubroboletus satanas": { //сатанинский гриб
 		Name:        "rubroboletus satanas",
 		ItemType:    "ingredients",
 		Description: "--",
+		Rarity:      "rare",
 	},
 	"boletus edulis": { //белый гриб
 		Name:        "boletus edulis",
@@ -298,16 +308,19 @@ var ItemsDB = map[string]ItemData{
 		Name:        "black opal",
 		ItemType:    "ingredients",
 		Description: "Черный опал, невероятно редкий камень, обладающий магическими свойствами",
+		Rarity:      "epic",
 	},
 	"white opal": {
 		Name:        "white opal",
 		ItemType:    "ingredients",
 		Description: "Черный опал, невероятно редкий камень, обладающий магическими свойствами",
+		Rarity:      "rare",
 	},
 	"wife ring": {
 		Name:        "wife ring",
 		ItemType:    "ingredients",
 		Description: "Потёртое старое кольцо",
+		Rarity:      "quest",
 	},
 
 	////////////////////////////////валюта//////////////////////////////////////////////
@@ -330,6 +343,7 @@ func GetItem(name string, count int) *ItemStack {
 		ID:            GenerateItemID(),
 		Name:          data.Name,
 		Count:         count,
+		Rarity:        data.Rarity,
 		ItemType:      data.ItemType,
 		HungerRestore: data.HungerRestore,
 		ThirstRestore: data.ThirstRestore,
@@ -371,6 +385,7 @@ func CreateRandomSword() *ItemStack {
 		ID:          GenerateItemID(),
 		Name:        "MIR",
 		Count:       1,
+		Rarity:      "rare",
 		ItemType:    "weapon",
 		MinDamage:   20 + (rand.Intn(8) + 1),
 		MaxDamage:   30 + (rand.Intn(8) + 1),

@@ -179,6 +179,7 @@ func (r *Room) TakeItem(itemName string, count int) (*item.ItemStack, error) {
 	return &item.ItemStack{
 		Name:          itemName,
 		Count:         count,
+		Rarity:        originalItem.Rarity,
 		ItemType:      originalItem.ItemType,
 		SlotBonus:     originalItem.SlotBonus,
 		HungerRestore: originalItem.HungerRestore,
