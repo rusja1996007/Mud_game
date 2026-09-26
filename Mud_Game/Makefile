@@ -32,5 +32,7 @@ git:
 	@read -p "Введите сообщение коммита: " msg; \
 	git commit -m "msg"; \
 	git push
-	@echo "✅ Готово!"
+	@echo "✅ Готово!"	
 
+run-c:
+	-go run cmd/client/main.go || true
