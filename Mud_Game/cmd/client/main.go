@@ -13,6 +13,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+// неизменяемые значения
 const (
 	frameWidth  = 1280
 	frameHeight = 720
@@ -21,6 +22,11 @@ const (
 	totalFrames = 91 //всего слайдов
 	screenW     = 1280
 	screenH     = 720
+
+	btnX = 540
+	btnY = 450
+	btnW = 200
+	btnH = 60
 )
 
 var (
@@ -32,11 +38,13 @@ var (
 // Game struct представляет игру.
 // Ebiten требует, чтобы у нас был объект с методами Update, Draw, Layout.
 type Game struct {
-	frameIndex    int    //Хранить текущий кадр анимации.
-	tickCount     int    //  счетчик тиков
-	playerName    string //имя игрока
-	cursorVisible bool   //виден ли курсор сейчас
-	cursorTimer   int    //таймер мигания
+	frameIndex     int    //Хранить текущий кадр анимации.
+	tickCount      int    //  счетчик тиков
+	playerName     string //имя игрока
+	cursorVisible  bool   //виден ли курсор сейчас
+	cursorTimer    int    //таймер мигания
+	backspaceTimer int    //для того чтобы удалял 1 символ или при зажатии больше
+	gameState      string //строка состояния "login" или "game"
 }
 
 // Специальная функция Go, которая автоматически вызывается до main()
@@ -67,9 +75,24 @@ func init() {
 
 }
 
+func main() {
+	ebiten.SetWindowSize(1280, 720)   //создание окна +размер окна
+	ebiten.SetWindowTitle("MUD Game") //заголовок окна
+
+	//запускает игровой цикл:
+	// 60 раз в секунду вызывает Update
+	//60 раз в секунду вызывает Draw
+	//Game НЕ создает проект — проект создает RunGame. Game — это объект с логикой, который RunGame использует.
+	if err := ebiten.RunGame(&Game{
+		gameState: "login",
+	}); err != nil { //создаем экземпляр нашей структуры и передаем указатель.
+		log.Fatal(err)
+	}
+}
+
 // Здесь обрабатывается логика(60 кад/сек) фона
 func (g *Game) Update() error {
-	//Каждый тик (30 раз/сек) — следующий кадр. Цикл.
+	///////////////////////////////Каждый тик (60 раз/сек) — следующий кадр. Цикл. меняется слайд
 	g.tickCount++
 	if g.tickCount >= 2 {
 		g.tickCount = 0
@@ -79,40 +102,78 @@ func (g *Game) Update() error {
 		}
 	}
 
-	//мигание курсора
+	//////////////////////////////мигание курсора////////////////////////////////////
 	g.cursorTimer++
 	if g.cursorTimer >= 30 {
 		g.cursorTimer = 0
 		g.cursorVisible = !g.cursorVisible //переключаем
 	}
+
+	///////////////////////////////ввод текста///////////////////////////////////////////
+	//возвращает список символов, которые игрок ввел за один тик
+	//ch — это один символ (руна, rune).
+	for _, ch := range ebiten.AppendInputChars(nil) {
+		if len([]rune(g.playerName)) >= 10 {
+			break //выходим больше не добавляем
+		}
+		//В компьютере каждая буква — это число (код в ASCII):
+		//'a' = 97
+		//'z' = 122
+		//'A' = 65
+		//'Z' = 90
+		//'0' = 48
+		//'9' = 57
+		if (ch >= 'a' && ch <= 'z') ||
+			(ch >= 'A' && ch <= 'Z') ||
+			(ch >= '0' && ch <= '9') ||
+			ch == '_' {
+			g.playerName += string(ch)
+		}
+
+	}
+
+	///////////////////////////////////обработка Backspace///////////////////////////
+	//Проверяем, нажата ли клавиша Backspace прямо сейчас.
+	if ebiten.IsKeyPressed(ebiten.KeyBackspace) {
+		g.backspaceTimer++
+		if g.backspaceTimer == 1 || g.backspaceTimer > 30 {
+			if len(g.playerName) > 0 {
+				//убираем последний символ(руну)
+				runa := []rune(g.playerName)
+				g.playerName = string(runa[:len(runa)-1])
+			}
+		}
+	} else {
+		//Чтобы следующее нажатие снова удаляло сразу (счетчик обнулился).
+		g.backspaceTimer = 0 //сброс при отпускании
+	}
+
+	///////////////////////////////////обработка клика по кнопке(только на экране логина)//////////
+	if g.gameState == "login" && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		mx, my := ebiten.CursorPosition()
+		//отрезок для клика(прямоугольник)
+		if mx >= btnX && mx <= btnX+btnW && my >= btnY && my <= btnY+btnH {
+			if g.playerName != "" {
+				g.gameState = "game"
+			}
+		}
+	}
+
 	return nil
+
 }
 
 // Здесь рисуется всё(60 кад/сек)
 func (g *Game) Draw(screen *ebiten.Image) {
-	//ФОН
+	//ФОН - пока что всегда
 	g.drawFrame(screen, g.frameIndex)
-	//ЗАГОЛОВОК
-	DrawCenteredText(screen, "Привет! Это будущая MUDка!", myFont, 1280, 100, cwet)
-	//ПОДСКАЗКА
-	DrawCenteredText(screen, "Введите имя персонажа", myFont, 1280, 320, color.White)
-	//ПОЛЕ ВВОДА
-	vector.FillRect(screen, 400, 360, 480, 50, color.RGBA{40, 40, 60, 50}, true)
 
-	//текст внутри поля(ник игрока, пока пустой)
-	if g.playerName == "" {
-		//Подсказка - плейсхолдер
-		if g.cursorVisible {
-			DrawText(screen, "_", myFont, 420, 375, color.RGBA{150, 150, 150, 255})
-		}
+	if g.gameState == "login" {
+		g.drawLoginScreen(screen)
 	} else {
-		//Введеный ник + курсор
-		text := g.playerName
-		if g.cursorVisible {
-			text += "_"
-		}
-		DrawText(screen, g.playerName, myFont, 420, 375, color.White)
+		g.drawGameScreen(screen)
 	}
+
 }
 
 // Это нужно для масштабирования. Если окно растянут — Ebiten сам отмасштабирует.
@@ -151,20 +212,7 @@ func (g *Game) drawFrame(screen *ebiten.Image, frameIndex int) {
 	screen.DrawImage(frame, nil)
 }
 
-func main() {
-	ebiten.SetWindowSize(1280, 720)   //создание окна +размер окна
-	ebiten.SetWindowTitle("MUD Game") //заголовок окна
-
-	//запускает игровой цикл:
-	// 60 раз в секунду вызывает Update
-	//60 раз в секунду вызывает Draw
-	//Game НЕ создает проект — проект создает RunGame. Game — это объект с логикой, который RunGame использует.
-	if err := ebiten.RunGame(&Game{}); err != nil { //создаем экземпляр нашей структуры и передаем указатель.
-		log.Fatal(err)
-	}
-}
-
-// ввод текста по центру чуть выше(screenW всегда 640)
+// ввод текста по центру чуть выше(screenW всегда 1280)
 func DrawCenteredText(screen *ebiten.Image, str string, font *text.GoTextFace, screenW int, y float64, clr color.Color) {
 	if clr == nil {
 		clr = cwet
@@ -189,4 +237,37 @@ func DrawText(screen *ebiten.Image, str string, font *text.GoTextFace, x, y floa
 	op.ColorScale.ScaleWithColor(clr)
 	text.Draw(screen, str, font, op)
 
+}
+
+// экран авторизации
+func (g *Game) drawLoginScreen(screen *ebiten.Image) {
+	//ЗАГОЛОВОК
+	DrawCenteredText(screen, "Привет! Это будущая MUDка!", myFont, 1280, 100, cwet)
+	//ПОДСКАЗКА
+	DrawCenteredText(screen, "Введите имя персонажа", myFont, 1280, 320, color.White)
+	//ПОЛЕ ВВОДА
+	vector.FillRect(screen, 490, 360, 300, 50, color.RGBA{40, 40, 60, 50}, true)
+	//КНОПКА ВОЙТИ
+	vector.FillRect(screen, btnX, btnY, btnW, btnH, color.RGBA{60, 120, 120, 200}, false)
+	DrawCenteredText(screen, "Войти", myFont, 1280, 465, color.White)
+
+	//текст внутри поля(ник игрока, пока пустой)
+	if g.playerName == "" {
+		//Подсказка - плейсхолдер
+		if g.cursorVisible {
+			DrawText(screen, "_", myFont, 510, 375, color.RGBA{150, 150, 150, 255})
+		}
+	} else {
+		//Введеный ник + курсор
+		text := g.playerName
+		if g.cursorVisible {
+			text += "_"
+		}
+		DrawText(screen, g.playerName, myFont, 510, 375, color.White)
+	}
+}
+
+func (g *Game) drawGameScreen(screen *ebiten.Image) {
+	DrawCenteredText(screen, "Ты в игре!", myFont, 1280, 100, cwet)
+	DrawCenteredText(screen, "Игрок: "+g.playerName, myFont, 1280, 200, color.White)
 }

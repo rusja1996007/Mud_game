@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"Mud_game/Mud_Game/internal/delivery/websocket"
+
 	"gorm.io/gorm"
 )
 
@@ -108,6 +110,15 @@ func main() {
 	go func() {
 		//Запускаем сервер в отдельной горутине
 		err := server.Start()
+		if err != nil {
+			log.Error("Ошибка:" + err.Error())
+		}
+	}()
+
+	// ✅ WebSocket-сервер (параллельно с TCP)
+	wsServer := websocket.NewServer("8080")
+	go func() {
+		err := wsServer.Start()
 		if err != nil {
 			log.Error("Ошибка:" + err.Error())
 		}
