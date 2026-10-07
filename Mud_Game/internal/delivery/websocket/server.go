@@ -1,16 +1,23 @@
 package websocket
 
 import (
+	"Mud_game/Mud_Game/internal/domain/player"
+	"Mud_game/Mud_Game/internal/domain/room"
+	"Mud_game/Mud_Game/internal/repository/npc_repo"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
 
 // WSServer -вебсокет сервер
 type WSServer struct {
-	port string
+	port       string
+	playerRepo player.Repository
+	roomRepo   room.Repository
+	npcRepo    *npc_repo.PostgresNPCRepository
 }
 
 // Апгрейдер для HTTP → WebSocket
@@ -19,9 +26,12 @@ var upgrader = websocket.Upgrader{
 }
 
 // NewServer — создает WebSocket-сервер
-func NewServer(port string) *WSServer {
+func NewServer(port string, playerRepo player.Repository, roomRepo room.Repository, npcRepo *npc_repo.PostgresNPCRepository) *WSServer {
 	return &WSServer{
-		port: port,
+		port:       port,
+		playerRepo: playerRepo,
+		roomRepo:   roomRepo,
+		npcRepo:    npcRepo,
 	}
 }
 
@@ -38,29 +48,37 @@ func (s *WSServer) Start() error {
 
 // handleConnection — обрабатывает нового клиента
 func (s *WSServer) handleConnection(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	wSconn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Ошибка апгрейда:", err)
 		return
 	}
-	defer conn.Close()
+	defer wSconn.Close()
 
-	fmt.Println("✅ WebSocket-клиент подключился!")
+	//1-создаем адаптер
+	adapter := NewConnAdapter(wSconn)
 
-	// Пока просто читаем и отправляем обратно
+	//2-читаем ник
+	buffer := make([]byte, 1024)
+	n, err := adapter.Read(buffer)
+	if err != nil {
+		log.Println("Ошибка чтения ника:", err)
+		return
+	}
+	name := strings.TrimSpace(string(buffer[:n]))
+	fmt.Printf("📝 Новый клиент: %s\n", name)
 
-	for {
-		messageType, message, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println("Клиент отключился")
-			return
-		}
+	//3-ищем игрока
+	existingPlayer, err := s.playerRepo.FindByName(name)
+	if err != nil {
+		adapter.Write([]byte("Ошибка при входе\n"))
+		return
+	}
 
-		fmt.Printf("📩 Получено: %s\n", string(message))
-		// Отправляем обратно (эхо для теста)
-		if err := conn.WriteMessage(messageType, message); err != nil {
-			fmt.Println("Ошибка отправки:", err)
-			return
-		}
+	//4-отвечаем
+	if existingPlayer != nil {
+		fmt.Fprintf(adapter, "С возвращением, %s\n", name)
+	} else {
+		fmt.Fprintf(adapter, "Привет %s! Добро пожаловать!", name)
 	}
 }

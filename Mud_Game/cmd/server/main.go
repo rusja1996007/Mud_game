@@ -116,7 +116,7 @@ func main() {
 	}()
 
 	// ✅ WebSocket-сервер (параллельно с TCP)
-	wsServer := websocket.NewServer("8080")
+	wsServer := websocket.NewServer("8080", pRepo, rRepo, npcRepo)
 	go func() {
 		err := wsServer.Start()
 		if err != nil {
