@@ -3,6 +3,7 @@ package websocket
 import (
 	"bytes"
 	"net"
+	"regexp"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,6 +25,9 @@ func NewConnAdapter(wsConn *websocket.Conn) *ConnAdapter {
 // wsAddr — заглушка для net.Addr
 type wsAddr struct{}
 
+// регулярка для поиска ANSI-кодов
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
 func (a wsAddr) Network() string { return "websocket" } //Возвращает "websocket" (тип сети)
 func (a wsAddr) String() string  { return "ws-client" }
 
@@ -44,7 +48,9 @@ func (c *ConnAdapter) Read(b []byte) (int, error) {
 
 // Write — отправляет данные через WebSocket
 func (c *ConnAdapter) Write(b []byte) (int, error) {
-	err := c.wsConn.WriteMessage(websocket.TextMessage, b)
+	// Убираем ANSI-коды (не работают в WebSocket)
+	cleaned := ansiRegex.ReplaceAll(b, []byte("")) //заменяет на пустую строку (убирает)
+	err := c.wsConn.WriteMessage(websocket.TextMessage, cleaned)
 	if err != nil {
 		return 0, err
 	}

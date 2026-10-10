@@ -2,11 +2,15 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"log"
 	"os"
+	"strings"
+	"sync"
 
+	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -30,10 +34,18 @@ const (
 )
 
 var (
-	myFont      *text.GoTextFace                            //указатель на объект шрифта из пакета text/v2
+	myFont      *text.GoTextFace                            //большой лог
+	logFont     *text.GoTextFace                            // мелкий лог
+	buttonFont  *text.GoTextFace                            //для кнопок
 	cwet        = color.RGBA{R: 64, G: 224, B: 208, A: 255} //цвет бирюзовый для шрифта
 	spriteSheet *ebiten.Image                               //спрайт лист картинки
 )
+
+type Button struct {
+	X, Y, W, H float64 //позиция и размер
+	Text       string  //что написано
+	Command    string  //какую команду отправить
+}
 
 // Game struct представляет игру.
 // Ebiten требует, чтобы у нас был объект с методами Update, Draw, Layout.
@@ -45,6 +57,15 @@ type Game struct {
 	cursorTimer    int    //таймер мигания
 	backspaceTimer int    //для того чтобы удалял 1 символ или при зажатии больше
 	gameState      string //строка состояния "login" или "game"
+	wasClicked     bool   //был ли клик
+
+	//WebSocket
+	wsConn   *websocket.Conn //соединение
+	gameLog  []string        //история сообщений
+	logMutex sync.Mutex
+
+	//кнопки
+	buttons []Button
 }
 
 // Специальная функция Go, которая автоматически вызывается до main()
@@ -61,10 +82,18 @@ func init() {
 		log.Fatal("Не удалось распарсить шрифт:", err)
 	}
 
-	//создаем шрифт размером 16
+	//создаем шрифты
 	myFont = &text.GoTextFace{
 		Source: src, //сам шрифт (данные)
 		Size:   32,
+	}
+	logFont = &text.GoTextFace{
+		Source: src,
+		Size:   14,
+	}
+	buttonFont = &text.GoTextFace{
+		Source: src,
+		Size:   20,
 	}
 
 	//загрузка спрайт-листа
@@ -83,9 +112,7 @@ func main() {
 	// 60 раз в секунду вызывает Update
 	//60 раз в секунду вызывает Draw
 	//Game НЕ создает проект — проект создает RunGame. Game — это объект с логикой, который RunGame использует.
-	if err := ebiten.RunGame(&Game{
-		gameState: "login",
-	}); err != nil { //создаем экземпляр нашей структуры и передаем указатель.
+	if err := ebiten.RunGame(NewGame()); err != nil { //создаем экземпляр нашей структуры и передаем указатель.
 		log.Fatal(err)
 	}
 }
@@ -149,31 +176,73 @@ func (g *Game) Update() error {
 	}
 
 	///////////////////////////////////обработка клика по кнопке(только на экране логина)//////////
-	if g.gameState == "login" && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+	pressed := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) //было ли нажатие левой кнопки мыши
+	if g.gameState == "login" && pressed && !g.wasClicked {
 		mx, my := ebiten.CursorPosition()
 		//отрезок для клика(прямоугольник)
 		if mx >= btnX && mx <= btnX+btnW && my >= btnY && my <= btnY+btnH {
 			if g.playerName != "" {
+				//1. Подключаемся
+				conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws", nil)
+				if err != nil {
+					fmt.Println("ОШибка подключения:", err)
+					return nil // выходим из Update
+				}
+				g.wsConn = conn
+
+				//2. Отправляем ник
+				err = conn.WriteMessage(websocket.TextMessage, []byte(g.playerName+"\n"))
+				if err != nil {
+					fmt.Println("Ошибка отправки ника:", err)
+					return nil
+				}
+
+				//3. Запускаем горутину чтения
+				go g.readMessages()
+
+				//4. Меняем экран
 				g.gameState = "game"
 			}
 		}
 	}
 
+	///////////////////////////////////обработка клика по кнопке(В самой игре)//////////
+	if g.gameState == "game" && pressed && !g.wasClicked {
+		mx, my := ebiten.CursorPosition()
+
+		for _, btn := range g.buttons {
+			if float64(mx) >= btn.X && float64(mx) <= btn.X+btn.W &&
+				float64(my) >= btn.Y && float64(my) <= btn.Y+btn.H {
+				//клик по кновке
+				g.sendCommand(btn.Command)
+			}
+		}
+	}
+	g.wasClicked = pressed
 	return nil
 
 }
 
 // Здесь рисуется всё(60 кад/сек)
 func (g *Game) Draw(screen *ebiten.Image) {
+
 	//ФОН - пока что всегда
 	g.drawFrame(screen, g.frameIndex)
 
+	//экран авторизации
 	if g.gameState == "login" {
 		g.drawLoginScreen(screen)
 	} else {
+		//экран игры
 		g.drawGameScreen(screen)
-	}
 
+		//КНОПКИ — ПОСЛЕДНИМИ (поверх всего) — только на игровом экране
+		for _, btn := range g.buttons {
+			vector.FillRect(screen, float32(btn.X), float32(btn.Y), float32(btn.W), float32(btn.H), color.RGBA{60, 60, 80, 200}, false)
+			//Центрируем надпись внутри кнопок
+			DrawTextCenterInBox(screen, btn.Text, buttonFont, btn.X, btn.Y, btn.W, btn.H, color.White)
+		}
+	}
 }
 
 // Это нужно для масштабирования. Если окно растянут — Ebiten сам отмасштабирует.
@@ -268,6 +337,85 @@ func (g *Game) drawLoginScreen(screen *ebiten.Image) {
 }
 
 func (g *Game) drawGameScreen(screen *ebiten.Image) {
-	DrawCenteredText(screen, "Ты в игре!", myFont, 1280, 100, cwet)
-	DrawCenteredText(screen, "Игрок: "+g.playerName, myFont, 1280, 200, color.White)
+	g.logMutex.Lock()
+	defer g.logMutex.Unlock()
+
+	//лог(последние 20 строк)
+	y := 15.0
+	startIdx := 0
+	if len(g.gameLog) > 40 {
+		startIdx = len(g.gameLog) - 40
+	}
+
+	for i := startIdx; i < len(g.gameLog); i++ {
+		DrawText(screen, g.gameLog[i], logFont, 30, y, color.White)
+		y += 16 //межстрочный интервал
+	}
+}
+
+func (g *Game) readMessages() {
+	for {
+		_, message, err := g.wsConn.ReadMessage()
+		if err != nil {
+			fmt.Println("Соединение закрыто:", err)
+			return
+		}
+
+		//Разбиваем на строки
+		lines := strings.Split(string(message), "\n")
+
+		//добавляем в лог
+		g.logMutex.Lock()
+		for _, line := range lines {
+			if line != "" {
+				g.gameLog = append(g.gameLog, line)
+			}
+		}
+
+		//ограничиваем лог
+		if len(g.gameLog) > 100 {
+			g.gameLog = g.gameLog[len(g.gameLog)-100:]
+		}
+		g.logMutex.Unlock()
+
+		fmt.Println("📩 Получено:", string(message))
+	}
+}
+
+func NewGame() *Game {
+	g := &Game{
+		gameState: "login",
+	}
+
+	//кнопки нижней панели
+	y := 660.0
+	g.buttons = []Button{
+		//W-ШИРИНА КНОПОК
+		//H-ВЫСОТА
+		{X: 40, Y: y, W: 150, H: 30, Text: "Осмотреться", Command: "look"},
+		{X: 230, Y: y, W: 150, H: 30, Text: "Инвентарь", Command: "inventory"},
+		{X: 420, Y: y, W: 150, H: 30, Text: "Характеристики", Command: "stats"},
+		{X: 1000, Y: 20, W: 150, H: 30, Text: "Выйти из игры", Command: "quit"},
+	}
+	return g
+}
+
+func (g *Game) sendCommand(cmd string) {
+	if g.wsConn == nil {
+		return
+	}
+
+	err := g.wsConn.WriteMessage(websocket.TextMessage, []byte(cmd+"\n"))
+	if err != nil {
+		fmt.Println("Ошибка отправки:", err)
+	}
+}
+
+// центрировать по кнопке.
+func DrawTextCenterInBox(screen *ebiten.Image, str string, font *text.GoTextFace,
+	boxX, boxY, boxW, boxH float64, clr color.Color) {
+	textWidth, textHeight := text.Measure(str, font, 0)
+	x := boxX + (boxW-textWidth)/2
+	y := boxY + (boxH-textHeight)/2
+	DrawText(screen, str, font, x, y, clr)
 }
