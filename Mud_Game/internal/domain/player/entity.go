@@ -137,7 +137,7 @@ func (p *Player) SendMessage(conn net.Conn, msg string) {
 }
 
 // запускает таймер голода (каждые GetHUNGERInterval секунд )
-func (p *Player) StartHungerTicker(conn net.Conn, repo Repository) {
+func (p *Player) StartHungerTicker(conn net.Conn, repo Repository, onStatsChange func()) {
 	if p.Stats.Health <= 0 {
 		return
 	}
@@ -167,10 +167,14 @@ func (p *Player) StartHungerTicker(conn net.Conn, repo Repository) {
 
 				if p.Stats.Hunger > 0 {
 					p.Stats.Hunger--
+					if onStatsChange != nil {
+						onStatsChange()
+					}
 				}
 
 				if p.Stats.Hunger == 0 {
 					p.Stats.Health -= 2
+					onStatsChange()
 					fmt.Fprintf(conn, "Ты умираешь от голода!\n> ")
 				}
 				if p.Stats.Health <= 0 {
@@ -188,7 +192,7 @@ func (p *Player) StartHungerTicker(conn net.Conn, repo Repository) {
 }
 
 // таймер жажды (каждые getthirstticker секунд -1)
-func (p *Player) StartThirstTicker(conn net.Conn, repo Repository) {
+func (p *Player) StartThirstTicker(conn net.Conn, repo Repository, onStatsChange func()) {
 	if p.Stats.Health <= 0 {
 		return
 	}
@@ -215,10 +219,12 @@ func (p *Player) StartThirstTicker(conn net.Conn, repo Repository) {
 
 				if p.Stats.Thirst > 0 {
 					p.Stats.Thirst--
+					onStatsChange()
 				}
 
 				if p.Stats.Thirst == 0 {
 					p.Stats.Health -= 2
+					onStatsChange()
 					fmt.Fprintf(conn, "Ты умираешь от жажды!\n> ")
 				}
 				if p.Stats.Health <= 0 {
@@ -290,7 +296,7 @@ func (p *Player) GetThirstInterval() int {
 }
 
 // старт охоты
-func (p *Player) StartHunt(conn net.Conn, repo Repository, roomRepo room.Repository) {
+func (p *Player) StartHunt(conn net.Conn, repo Repository, roomRepo room.Repository, onStatsChange func()) {
 	//тратим 2 бутылки
 	RemoveItem(&p.Inventory, "water bottle", 2)
 
@@ -306,13 +312,13 @@ func (p *Player) StartHunt(conn net.Conn, repo Repository, roomRepo room.Reposit
 	//запускаем таймер окончания охоты
 	go func() {
 		time.Sleep(huntDuration) //////////////////////
-		p.EndHunt(conn, repo, roomRepo)
+		p.EndHunt(conn, repo, roomRepo, onStatsChange)
 	}()
 
 }
 
 // завершение охоты
-func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repository) {
+func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repository, onStatsChange func()) {
 
 	if !p.Stats.IsHunting {
 		return
@@ -398,8 +404,8 @@ func (p *Player) EndHunt(conn net.Conn, repo Repository, roomRepo room.Repositor
 
 	p.Stats.IsHunting = false
 
-	go p.StartHungerTicker(conn, repo)
-	go p.StartThirstTicker(conn, repo)
+	go p.StartHungerTicker(conn, repo, onStatsChange)
+	go p.StartThirstTicker(conn, repo, onStatsChange)
 
 	p.CheckLevelUp(conn)
 	repo.Save(p)
@@ -703,7 +709,7 @@ func (p *Player) ProcessStatChoice(choice string, conn net.Conn) {
 }
 
 // запуск бафа
-func (p *Player) StartBuffTicker(conn net.Conn, repo Repository) {
+func (p *Player) StartBuffTicker(conn net.Conn, repo Repository, onStatsChange func()) {
 	if p.Stats.Health <= 0 {
 		return
 	}
@@ -734,6 +740,10 @@ func (p *Player) StartBuffTicker(conn net.Conn, repo Repository) {
 					}
 				}
 				p.processBuffs(repo)
+
+				if onStatsChange != nil {
+					onStatsChange() //-после обработки бафов
+				}
 
 				if p.Stats.Health > 0 {
 					repo.Save(p)

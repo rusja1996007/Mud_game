@@ -81,13 +81,19 @@ func (s *WSServer) handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(adapter, "%s", welcomeMsg)
 
+	//колбэк для отправки статов
+	statsCallBack := func() {
+		s.SendStats(adapter, currentPlayer)
+	}
+
 	//Восстановление охоты
 	if currentPlayer.Stats.IsHunting {
 		if time.Now().After(currentPlayer.Stats.HuntingEndTime) {
-			currentPlayer.EndHunt(adapter, s.playerRepo, s.roomRepo)
+			currentPlayer.EndHunt(adapter, s.playerRepo, s.roomRepo, statsCallBack)
 			//после завершения охоты запускаем тикеры и показываем комнату
-			go currentPlayer.StartHungerTicker(adapter, s.playerRepo)
-			go currentPlayer.StartThirstTicker(adapter, s.playerRepo)
+			go currentPlayer.StartHungerTicker(adapter, s.playerRepo, statsCallBack)
+			go currentPlayer.StartThirstTicker(adapter, s.playerRepo, statsCallBack)
+			go currentPlayer.StartBuffTicker(adapter, s.playerRepo, statsCallBack)
 			room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom)
 			fmt.Fprintf(adapter, "%s\n> ", room.Look(currentPlayer.ID))
 		} else {
@@ -96,14 +102,15 @@ func (s *WSServer) handleConnection(w http.ResponseWriter, r *http.Request) {
 
 			go func() {
 				time.Sleep(time.Until(currentPlayer.Stats.HuntingEndTime))
-				currentPlayer.EndHunt(adapter, s.playerRepo, s.roomRepo)
+				currentPlayer.EndHunt(adapter, s.playerRepo, s.roomRepo, statsCallBack)
 			}()
 		}
 	} else {
+
 		//тикеры
-		go currentPlayer.StartHungerTicker(adapter, s.playerRepo)
-		go currentPlayer.StartThirstTicker(adapter, s.playerRepo)
-		go currentPlayer.StartBuffTicker(adapter, s.playerRepo)
+		go currentPlayer.StartHungerTicker(adapter, s.playerRepo, statsCallBack)
+		go currentPlayer.StartThirstTicker(adapter, s.playerRepo, statsCallBack)
+		go currentPlayer.StartBuffTicker(adapter, s.playerRepo, statsCallBack)
 
 		//Восстановление путешествия(передвижение)
 		if currentPlayer.Stats.IsTraveling {
@@ -150,6 +157,7 @@ func (s *WSServer) handleConnection(w http.ResponseWriter, r *http.Request) {
 			if common.RouteCommand(adapter, cmd, currentPlayer, s.playerRepo, s.roomRepo, s.npcRepo, s) {
 				break
 			}
+			s.SendStats(adapter, currentPlayer)
 		}
 	}
 }
@@ -200,4 +208,11 @@ func (s *WSServer) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
 	}
 	fmt.Fprintf(conn, "\n> ")
 
+}
+
+// отправка статов персонажа
+func (s *WSServer) SendStats(conn net.Conn, p *player.Player) {
+	maxHP := 50 + p.Stats.Strength*5 + p.Stats.MaxHealthBonus
+	maxEXP := p.GetExpForNextLevel()
+	fmt.Fprintf(conn, "STATS:%d,%d,%d,%d,%d,%d,%d,%d\n", p.Stats.Health, maxHP, p.Stats.Hunger, 100, p.Stats.Thirst, 100, p.Stats.Experience, maxEXP)
 }

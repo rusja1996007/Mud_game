@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -50,14 +51,18 @@ type Button struct {
 // Game struct представляет игру.
 // Ebiten требует, чтобы у нас был объект с методами Update, Draw, Layout.
 type Game struct {
-	frameIndex     int    //Хранить текущий кадр анимации.
-	tickCount      int    //  счетчик тиков
-	playerName     string //имя игрока
-	cursorVisible  bool   //виден ли курсор сейчас
-	cursorTimer    int    //таймер мигания
-	backspaceTimer int    //для того чтобы удалял 1 символ или при зажатии больше
-	gameState      string //строка состояния "login" или "game"
-	wasClicked     bool   //был ли клик
+	frameIndex        int    //Хранить текущий кадр анимации.
+	tickCount         int    //  счетчик тиков
+	playerName        string //имя игрока
+	cursorVisible     bool   //виден ли курсор сейчас
+	cursorTimer       int    //таймер мигания
+	backspaceTimer    int    //для того чтобы удалял 1 символ или при зажатии больше
+	gameState         string //строка состояния "login" или "game"
+	wasClicked        bool   //был ли клик
+	hp, maxHp         int    //для отображений статов
+	hunger, maxHunger int    //для отображений статов
+	thirst, maxThirst int    //для отображений статов
+	exp, maxExp       int    //для отображений статов
 
 	//WebSocket
 	wsConn   *websocket.Conn //соединение
@@ -351,6 +356,27 @@ func (g *Game) drawGameScreen(screen *ebiten.Image) {
 		DrawText(screen, g.gameLog[i], logFont, 30, y, color.White)
 		y += 16 //межстрочный интервал
 	}
+
+	//ПАнель статов
+	panelX := float32(980)
+	panelY := float32(20)
+	panelW := float32(280)
+	panelH := float32(170)
+
+	//Фон панели
+	vector.FillRect(screen, panelX, panelY, panelW, panelH, color.RGBA{20, 20, 30, 200}, false)
+
+	//hp
+	drawBar(screen, panelX+10, panelY+10, 260, 20, g.hp, g.maxHp, color.RGBA{200, 50, 50, 255}, "HP")
+
+	//ГОлод
+	drawBar(screen, panelX+10, panelY+50, 260, 20, g.hunger, g.maxHunger, color.RGBA{200, 150, 50, 255}, "Голод")
+
+	//Жажда
+	drawBar(screen, panelX+10, panelY+90, 260, 20, g.thirst, g.maxThirst, color.RGBA{50, 150, 200, 255}, "Жажда")
+
+	//Exp
+	drawBar(screen, panelX+10, panelY+130, 260, 20, g.exp, g.maxExp, color.White, "EXP")
 }
 
 func (g *Game) readMessages() {
@@ -367,9 +393,28 @@ func (g *Game) readMessages() {
 		//добавляем в лог
 		g.logMutex.Lock()
 		for _, line := range lines {
-			if line != "" {
-				g.gameLog = append(g.gameLog, line)
+			if line == "" {
+				continue
 			}
+			//парсим STATS
+			if strings.HasPrefix(line, "STATS:") {
+				data := strings.TrimPrefix(line, "STATS:")
+				parts := strings.Split(data, ",")
+
+				if len(parts) >= 8 {
+					g.hp, _ = strconv.Atoi(parts[0])
+					g.maxHp, _ = strconv.Atoi(parts[1])
+					g.hunger, _ = strconv.Atoi(parts[2])
+					g.maxHunger, _ = strconv.Atoi(parts[3])
+					g.thirst, _ = strconv.Atoi(parts[4])
+					g.maxThirst, _ = strconv.Atoi(parts[5])
+					g.exp, _ = strconv.Atoi(parts[6])
+					g.maxExp, _ = strconv.Atoi(parts[7])
+				}
+				continue
+			}
+			//обычная строка - в лог
+			g.gameLog = append(g.gameLog, line)
 		}
 
 		//ограничиваем лог
@@ -395,7 +440,7 @@ func NewGame() *Game {
 		{X: 40, Y: y, W: 150, H: 30, Text: "Осмотреться", Command: "look"},
 		{X: 230, Y: y, W: 150, H: 30, Text: "Инвентарь", Command: "inventory"},
 		{X: 420, Y: y, W: 150, H: 30, Text: "Характеристики", Command: "stats"},
-		{X: 1000, Y: 20, W: 150, H: 30, Text: "Выйти из игры", Command: "quit"},
+		{X: 1100, Y: 660, W: 150, H: 30, Text: "Выйти из игры", Command: "quit"},
 	}
 	return g
 }
@@ -418,4 +463,20 @@ func DrawTextCenterInBox(screen *ebiten.Image, str string, font *text.GoTextFace
 	x := boxX + (boxW-textWidth)/2
 	y := boxY + (boxH-textHeight)/2
 	DrawText(screen, str, font, x, y, clr)
+}
+
+// панель статов
+func drawBar(screen *ebiten.Image, x, y, w, h float32, value, max int, fillColor color.Color, label string) {
+	//фон
+	vector.FillRect(screen, x, y, w, h, color.RGBA{60, 60, 60, 255}, false)
+
+	//заполнение
+	if max > 0 {
+		fillW := w * float32(value) / float32(max)
+		vector.FillRect(screen, x, y, fillW, h, fillColor, false)
+	}
+
+	//текст
+	txt := fmt.Sprintf("%s: %d/%d", label, value, max)
+	DrawText(screen, txt, logFont, float64(x+5), float64(y+2), color.White)
 }

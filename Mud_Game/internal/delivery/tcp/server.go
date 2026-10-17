@@ -117,10 +117,11 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 	//Восстановление охоты
 	if currentPlayer.Stats.IsHunting {
 		if time.Now().After(currentPlayer.Stats.HuntingEndTime) {
-			currentPlayer.EndHunt(conn, s.playerRepo, s.roomRepo)
+			currentPlayer.EndHunt(conn, s.playerRepo, s.roomRepo, nil)
 			//после завершения охоты запускаем тикеры и показываем комнату
-			go currentPlayer.StartHungerTicker(conn, s.playerRepo)
-			go currentPlayer.StartThirstTicker(conn, s.playerRepo)
+			go currentPlayer.StartHungerTicker(conn, s.playerRepo, nil)
+			go currentPlayer.StartThirstTicker(conn, s.playerRepo, nil)
+			go currentPlayer.StartBuffTicker(conn, s.playerRepo, nil)
 			room, _ := s.roomRepo.FindByID(currentPlayer.CurrentRoom)
 			fmt.Fprintf(conn, "%s\n> ", room.Look(currentPlayer.ID))
 		} else {
@@ -129,15 +130,15 @@ func (s *Server) handleConnection(conn net.Conn) { //Метод handleConnection
 
 			go func() {
 				time.Sleep(time.Until(currentPlayer.Stats.HuntingEndTime))
-				currentPlayer.EndHunt(conn, s.playerRepo, s.roomRepo)
+				currentPlayer.EndHunt(conn, s.playerRepo, s.roomRepo, nil)
 			}()
 		}
 	} else {
 
 		//запускаем тикер отнимания еды и воды
-		go currentPlayer.StartHungerTicker(conn, s.playerRepo)
-		go currentPlayer.StartThirstTicker(conn, s.playerRepo)
-		go currentPlayer.StartBuffTicker(conn, s.playerRepo)
+		go currentPlayer.StartHungerTicker(conn, s.playerRepo, nil) //Почему nil: TCP не нужны колбэки (статы в тексте).
+		go currentPlayer.StartThirstTicker(conn, s.playerRepo, nil)
+		go currentPlayer.StartBuffTicker(conn, s.playerRepo, nil)
 
 		//Восстановление путешествия(передвижение)
 		if currentPlayer.Stats.IsTraveling {
@@ -237,4 +238,8 @@ func (s *Server) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
 	}
 	fmt.Fprintf(conn, "\n> ")
 
+}
+
+func (s *Server) SendStats(conn net.Conn, p *player.Player) {
+	//TCP — ничего не делает: заглушка
 }

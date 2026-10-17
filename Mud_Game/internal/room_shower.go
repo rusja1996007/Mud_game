@@ -8,4 +8,5 @@ import (
 // RoomShower - интерфейс для показа комнаты с NPC
 type RoomShower interface {
 	ShowRoomWithNPC(conn net.Conn, p *player.Player)
+	SendStats(conn net.Conn, p *player.Player)
 }

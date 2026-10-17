@@ -22,6 +22,6 @@ func HandleYesHunt(conn net.Conn, cmd string, p *player.Player, roomRepo room.Re
 	}
 
 	p.PendingHunt = false
-	p.StartHunt(conn, playerRepo, roomRepo)
+	p.StartHunt(conn, playerRepo, roomRepo, nil)
 	fmt.Fprintf(conn, "Ты отправился на охоту! Вернешься через 1 час.\n> ")
 }
