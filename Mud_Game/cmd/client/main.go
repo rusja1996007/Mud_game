@@ -70,7 +70,8 @@ type Game struct {
 	logMutex sync.Mutex
 
 	//кнопки
-	buttons []Button
+	buttons     []Button
+	exitButtons []Button //кнопки выходов
 }
 
 // Специальная функция Go, которая автоматически вызывается до main()
@@ -215,6 +216,7 @@ func (g *Game) Update() error {
 	if g.gameState == "game" && pressed && !g.wasClicked {
 		mx, my := ebiten.CursorPosition()
 
+		// Статические кнопки
 		for _, btn := range g.buttons {
 			if float64(mx) >= btn.X && float64(mx) <= btn.X+btn.W &&
 				float64(my) >= btn.Y && float64(my) <= btn.Y+btn.H {
@@ -222,6 +224,16 @@ func (g *Game) Update() error {
 				g.sendCommand(btn.Command)
 			}
 		}
+
+		//Кнопки выходов
+		for _, btn := range g.exitButtons {
+			if float64(mx) >= btn.X && float64(mx) <= btn.X+btn.W &&
+				float64(my) >= btn.Y && float64(my) <= btn.Y+btn.H {
+				//клик по кнопке
+				g.sendCommand(btn.Command)
+			}
+		}
+
 	}
 	g.wasClicked = pressed
 	return nil
@@ -242,11 +254,18 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.drawGameScreen(screen)
 
 		//КНОПКИ — ПОСЛЕДНИМИ (поверх всего) — только на игровом экране
+		//постоянные
 		for _, btn := range g.buttons {
 			vector.FillRect(screen, float32(btn.X), float32(btn.Y), float32(btn.W), float32(btn.H), color.RGBA{60, 60, 80, 200}, false)
 			//Центрируем надпись внутри кнопок
 			DrawTextCenterInBox(screen, btn.Text, buttonFont, btn.X, btn.Y, btn.W, btn.H, color.White)
 		}
+		//выходы
+		for _, btn := range g.exitButtons {
+			vector.FillRect(screen, float32(btn.X), float32(btn.Y), float32(btn.W), float32(btn.H), color.RGBA{80, 100, 60, 200}, false)
+			DrawTextCenterInBox(screen, btn.Text, buttonFont, btn.X, btn.Y, btn.W, btn.H, color.White)
+		}
+
 	}
 }
 
@@ -379,6 +398,7 @@ func (g *Game) drawGameScreen(screen *ebiten.Image) {
 	drawBar(screen, panelX+10, panelY+130, 260, 20, g.exp, g.maxExp, color.White, "EXP")
 }
 
+// читает сообщение от клиента?
 func (g *Game) readMessages() {
 	for {
 		_, message, err := g.wsConn.ReadMessage()
@@ -413,6 +433,14 @@ func (g *Game) readMessages() {
 				}
 				continue
 			}
+
+			//парсим EXITS
+			if strings.HasPrefix(line, "EXITS:") {
+				data := strings.TrimPrefix(line, "EXITS:")
+				exits := strings.Split(data, ",")
+				g.updateExitButtons(exits)
+				continue
+			}
 			//обычная строка - в лог
 			g.gameLog = append(g.gameLog, line)
 		}
@@ -441,6 +469,7 @@ func NewGame() *Game {
 		{X: 230, Y: y, W: 150, H: 30, Text: "Инвентарь", Command: "inventory"},
 		{X: 420, Y: y, W: 150, H: 30, Text: "Характеристики", Command: "stats"},
 		{X: 1100, Y: 660, W: 150, H: 30, Text: "Выйти из игры", Command: "quit"},
+		{X: 1180, Y: 620, W: 70, H: 30, Text: "Охота", Command: "hunt"},
 	}
 	return g
 }
@@ -479,4 +508,22 @@ func drawBar(screen *ebiten.Image, x, y, w, h float32, value, max int, fillColor
 	//текст
 	txt := fmt.Sprintf("%s: %d/%d", label, value, max)
 	DrawText(screen, txt, logFont, float64(x+5), float64(y+2), color.White)
+}
+
+// клиент - создает кнопки
+func (g *Game) updateExitButtons(exits []string) {
+	//сбрасываем выходы
+	g.exitButtons = nil
+
+	y := 660.0
+	for i, exit := range exits {
+		g.exitButtons = append(g.exitButtons, Button{
+			X:       620 + float64(i)*80,
+			Y:       y,
+			W:       70,
+			H:       40,
+			Text:    exit,
+			Command: "move " + exit,
+		})
+	}
 }

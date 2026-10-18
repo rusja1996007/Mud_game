@@ -183,6 +183,7 @@ func (s *WSServer) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
 				room, _ = s.roomRepo.FindByID(p.CurrentRoom)
 				fmt.Fprintf(conn, "%s", room.Look(p.ID))
 				fmt.Fprintf(conn, "\n> ")
+
 				return
 			}
 
@@ -207,6 +208,8 @@ func (s *WSServer) ShowRoomWithNPC(conn net.Conn, p *player.Player) {
 
 	}
 	fmt.Fprintf(conn, "\n> ")
+	//показ выходов
+	s.SendExits(conn, p)
 
 }
 
@@ -215,4 +218,18 @@ func (s *WSServer) SendStats(conn net.Conn, p *player.Player) {
 	maxHP := 50 + p.Stats.Strength*5 + p.Stats.MaxHealthBonus
 	maxEXP := p.GetExpForNextLevel()
 	fmt.Fprintf(conn, "STATS:%d,%d,%d,%d,%d,%d,%d,%d\n", p.Stats.Health, maxHP, p.Stats.Hunger, 100, p.Stats.Thirst, 100, p.Stats.Experience, maxEXP)
+}
+
+// отправка списка выходов из текущей комнаты
+func (s *WSServer) SendExits(conn net.Conn, p *player.Player) {
+	r, _ := s.roomRepo.FindByID(p.CurrentRoom)
+	concreteRoom := r.(*room.Room)
+
+	//собираем все выходы
+	exits := []string{}
+	for name := range concreteRoom.Exits {
+		exits = append(exits, name)
+	}
+
+	fmt.Fprintf(conn, "EXITS:%s\n", strings.Join(exits, ","))
 }
