@@ -174,7 +174,9 @@ func (p *Player) StartHungerTicker(conn net.Conn, repo Repository, onStatsChange
 
 				if p.Stats.Hunger == 0 {
 					p.Stats.Health -= 2
-					onStatsChange()
+					if onStatsChange != nil {
+						onStatsChange()
+					}
 					fmt.Fprintf(conn, "Ты умираешь от голода!\n> ")
 				}
 				if p.Stats.Health <= 0 {
@@ -219,12 +221,16 @@ func (p *Player) StartThirstTicker(conn net.Conn, repo Repository, onStatsChange
 
 				if p.Stats.Thirst > 0 {
 					p.Stats.Thirst--
-					onStatsChange()
+					if onStatsChange != nil {
+						onStatsChange()
+					}
 				}
 
 				if p.Stats.Thirst == 0 {
 					p.Stats.Health -= 2
-					onStatsChange()
+					if onStatsChange != nil {
+						onStatsChange()
+					}
 					fmt.Fprintf(conn, "Ты умираешь от жажды!\n> ")
 				}
 				if p.Stats.Health <= 0 {

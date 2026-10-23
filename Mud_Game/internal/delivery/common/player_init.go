@@ -64,8 +64,11 @@ func InitPlayer(name string, playerRepo player.Repository, roomRepo room.Reposit
 		ID:          id,
 		Name:        name,
 		CurrentRoom: zone.HomeRoomID,
-		Inventory:   []*item.ItemStack{},
-		Equipment:   &player.Equipment{},
+		Inventory: []*item.ItemStack{
+			item.GetItem("water bottle", 2),
+			item.GetItem("empty bottle", 2),
+		},
+		Equipment: &player.Equipment{},
 		Stats: &player.Stats{
 			MaxSlots:   8,
 			Hunger:     100,

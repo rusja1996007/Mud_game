@@ -72,6 +72,9 @@ type Game struct {
 	//кнопки
 	buttons     []Button
 	exitButtons []Button //кнопки выходов
+
+	confirmActive bool   //показывает сейчас выбора yes или no?
+	confirmText   string //текст сообщения
 }
 
 // Специальная функция Go, которая автоматически вызывается до main()
@@ -125,6 +128,7 @@ func main() {
 
 // Здесь обрабатывается логика(60 кад/сек) фона
 func (g *Game) Update() error {
+
 	///////////////////////////////Каждый тик (60 раз/сек) — следующий кадр. Цикл. меняется слайд
 	g.tickCount++
 	if g.tickCount >= 2 {
@@ -183,9 +187,9 @@ func (g *Game) Update() error {
 
 	///////////////////////////////////обработка клика по кнопке(только на экране логина)//////////
 	pressed := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) //было ли нажатие левой кнопки мыши
-	if g.gameState == "login" && pressed && !g.wasClicked {
+	if g.gameState == "login" && pressed && !g.wasClicked && !g.confirmActive {
 		mx, my := ebiten.CursorPosition()
-		//отрезок для клика(прямоугольник)
+		//отрезок для клика(прямоугольник "Войти")
 		if mx >= btnX && mx <= btnX+btnW && my >= btnY && my <= btnY+btnH {
 			if g.playerName != "" {
 				//1. Подключаемся
@@ -210,16 +214,44 @@ func (g *Game) Update() error {
 				g.gameState = "game"
 			}
 		}
+		//отрезок для клика(прямоугольник "Выйти")
+		if mx >= btnX && mx <= btnX+btnW && my >= btnY+80 && my <= btnY+80+btnH {
+			return ebiten.Termination //закрывает Ebitenengine
+		}
 	}
 
 	///////////////////////////////////обработка клика по кнопке(В самой игре)//////////
-	if g.gameState == "game" && pressed && !g.wasClicked {
+	if g.gameState == "game" && pressed && !g.wasClicked && !g.confirmActive {
 		mx, my := ebiten.CursorPosition()
 
 		// Статические кнопки
 		for _, btn := range g.buttons {
 			if float64(mx) >= btn.X && float64(mx) <= btn.X+btn.W &&
 				float64(my) >= btn.Y && float64(my) <= btn.Y+btn.H {
+
+				// quit
+				if btn.Command == "quit" {
+
+					g.sendCommand("quit")
+
+					//закрываем соединение
+					if g.wsConn != nil {
+						g.wsConn.Close()
+						g.wsConn = nil
+					}
+
+					//меняем экран на логин
+					g.gameState = "login"
+
+					//очищаем лог
+					g.logMutex.Lock()
+					g.gameLog = nil
+					g.logMutex.Unlock()
+
+					g.playerName = ""
+
+				}
+
 				//клик по кновке
 				g.sendCommand(btn.Command)
 			}
@@ -233,11 +265,36 @@ func (g *Game) Update() error {
 				g.sendCommand(btn.Command)
 			}
 		}
+	}
+
+	//блокировка в момент yes/no
+	if g.confirmActive && pressed && !g.wasClicked {
+		if pressed && !g.wasClicked {
+			mx, my := ebiten.CursorPosition()
+
+			//Кнопик YES/NO координаты панели
+			panelW, panelH := float32(600), float32(300)
+			panelX := float32((screenW - panelW) / 2)
+			panelY := float32((screenH - panelH) / 2)
+
+			//yes
+			if float64(mx) >= float64(panelX+100) && float64(mx) <= float64(panelX+250) &&
+				float64(my) >= float64(panelY+200) && float64(my) <= float64(panelY+260) {
+				g.sendCommand("yes")
+				g.confirmActive = false
+			}
+
+			//no
+			if float64(mx) >= float64(panelX+350) && float64(mx) <= float64(panelX+500) &&
+				float64(my) >= float64(panelY+200) && float64(my) <= float64(panelY+260) {
+				g.sendCommand("no")
+				g.confirmActive = false
+			}
+		}
 
 	}
 	g.wasClicked = pressed
 	return nil
-
 }
 
 // Здесь рисуется всё(60 кад/сек)
@@ -252,6 +309,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	} else {
 		//экран игры
 		g.drawGameScreen(screen)
+
+		if g.confirmActive {
+			g.drawConfirmModal(screen)
+		}
 
 		//КНОПКИ — ПОСЛЕДНИМИ (поверх всего) — только на игровом экране
 		//постоянные
@@ -340,9 +401,12 @@ func (g *Game) drawLoginScreen(screen *ebiten.Image) {
 	DrawCenteredText(screen, "Введите имя персонажа", myFont, 1280, 320, color.White)
 	//ПОЛЕ ВВОДА
 	vector.FillRect(screen, 490, 360, 300, 50, color.RGBA{40, 40, 60, 50}, true)
-	//КНОПКА ВОЙТИ
+	//КНОПКА ВОЙТИ(просто отрисовка)
 	vector.FillRect(screen, btnX, btnY, btnW, btnH, color.RGBA{60, 120, 120, 200}, false)
 	DrawCenteredText(screen, "Войти", myFont, 1280, 465, color.White)
+	//КНОПКА ВЫЙТИ
+	vector.FillRect(screen, btnX, btnY+80, btnW, btnH, color.RGBA{120, 60, 60, 200}, false)
+	DrawCenteredText(screen, "Выйти", myFont, 1280, 545, color.White)
 
 	//текст внутри поля(ник игрока, пока пустой)
 	if g.playerName == "" {
@@ -356,7 +420,7 @@ func (g *Game) drawLoginScreen(screen *ebiten.Image) {
 		if g.cursorVisible {
 			text += "_"
 		}
-		DrawText(screen, g.playerName, myFont, 510, 375, color.White)
+		DrawText(screen, text, myFont, 510, 375, color.White)
 	}
 }
 
@@ -398,7 +462,7 @@ func (g *Game) drawGameScreen(screen *ebiten.Image) {
 	drawBar(screen, panelX+10, panelY+130, 260, 20, g.exp, g.maxExp, color.White, "EXP")
 }
 
-// читает сообщение от клиента?
+// читает сообщение от клиента
 func (g *Game) readMessages() {
 	for {
 		_, message, err := g.wsConn.ReadMessage()
@@ -439,6 +503,15 @@ func (g *Game) readMessages() {
 				data := strings.TrimPrefix(line, "EXITS:")
 				exits := strings.Split(data, ",")
 				g.updateExitButtons(exits)
+				continue
+			}
+
+			//парсим Подтверждение
+			if strings.HasPrefix(line, "CONFIRM:") {
+				if !g.confirmActive {
+					g.confirmActive = true
+					g.confirmText = strings.TrimPrefix(line, "CONFIRM:")
+				}
 				continue
 			}
 			//обычная строка - в лог
@@ -526,4 +599,24 @@ func (g *Game) updateExitButtons(exits []string) {
 			Command: "move " + exit,
 		})
 	}
+}
+
+// затемнение экрана+подтверждение
+func (g *Game) drawConfirmModal(screen *ebiten.Image) {
+	//1.Затемнение экрана
+	vector.FillRect(screen, 0, 0, screenW, screenH, color.RGBA{0, 0, 0, 150}, false)
+
+	//2. Темный прямоуглльник в центре
+	panelW, panelH := float32(600), float32(300)
+	panelX := (screenW - panelW) / 2
+	panelY := (screenH - panelH) / 2
+	vector.FillRect(screen, panelX, panelY, panelW, panelH, color.RGBA{30, 30, 50, 240}, false)
+
+	//3.текст
+	DrawTextCenterInBox(screen, g.confirmText, logFont, float64(panelX), float64(panelY), float64(panelW), 60, color.White)
+
+	//4.Кнопки YES/NO
+	DrawTextCenterInBox(screen, "[ YES ]", buttonFont, float64(panelX+100), float64(panelY+200), 150, 60, color.White)
+
+	DrawTextCenterInBox(screen, "[ NO ]", buttonFont, float64(panelX+350), float64(panelY+200), 150, 60, color.White)
 }

@@ -157,6 +157,12 @@ func (s *WSServer) handleConnection(w http.ResponseWriter, r *http.Request) {
 			if common.RouteCommand(adapter, cmd, currentPlayer, s.playerRepo, s.roomRepo, s.npcRepo, s) {
 				break
 			}
+			//ждет ли подтвеждение
+			if currentPlayer.PendingHunt {
+				s.SendConfirm(adapter, "Охота займет 1 час. Ты уверен?")
+			} else if currentPlayer.PendingTravel {
+				s.SendConfirm(adapter, "Путь займет время. Ты уверен?")
+			}
 			s.SendStats(adapter, currentPlayer)
 		}
 	}
@@ -232,4 +238,9 @@ func (s *WSServer) SendExits(conn net.Conn, p *player.Player) {
 	}
 
 	fmt.Fprintf(conn, "EXITS:%s\n", strings.Join(exits, ","))
+}
+
+// отправка подтверждения да или нет
+func (s *WSServer) SendConfirm(conn net.Conn, confirmType string) {
+	fmt.Fprintf(conn, "CONFIRM:%s\n", confirmType)
 }
